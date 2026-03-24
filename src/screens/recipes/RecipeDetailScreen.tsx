@@ -1,0 +1,251 @@
+import React, { useState, useCallback } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
+import { getRecipeById, deleteRecipe } from '../../services/sqlite/recipeService';
+import { theme } from '../../constants/theme';
+import { formatTime, formatQuantity, formatUnit } from '../../utils/formatters';
+import { Recipe } from '../../types';
+import { FavoriteButton } from '../../components/common/FavoriteButton';
+import { AddToCollectionModal } from '../../components/recipe/AddToCollectionModal';
+import { ServingsControl } from '../../components/recipe/ServingsControl';
+import { useServings } from '../../hooks/useServings';
+
+export const RecipeDetailScreen = () => {
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const { recipeId } = route.params;
+
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'steps'>('ingredients');
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+
+  // Utilize the servings hook
+  const { currentServings, setServings, adjustedIngredients } = useServings(
+    recipe?.ingredients || [], 
+    recipe?.servings || 1
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRecipe();
+    }, [recipeId])
+  );
+
+  const loadRecipe = async () => {
+    try {
+      const data = await getRecipeById(recipeId);
+      setRecipe(data);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível carregar a receita');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert('Excluir Receita', 'Tem certeza que deseja excluir esta receita?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: handleDelete }
+    ]);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteRecipe(recipeId);
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível excluir a receita');
+    }
+  };
+
+  if (loading) {
+    return <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
+  }
+
+  if (!recipe) {
+    return <View style={styles.center}><Text>Receita não encontrada.</Text></View>;
+  }
+
+  return (
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.imageContainer}>
+          {recipe.photoUrl ? (
+             <Image source={{ uri: recipe.photoUrl }} style={styles.image} />
+          ) : (
+             <View style={[styles.image, styles.placeholderImage]}>
+               <Feather name="image" size={48} color={theme.colors.textSecondary} />
+             </View>
+          )}
+          
+          <View style={styles.headerActions}>
+             <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+               <Feather name="arrow-left" size={24} color={theme.colors.text} />
+             </TouchableOpacity>
+             <View style={styles.headerRight}>
+               <View style={styles.headerBtn}>
+                 <FavoriteButton recipeId={recipeId} />
+               </View>
+               <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCollectionModal(true)}>
+                 <Feather name="folder-plus" size={24} color={theme.colors.text} />
+               </TouchableOpacity>
+               <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('EditRecipe', { id: recipeId })}>
+                 <Feather name="edit-2" size={24} color={theme.colors.primary} />
+               </TouchableOpacity>
+               <TouchableOpacity style={styles.headerBtn} onPress={confirmDelete}>
+                 <Feather name="trash-2" size={24} color={theme.colors.error} />
+               </TouchableOpacity>
+             </View>
+          </View>
+        </View>
+
+        <AddToCollectionModal 
+          visible={showCollectionModal} 
+          recipeId={recipeId} 
+          onClose={() => setShowCollectionModal(false)} 
+        />
+
+        <View style={styles.content}>
+          <View style={styles.badge}><Text style={styles.badgeText}>{recipe.category}</Text></View>
+          <Text style={styles.title}>{recipe.title}</Text>
+          {recipe.description ? <Text style={styles.description}>{recipe.description}</Text> : null}
+
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Feather name="clock" size={20} color={theme.colors.primary} />
+              <View>
+                <Text style={styles.metaLabel}>Tempo</Text>
+                <Text style={styles.metaValue}>{formatTime(recipe.prepTime)}</Text>
+              </View>
+            </View>
+            <View style={styles.metaDivider} />
+            <View style={styles.metaItem}>
+              <Feather name="book-open" size={20} color={theme.colors.primary} />
+              <View>
+                <Text style={styles.metaLabel}>Receita Original</Text>
+                <Text style={styles.metaValue}>{recipe.servings} {recipe.servings === 1 ? 'porção' : 'porções'}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ paddingHorizontal: theme.spacing.md, marginTop: theme.spacing.md }}>
+            <ServingsControl 
+              servings={currentServings}
+              onIncrease={() => setServings((prev: number) => prev + 1)}
+              onDecrease={() => setServings((prev: number) => prev - 1)}
+            />
+          </View>
+
+          <View style={styles.tabsContainer}>
+             <TouchableOpacity 
+               style={[styles.tab, activeTab === 'ingredients' && styles.activeTab]}
+               onPress={() => setActiveTab('ingredients')}
+             >
+               <Text style={[styles.tabText, activeTab === 'ingredients' && styles.activeTabText]}>Ingredientes</Text>
+             </TouchableOpacity>
+             <TouchableOpacity 
+               style={[styles.tab, activeTab === 'steps' && styles.activeTab]}
+               onPress={() => setActiveTab('steps')}
+             >
+               <Text style={[styles.tabText, activeTab === 'steps' && styles.activeTabText]}>Modo de Preparo</Text>
+             </TouchableOpacity>
+          </View>
+
+          <View style={styles.tabContent}>
+            {activeTab === 'ingredients' ? (
+              adjustedIngredients.map((ing, i) => (
+                <View key={ing.id} style={styles.ingredientRow}>
+                  <View style={styles.bullet} />
+                  <Text style={styles.ingredientText}>
+                    <Text style={[styles.boldText, (ing as any).isAdjusted && { color: theme.colors.primary }]}>
+                      {formatQuantity(ing.quantity)} {formatUnit(ing.quantity, ing.unit)} 
+                    </Text>
+                    {' '}de {ing.name}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View>
+                {recipe.steps.length > 0 && (
+                  <TouchableOpacity 
+                    style={{ backgroundColor: theme.colors.primary, padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}
+                    onPress={() => navigation.navigate('CookingMode', { recipe })}
+                  >
+                    <Feather name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Iniciar Modo de Preparo</Text>
+                  </TouchableOpacity>
+                )}
+                {recipe.steps.map((step, i) => (
+                  <View key={step.id} style={styles.stepRow}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>{i + 1}</Text></View>
+                    <View style={styles.stepContent}>
+                        <Text style={styles.stepText}>{step.instruction}</Text>
+                        {(step.timerMinutes || step.timer_minutes) ? (
+                          <View style={styles.timerBadge}>
+                            <Feather name="clock" size={12} color={theme.colors.textSecondary} />
+                            <Text style={styles.timerText}>{step.timerMinutes || step.timer_minutes} min</Text>
+                          </View>
+                        ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+        </View>
+      </ScrollView>
+
+      {/* Botão Flutuante Iniciar Preparo */}
+      <View style={styles.fabContainer}>
+         <TouchableOpacity style={styles.fabBtn} onPress={() => navigation.navigate('CookingMode', { recipe })}>
+            <Feather name="play" size={20} color="#fff" />
+            <Text style={styles.fabText}>Iniciar Preparo</Text>
+         </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  imageContainer: { width: '100%', height: 300, position: 'relative' },
+  image: { width: '100%', height: '100%', resizeMode: 'cover' },
+  placeholderImage: { backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center' },
+  headerActions: { position: 'absolute', top: 50, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  headerRight: { flexDirection: 'row', gap: 12 },
+  headerBtn: { width: 40, height: 40, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2 },
+  content: { padding: theme.spacing.lg, marginTop: -24, backgroundColor: theme.colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  badge: { alignSelf: 'flex-start', backgroundColor: theme.colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.round, marginBottom: theme.spacing.sm },
+  badgeText: { color: theme.colors.textSecondary, fontWeight: 'bold', fontSize: 12 },
+  title: { fontSize: 28, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.md },
+  description: { fontSize: 16, color: theme.colors.textSecondary, lineHeight: 24, marginBottom: theme.spacing.lg },
+  metaRow: { flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: theme.spacing.xl },
+  metaItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, justifyContent: 'center' },
+  metaDivider: { width: 1, backgroundColor: theme.colors.border },
+  metaLabel: { fontSize: 12, color: theme.colors.textSecondary },
+  metaValue: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text },
+  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: theme.colors.border, marginBottom: theme.spacing.lg },
+  tab: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center' },
+  activeTab: { borderBottomWidth: 2, borderColor: theme.colors.primary },
+  tabText: { fontSize: 16, color: theme.colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: theme.colors.primary, fontWeight: 'bold' },
+  tabContent: { paddingBottom: 100 },
+  ingredientRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.xs },
+  bullet: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.primary, marginRight: theme.spacing.sm },
+  ingredientText: { fontSize: 16, color: theme.colors.text, flex: 1, lineHeight: 24 },
+  boldText: { fontWeight: 'bold' },
+  stepRow: { flexDirection: 'row', marginBottom: theme.spacing.lg },
+  stepBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.md, marginTop: 2 },
+  stepBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  stepContent: { flex: 1 },
+  stepText: { fontSize: 16, color: theme.colors.text, lineHeight: 24 },
+  timerBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: theme.colors.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: theme.spacing.sm, gap: 4 },
+  timerText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
+  fabContainer: { position: 'absolute', bottom: theme.spacing.lg, left: theme.spacing.lg, right: theme.spacing.lg },
+  fabBtn: { backgroundColor: theme.colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.spacing.lg, borderRadius: theme.borderRadius.round, elevation: 4, gap: theme.spacing.sm },
+  fabText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+});
