@@ -43,7 +43,7 @@ export default function EditRecipeScreen() {
         });
       }
     } catch (error) {
-       Alert.alert('Erro', 'Não foi possível carregar a receita.');
+       Alert.alert('Erro ao carregar', 'Não foi possível carregar os dados da receita. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -72,11 +72,11 @@ export default function EditRecipeScreen() {
       };
 
       await updateRecipe(recipeId, input);
-      Alert.alert('Sucesso', 'Receita atualizada com sucesso!');
+      Alert.alert('Receita atualizada!', `"${input.title}" foi salva com as alterações.`);
       navigation.goBack();
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Ocorreu um erro ao atualizar a receita.');
+      Alert.alert('Erro ao salvar', 'Não foi possível salvar as alterações. Tente novamente.');
     }
   };
 

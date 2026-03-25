@@ -24,7 +24,7 @@ export const IngredientItem = ({
       <TextInput
         style={styles.quantityInput}
         value={quantity}
-        onChangeText={onChangeQuantity}
+        onChangeText={v => onChangeQuantity(v.replace(/[^0-9.,]/g, ''))}
         placeholder="Qtd"
         keyboardType="numeric"
         returnKeyType="done"

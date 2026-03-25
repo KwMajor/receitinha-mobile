@@ -20,7 +20,7 @@ export const PhotoPicker = ({ imageUri, onChange }: PhotoPickerProps) => {
 
   const openCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') return Alert.alert('Aviso', 'Permissão de câmera negada');
+    if (status !== 'granted') return Alert.alert('Permissão necessária', 'Para tirar uma foto, permita o acesso à câmera nas configurações do dispositivo.');
 
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
@@ -36,7 +36,7 @@ export const PhotoPicker = ({ imageUri, onChange }: PhotoPickerProps) => {
 
   const openGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert('Aviso', 'Permissão de galeria negada');
+    if (status !== 'granted') return Alert.alert('Permissão necessária', 'Para escolher uma foto, permita o acesso à galeria nas configurações do dispositivo.');
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],

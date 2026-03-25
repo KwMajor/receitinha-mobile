@@ -32,11 +32,11 @@ export default function CreateRecipeScreen() {
       };
 
       await createRecipe(user.id, input);
-      Alert.alert('Sucesso', 'Receita salva com sucesso!');
+      Alert.alert('Receita criada!', `"${input.title}" foi salva com sucesso.`);
       navigation.goBack();
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar a receita.');
+      Alert.alert('Erro ao salvar', 'Não foi possível salvar a receita. Verifique sua conexão e tente novamente.');
     }
   };
 

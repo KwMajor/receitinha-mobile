@@ -38,7 +38,7 @@ export const CollectionDetailScreen = () => {
       const data = await getCollectionRecipes(collectionId);
       setRecipes(data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as receitas da coleção');
+      Alert.alert('Erro ao carregar', 'Não foi possível carregar as receitas desta coleção. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export const CollectionDetailScreen = () => {
       const collectionIds = new Set(recipes.map(r => r.id));
       setAllRecipes(all.filter(r => !collectionIds.has(r.id)));
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as receitas');
+      Alert.alert('Erro ao carregar', 'Não foi possível carregar suas receitas. Tente novamente.');
     } finally {
       setLoadingAll(false);
     }
@@ -65,7 +65,7 @@ export const CollectionDetailScreen = () => {
       setRecipes(prev => [...prev, recipe]);
       setAllRecipes(prev => prev.filter(r => r.id !== recipe.id));
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível adicionar a receita');
+      Alert.alert('Erro ao adicionar', 'Não foi possível adicionar a receita à coleção. Tente novamente.');
     }
   };
 
@@ -81,7 +81,7 @@ export const CollectionDetailScreen = () => {
       await deleteCollection(collectionId);
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível excluir a coleção');
+      Alert.alert('Erro ao excluir', 'Não foi possível excluir a coleção. Tente novamente.');
     }
   };
 
@@ -96,7 +96,7 @@ export const CollectionDetailScreen = () => {
             await removeFromCollection(collectionId, recipeId);
             setRecipes(prev => prev.filter(r => r.id !== recipeId));
           } catch (error) {
-            Alert.alert('Erro', 'Não foi possível remover a receita');
+            Alert.alert('Erro ao remover', 'Não foi possível remover a receita da coleção. Tente novamente.');
           }
         }
       }

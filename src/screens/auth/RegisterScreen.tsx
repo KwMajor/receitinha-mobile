@@ -30,9 +30,10 @@ export const RegisterScreen = () => {
 
   const getFirebaseErrorMessage = (error: any) => {
     switch (error.code) {
-      case 'auth/email-already-in-use': return 'Este e-mail já está em uso';
-      case 'auth/invalid-email': return 'E-mail inválido';
-      default: return 'Erro ao criar conta. Tente novamente.';
+      case 'auth/email-already-in-use': return 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.';
+      case 'auth/invalid-email': return 'O formato do e-mail é inválido. Verifique e tente novamente.';
+      case 'auth/network-request-failed': return 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
+      default: return 'Não foi possível criar a conta. Tente novamente.';
     }
   };
 

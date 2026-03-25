@@ -38,7 +38,7 @@ export const RecipeDetailScreen = () => {
       const data = await getRecipeById(recipeId);
       setRecipe(data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar a receita');
+      Alert.alert('Erro ao carregar', 'Não foi possível carregar os detalhes da receita. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export const RecipeDetailScreen = () => {
       await deleteRecipe(recipeId);
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível excluir a receita');
+      Alert.alert('Erro ao excluir', 'Não foi possível excluir a receita. Tente novamente.');
     }
   };
 
@@ -182,10 +182,10 @@ export const RecipeDetailScreen = () => {
                     <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>{i + 1}</Text></View>
                     <View style={styles.stepContent}>
                         <Text style={styles.stepText}>{step.instruction}</Text>
-                        {(step.timerMinutes || step.timer_minutes) ? (
+                        {step.timer_minutes ? (
                           <View style={styles.timerBadge}>
                             <Feather name="clock" size={12} color={theme.colors.textSecondary} />
-                            <Text style={styles.timerText}>{step.timerMinutes || step.timer_minutes} min</Text>
+                            <Text style={styles.timerText}>{step.timer_minutes} min</Text>
                           </View>
                         ) : null}
                     </View>

@@ -25,13 +25,15 @@ export const ForgotPasswordScreen = () => {
     try {
       setLoading(true);
       await resetPassword(data.email);
-      Alert.alert('Sucesso', 'Um e-mail de recuperação foi enviado para ' + data.email);
+      Alert.alert('E-mail enviado!', `Enviamos as instruções de recuperação para ${data.email}. Verifique sua caixa de entrada (e também a pasta de spam).`);
       navigation.goBack();
     } catch (error: any) {
-      const errorMessage = error.code === 'auth/user-not-found' 
-        ? 'Usuário não encontrado' 
-        : 'Erro ao enviar e-mail. Tente novamente.';
-      Alert.alert('Erro', errorMessage);
+      const errorMessage = error.code === 'auth/user-not-found'
+        ? 'Não encontramos nenhuma conta com este e-mail. Verifique o endereço informado.'
+        : error.code === 'auth/network-request-failed'
+        ? 'Sem conexão com a internet. Verifique sua rede e tente novamente.'
+        : 'Não foi possível enviar o e-mail de recuperação. Tente novamente.';
+      Alert.alert('Erro ao enviar e-mail', errorMessage);
     } finally {
       setLoading(false);
     }

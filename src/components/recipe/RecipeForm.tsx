@@ -20,17 +20,25 @@ const recipeSchema = z.object({
   title: z.string().min(1, 'O título é obrigatório'),
   description: z.string().optional(),
   category: z.string().min(1, 'Selecione uma categoria'),
-  prepTime: z.string().min(1, 'O tempo é obrigatório'),
-  servings: z.string().min(1, 'Obrigatório'),
+  prepTime: z.string()
+    .min(1, 'O tempo é obrigatório')
+    .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
+  servings: z.string()
+    .min(1, 'Obrigatório')
+    .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   photoUrl: z.string().optional(),
   ingredients: z.array(z.object({
-    quantity: z.string().min(1),
+    quantity: z.string()
+      .min(1, 'Obrigatório')
+      .refine(v => /^\d+([.,]\d+)?$/.test(v) && parseFloat(v.replace(',', '.')) > 0, 'Informe um número válido'),
     unit: z.string(),
     name: z.string().min(1)
   })).min(1, 'Adicione pelo menos 1 ingrediente'),
   steps: z.array(z.object({
     instruction: z.string().min(1),
-    timerMinutes: z.string().optional()
+    timerMinutes: z.string()
+      .refine(v => !v || (/^\d+$/.test(v) && Number(v) > 0), 'Informe um número inteiro positivo')
+      .optional()
   })).min(1, 'Adicione pelo menos 1 passo')
 });
 
@@ -122,8 +130,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
     } catch (error) {
       console.error(error);
-      const message = error instanceof Error ? error.message : 'Erro desconhecido';
-      Alert.alert('Erro', `Ocorreu um erro ao salvar a receita: ${message}`);
+      Alert.alert('Erro ao salvar', 'Não foi possível salvar a receita. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -165,7 +172,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           <Controller control={control} name="prepTime" render={({ field: { onChange, value } }) => (
             <View style={[styles.inputGroup, { flex: 1, marginRight: theme.spacing.sm }]}>
               <Text style={styles.label}>Tempo (min) *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={onChange} keyboardType="numeric" placeholder="45" returnKeyType="done" />
+              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="45" returnKeyType="done" />
               {errors.prepTime && <Text style={styles.error}>{errors.prepTime.message}</Text>}
             </View>
           )} />
@@ -173,7 +180,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={styles.label}>Porções *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={onChange} keyboardType="numeric" placeholder="8" returnKeyType="done" />
+              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" returnKeyType="done" />
               {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
             </View>
           )} />
@@ -188,9 +195,9 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
             </TouchableOpacity>
             {errors.category && <Text style={styles.error}>{errors.category.message}</Text>}
             
-            <Modal visible={modalCategoryVisible} transparent animationType="slide">
-              <View style={styles.modalContainer}>
-                 <View style={styles.modalContent}>
+            <Modal visible={modalCategoryVisible} transparent animationType="slide" onRequestClose={() => setModalCategoryVisible(false)}>
+              <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => setModalCategoryVisible(false)}>
+                 <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={() => {}}>
                     <Text style={styles.modalTitle}>Categorias</Text>
                     <FlatList
                       data={categoryNames}
@@ -201,8 +208,8 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
                         </TouchableOpacity>
                       )}
                     />
-                 </View>
-              </View>
+                 </TouchableOpacity>
+              </TouchableOpacity>
             </Modal>
           </View>
         )} />

@@ -57,7 +57,7 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
       setIsCreating(false);
       loadCollections();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível criar a coleção');
+      Alert.alert('Erro ao criar', 'Não foi possível criar a coleção. Tente novamente.');
     }
   };
 
@@ -74,7 +74,7 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
         setRecipeCollections(prev => [...prev, collectionId]);
       }
     } catch (error) {
-       Alert.alert('Erro', 'Não foi possível atualizar a coleção');
+       Alert.alert('Erro ao atualizar', 'Não foi possível atualizar a coleção. Tente novamente.');
     } finally {
       setUpdating(false);
     }

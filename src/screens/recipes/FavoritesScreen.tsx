@@ -52,12 +52,12 @@ export const FavoritesScreen = () => {
       setModalVisible(false);
       loadData();
     } catch (e) {
-      Alert.alert('Erro', 'Não foi possível criar a coleção');
+      Alert.alert('Erro ao criar', 'Não foi possível criar a coleção. Tente novamente.');
     }
   };
 
   const confirmDeleteCollection = (id: string) => {
-    Alert.alert('Ecluir Coleção', 'Tem certeza que deseja excluir esta coleção?', [
+    Alert.alert('Excluir Coleção', 'Tem certeza que deseja excluir esta coleção? As receitas salvas nela não serão apagadas.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Excluir', style: 'destructive', onPress: () => handleDeleteCollection(id) }
     ]);
@@ -68,7 +68,7 @@ export const FavoritesScreen = () => {
       await deleteCollection(id);
       loadData();
     } catch (e) {
-      Alert.alert('Erro', 'Não foi possível excluir a coleção');
+      Alert.alert('Erro ao excluir', 'Não foi possível excluir a coleção. Tente novamente.');
     }
   };
 

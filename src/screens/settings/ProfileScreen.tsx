@@ -36,7 +36,7 @@ export const ProfileScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!editName.trim()) return Alert.alert('Erro', 'O nome não pode estar vazio');
+    if (!editName.trim()) return Alert.alert('Nome obrigatório', 'Por favor, informe seu nome antes de salvar.');
     setSaving(true);
     try {
       if (editName.trim() !== user?.name) {
@@ -44,16 +44,20 @@ export const ProfileScreen = () => {
       }
       if (editEmail.trim() !== user?.email) {
         await updateUserEmail(editEmail.trim());
-        Alert.alert('Verificação necessária', 'Um e-mail de confirmação foi enviado para o novo endereço. O e-mail só será atualizado após a confirmação.');
+        Alert.alert('Confirme seu novo e-mail', `Enviamos um link de confirmação para ${editEmail.trim()}. Acesse seu e-mail e clique no link para concluir a alteração.`);
       }
       const { setUser } = useAuthStore.getState();
       setUser({ ...user!, name: editName.trim(), email: editEmail.trim() });
       setEditModalVisible(false);
     } catch (error: any) {
       const msg = error?.code === 'auth/requires-recent-login'
-        ? 'Por segurança, saia e entre novamente antes de alterar o e-mail.'
-        : error?.message || 'Erro ao salvar alterações';
-      Alert.alert('Erro', msg);
+        ? 'Por segurança, saia da conta e faça login novamente antes de alterar o e-mail.'
+        : error?.code === 'auth/invalid-email'
+        ? 'O e-mail informado não é válido. Verifique e tente novamente.'
+        : error?.code === 'auth/email-already-in-use'
+        ? 'Este e-mail já está em uso por outra conta.'
+        : 'Não foi possível salvar as alterações. Tente novamente.';
+      Alert.alert('Erro ao salvar', msg);
     } finally {
       setSaving(false);
     }
@@ -152,9 +156,9 @@ export const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <Modal visible={editModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditModalVisible(false)}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Editar Perfil</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
@@ -188,8 +192,8 @@ export const ProfileScreen = () => {
                 : <Text style={styles.saveBtnText}>Salvar</Text>
               }
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </ScrollView>
   );

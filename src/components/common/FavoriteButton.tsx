@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { TouchableOpacity, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,7 +14,7 @@ interface FavoriteButtonProps {
 export const FavoriteButton = ({ recipeId, size = 24 }: FavoriteButtonProps) => {
   const { user } = useAuthStore();
   const [isFav, setIsFav] = useState(false);
-  const scale = new Animated.Value(1);
+  const scale = useRef(new Animated.Value(1)).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -30,11 +30,10 @@ export const FavoriteButton = ({ recipeId, size = 24 }: FavoriteButtonProps) => 
 
   const handleToggle = async () => {
     if (!user) return;
-    
-    // Otimista
-    setIsFav(!isFav);
-    
-    // Animação leve de batidinha
+
+    const prevFav = isFav;
+    setIsFav(!prevFav);
+
     Animated.sequence([
       Animated.timing(scale, { toValue: 1.3, duration: 100, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1, duration: 100, useNativeDriver: true })
@@ -42,9 +41,9 @@ export const FavoriteButton = ({ recipeId, size = 24 }: FavoriteButtonProps) => 
 
     try {
       const result = await toggleFavorite(user.id, recipeId);
-      setIsFav(result); // Confirma estado real
+      setIsFav(result);
     } catch (e) {
-      setIsFav(isFav); // Reverte caso falhe
+      setIsFav(prevFav); // Reverte para o estado anterior correto
     }
   };
 

@@ -26,11 +26,12 @@ export const LoginScreen = () => {
 
   const getFirebaseErrorMessage = (error: any) => {
     switch (error.code) {
-      case 'auth/user-not-found': return 'Usuário não encontrado';
-      case 'auth/wrong-password': return 'Senha incorreta';
-      case 'auth/invalid-credential': return 'Credenciais inválidas';
-      case 'auth/too-many-requests': return 'Muitas tentativas. Tente novamente mais tarde.';
-      default: return 'Ocorreu um erro ao fazer login. Tente novamente.';
+      case 'auth/user-not-found': return 'Nenhuma conta encontrada com este e-mail. Verifique e tente novamente.';
+      case 'auth/wrong-password': return 'Senha incorreta. Verifique sua senha e tente novamente.';
+      case 'auth/invalid-credential': return 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.';
+      case 'auth/too-many-requests': return 'Muitas tentativas seguidas. Aguarde alguns minutos antes de tentar novamente.';
+      case 'auth/network-request-failed': return 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
+      default: return 'Não foi possível fazer o login. Tente novamente.';
     }
   };
 
@@ -40,8 +41,7 @@ export const LoginScreen = () => {
       await signIn(data.email, data.password);
     } catch (error: any) {
       console.error('Falha no login', error);
-      const reason = error?.code ? `${error.code}` : error?.message || 'desconhecido';
-      Alert.alert('Erro', `${getFirebaseErrorMessage(error)}\n\nDetalhe: ${reason}`);
+      Alert.alert('Falha no login', getFirebaseErrorMessage(error));
     } finally {
       setLoading(false);
     }

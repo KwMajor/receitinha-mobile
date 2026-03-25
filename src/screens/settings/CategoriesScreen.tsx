@@ -23,7 +23,7 @@ export const CategoriesScreen = () => {
       const cats = await getCategories(user.id);
       setCategories(cats);
     } catch (error) {
-       Alert.alert('Erro', 'Não foi possível carregar as categorias');
+       Alert.alert('Erro ao carregar', 'Não foi possível carregar suas categorias. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,7 @@ export const CategoriesScreen = () => {
       setIsAdding(false);
       loadCategories();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível criar a categoria');
+      Alert.alert('Erro ao criar', 'Não foi possível criar a categoria. Tente novamente.');
     }
   };
 
@@ -47,22 +47,28 @@ export const CategoriesScreen = () => {
       await toggleCategoryActive(user.id, categoryId, !currentStatus);
       loadCategories();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar a categoria');
+      Alert.alert('Erro ao atualizar', 'Não foi possível atualizar a categoria. Tente novamente.');
     }
   };
 
   const handleDelete = (categoryId: string) => {
-    Alert.alert('Deletar Categoria', 'Deseja realmente deletar esta categoria?', [
+    Alert.alert('Excluir Categoria', 'Deseja realmente excluir esta categoria? Ela deixará de aparecer nas suas receitas.', [
       { text: 'Cancelar', style: 'cancel' },
-      { 
-        text: 'Deletar', 
+      {
+        text: 'Excluir',
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteCustomCategory(categoryId);
             loadCategories();
-          } catch (error) {
-             Alert.alert('Erro', 'Não foi possível deletar a categoria');
+          } catch (error: any) {
+            const emUso = error?.message?.includes('Categoria em uso');
+            Alert.alert(
+              emUso ? 'Categoria em uso' : 'Erro ao excluir',
+              emUso
+                ? 'Esta categoria está sendo usada por uma ou mais receitas. Altere a categoria dessas receitas antes de excluí-la.'
+                : 'Não foi possível excluir a categoria. Tente novamente.'
+            );
           }
         }
       }

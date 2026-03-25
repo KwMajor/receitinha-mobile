@@ -42,7 +42,7 @@ export const StepItem = ({
             placeholder="Timer (min)"
             keyboardType="numeric"
             value={timerMinutes}
-            onChangeText={onChangeTimer}
+            onChangeText={v => onChangeTimer(v.replace(/[^0-9]/g, ''))}
             returnKeyType="done"
           />
         </View>

@@ -17,11 +17,11 @@ export const handleFirebaseError = (code: string): string => {
     case 'auth/too-many-requests':
       return 'Muitas tentativas de login malsucedidas. Tente novamente mais tarde.';
     default:
-      return 'Ocorreu um erro desconhecido. Tente novamente mais tarde.';
+      return 'Não foi possível completar a ação. Verifique sua conexão e tente novamente.';
   }
 };
 
 export const handleSQLiteError = (error: Error | any): string => {
   console.error('SQLite Error:', error);
-  return 'Ocorreu um erro interno no banco de dados. Tente novamente.';
+  return 'Erro ao acessar os dados locais. Tente fechar e reabrir o aplicativo.';
 };

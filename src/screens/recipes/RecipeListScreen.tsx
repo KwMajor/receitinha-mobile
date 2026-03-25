@@ -103,9 +103,9 @@ export const RecipeListScreen = () => {
       )}
 
       {/* MODAL DE FILTROS */}
-      <Modal visible={filterModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={filterModalVisible} animationType="slide" transparent onRequestClose={() => setFilterModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
@@ -139,8 +139,8 @@ export const RecipeListScreen = () => {
                 <Text style={styles.applyBtnText}>Aplicar Filtros</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
     </View>

@@ -22,7 +22,7 @@ export const CookingHistoryScreen = () => {
       const data = await getHistory(user.id);
       setHistory(data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar o histórico.');
+      Alert.alert('Erro ao carregar', 'Não foi possível carregar seu histórico de preparo. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export const CookingHistoryScreen = () => {
       await deleteFromHistory(id);
       setHistory(prev => prev.filter(h => h.id !== id));
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível remover o item.');
+      Alert.alert('Erro ao remover', 'Não foi possível remover este item do histórico. Tente novamente.');
     }
   };
 
@@ -84,7 +84,7 @@ export const CookingHistoryScreen = () => {
       <Swipeable renderRightActions={() => renderRightActions(item.id)}>
         <TouchableOpacity 
           style={styles.historyItem}
-          onPress={() => recipe && navigation.navigate('RecipeDetail', { id: recipe.id })}
+          onPress={() => recipe && navigation.navigate('RecipeDetail', { recipeId: recipe.id })}
           disabled={!recipe}
         >
           {recipe?.photoUrl || (recipe as any)?.photo_url ? (
