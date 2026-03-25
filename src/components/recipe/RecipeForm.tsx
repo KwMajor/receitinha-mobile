@@ -63,7 +63,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     }
   }, [user?.id]);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<RecipeFormData>({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
     defaultValues: initialData || {
       category: '',
@@ -74,6 +74,12 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
+
+  const watchedSteps = watch('steps');
+  useEffect(() => {
+    const sum = watchedSteps.reduce((acc, s) => acc + (parseInt(s.timerMinutes || '0') || 0), 0);
+    if (sum > 0) setValue('prepTime', sum.toString());
+  }, [watchedSteps]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
