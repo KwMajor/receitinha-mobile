@@ -91,7 +91,7 @@ export const RecipeDetailScreen = () => {
                <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCollectionModal(true)}>
                  <Feather name="folder-plus" size={24} color={theme.colors.text} />
                </TouchableOpacity>
-               <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('EditRecipe', { id: recipeId })}>
+               <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('RecipeStack', { screen: 'EditRecipe', params: { id: recipeId } })}>
                  <Feather name="edit-2" size={24} color={theme.colors.primary} />
                </TouchableOpacity>
                <TouchableOpacity style={styles.headerBtn} onPress={confirmDelete}>

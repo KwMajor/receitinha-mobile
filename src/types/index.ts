@@ -41,13 +41,13 @@ export interface Recipe {
   id: string;
   title: string;
   description: string;
-  authorId: string;
-  categories: string[];
+  userId: string;
+  category: string;
   ingredients: Ingredient[];
   steps: Step[];
   prepTime: number; // in minutes
   servings: number;
-  imageUrl?: string;
+  photoUrl?: string;
   createdAt: Date;
 }
 

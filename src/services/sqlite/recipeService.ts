@@ -86,7 +86,13 @@ export const getRecipes = async (userId: string, filters?: RecipeFilters): Promi
   qStr += `WHERE ${conditions.join(' AND ')} ORDER BY r.created_at DESC`;
 
   const result = await db.getAllAsync(qStr, params);
-  return (result as any[]).map(r => ({ ...r, photoUrl: r.photo_url, prepTime: r.prep_time })) as any;
+  return (result as any[]).map(r => ({
+    ...r,
+    photoUrl: r.photo_url,
+    prepTime: r.prep_time,
+    userId: r.user_id,
+    createdAt: new Date(r.created_at),
+  })) as any;
 };
 
 export const getRecipeById = async (id: string): Promise<Recipe | null> => {
@@ -102,6 +108,8 @@ export const getRecipeById = async (id: string): Promise<Recipe | null> => {
     ...r,
     photoUrl: r.photo_url,
     prepTime: r.prep_time,
+    userId: r.user_id,
+    createdAt: new Date(r.created_at),
     ingredients,
     steps
   } as any;

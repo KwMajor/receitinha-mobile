@@ -27,10 +27,10 @@ export default function EditRecipeScreen() {
         setInitialData({
           title: recipe.title,
           description: recipe.description || '',
-          prepTime: recipe.prepTime ? recipe.prepTime.toString() : (recipe as any).prep_time?.toString(),
+          prepTime: recipe.prepTime.toString(),
           servings: recipe.servings.toString(),
           category: recipe.category,
-          photoUrl: recipe.photoUrl || (recipe as any).photo_url || '',
+          photoUrl: recipe.photoUrl || '',
           ingredients: recipe.ingredients.map((i: any) => ({
             name: i.name,
             quantity: i.quantity.toString().replace('.', ','),
@@ -38,7 +38,7 @@ export default function EditRecipeScreen() {
           })),
           steps: recipe.steps.map((s: any) => ({
             instruction: s.instruction,
-            timerMinutes: s.timerMinutes ? s.timerMinutes.toString() : (s.timer_minutes ? s.timer_minutes.toString() : '')
+            timerMinutes: s.timer_minutes ? s.timer_minutes.toString() : ''
           }))
         });
       }

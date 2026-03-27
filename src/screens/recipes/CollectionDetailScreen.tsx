@@ -151,8 +151,8 @@ export const CollectionDetailScreen = () => {
       </TouchableOpacity>
 
       <Modal visible={addModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAddModalVisible(false)}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Adicionar Receita</Text>
               <TouchableOpacity onPress={() => setAddModalVisible(false)}>
@@ -183,8 +183,8 @@ export const CollectionDetailScreen = () => {
                 )}
               />
             )}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

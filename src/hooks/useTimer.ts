@@ -79,7 +79,7 @@ export const useTimer = ({ initialSeconds, stepTitle, onComplete }: UseTimerProp
     setIsDone(false);
     setSeconds(s);
     if (notificationIdRef.current) {
-      cancelNotification(notificationIdRef.current);
+      cancelNotification(notificationIdRef.current).catch(() => {});
       notificationIdRef.current = null;
     }
   }, []);
