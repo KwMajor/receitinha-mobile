@@ -59,7 +59,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
   useEffect(() => {
     if (user?.id) {
-      getCategories(user.id).then(cats => setCategoryNames(cats.map(c => c.name)));
+      getCategories(user.id).then(cats => setCategoryNames(cats.filter(c => c.isActive).map(c => c.name)));
     }
   }, [user?.id]);
 

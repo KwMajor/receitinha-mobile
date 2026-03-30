@@ -39,6 +39,15 @@ export const createCustomCategory = async (userId: string, name: string): Promis
 
 export const toggleCategoryActive = async (userId: string, categoryId: string, isActive: boolean): Promise<void> => {
   const db = await getDatabase();
+
+  if (!isActive) {
+    const category = await db.getFirstAsync('SELECT name FROM categories WHERE id = ? AND user_id = ?', [categoryId, userId]) as any;
+    if (category) {
+      const inUse = await db.getFirstAsync('SELECT 1 FROM recipes WHERE category = ? AND user_id = ?', [category.name, userId]);
+      if (inUse) throw new Error('Categoria em uso');
+    }
+  }
+
   await db.runAsync('UPDATE categories SET is_active = ? WHERE id = ? AND user_id = ?', [isActive ? 1 : 0, categoryId, userId]);
 };
 

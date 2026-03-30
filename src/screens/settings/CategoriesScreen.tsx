@@ -46,8 +46,15 @@ export const CategoriesScreen = () => {
     try {
       await toggleCategoryActive(user.id, categoryId, !currentStatus);
       loadCategories();
-    } catch (error) {
-      Alert.alert('Erro ao atualizar', 'Não foi possível atualizar a categoria. Tente novamente.');
+    } catch (error: any) {
+      if (error?.message?.includes('Categoria em uso')) {
+        Alert.alert(
+          'Não é possível desativar',
+          'Esta categoria está sendo usada por uma ou mais receitas. Altere a categoria dessas receitas antes de desativá-la.'
+        );
+      } else {
+        Alert.alert('Erro ao atualizar', 'Não foi possível atualizar a categoria. Tente novamente.');
+      }
     }
   };
 
