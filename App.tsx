@@ -1,5 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { initDatabase } from './src/services/sqlite/database';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -32,10 +32,12 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <StatusBar style="auto" />
-      <RootNavigator />
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <StatusBar barStyle="dark-content" translucent={false} backgroundColor="#ffffff" />
+        <RootNavigator />
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

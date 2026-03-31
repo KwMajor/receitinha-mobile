@@ -58,7 +58,7 @@ export const RegisterScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Crie sua conta</Text>
 
       <Controller

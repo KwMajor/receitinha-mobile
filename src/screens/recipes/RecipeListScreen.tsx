@@ -149,7 +149,7 @@ export const RecipeListScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.lg, paddingTop: theme.spacing.xl + 20, backgroundColor: theme.colors.surface },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.lg, backgroundColor: theme.colors.surface },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: theme.colors.text },
   addBtn: { backgroundColor: theme.colors.primary, padding: theme.spacing.sm, borderRadius: theme.borderRadius.round },
   searchContainer: { flexDirection: 'row', padding: theme.spacing.md, gap: theme.spacing.sm },
