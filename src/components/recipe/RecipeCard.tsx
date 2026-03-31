@@ -5,6 +5,7 @@ import { theme } from '../../constants/theme';
 import { formatTime } from '../../utils/formatters';
 import { Recipe } from '../../types';
 import { FavoriteButton } from '../common/FavoriteButton';
+import { useRecipeStats } from '../../hooks/useRecipeStats';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -12,6 +13,8 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => {
+  const { timesCooked } = useRecipeStats(recipe.id);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.imageContainer}>
@@ -25,6 +28,18 @@ export const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => {
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>{recipe.category || 'Sem categoria'}</Text>
         </View>
+        {recipe.is_public === 1 && (
+          <View style={styles.publicBadge}>
+            <Feather name="globe" size={10} color="#fff" />
+            <Text style={styles.publicBadgeText}>Publicada</Text>
+          </View>
+        )}
+        {timesCooked > 0 && (
+          <View style={styles.cookedBadge}>
+            <Feather name="check-circle" size={10} color="#fff" />
+            <Text style={styles.cookedBadgeText}>Já preparei</Text>
+          </View>
+        )}
       </View>
       
       <View style={styles.infoContainer}>
@@ -90,6 +105,40 @@ const styles = StyleSheet.create({
   categoryText: {
     color: '#fff',
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  publicBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    left: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.round,
+  },
+  publicBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  cookedBadge: {
+    position: 'absolute',
+    bottom: theme.spacing.sm,
+    left: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.round,
+  },
+  cookedBadgeText: {
+    color: '#fff',
+    fontSize: 11,
     fontWeight: 'bold',
   },
   infoContainer: {

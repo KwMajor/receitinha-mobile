@@ -5,12 +5,14 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { signOut, updateUserName, updateUserEmail } from '../../services/firebase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../services/sqlite/recipeService';
+import { countHistory } from '../../services/sqlite/cookingHistoryService';
 import { theme } from '../../constants/theme';
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [recipeCount, setRecipeCount] = useState(0);
+  const [cookCount, setCookCount] = useState(0);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -18,8 +20,12 @@ export const ProfileScreen = () => {
 
   const loadData = async () => {
     if (user?.id) {
-      const recipes = await getRecipes(user.id);
+      const [recipes, cooked] = await Promise.all([
+        getRecipes(user.id),
+        countHistory(user.id),
+      ]);
       setRecipeCount(recipes.length);
+      setCookCount(cooked);
     }
   };
 
@@ -122,6 +128,11 @@ export const ProfileScreen = () => {
             <Text style={styles.statValue}>{recipeCount}</Text>
             <Text style={styles.statLabel}>Receitas Criadas</Text>
           </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{cookCount}</Text>
+            <Text style={styles.statLabel}>Vezes Preparadas</Text>
+          </View>
         </View>
       </View>
 
@@ -141,10 +152,15 @@ export const ProfileScreen = () => {
           title="Categorias" 
           onPress={() => navigation.navigate('Categories')} 
         />
-        <MenuItem 
-          icon="clock" 
-          title="Histórico de Preparo" 
-          onPress={() => navigation.navigate('CookingHistory')} 
+        <MenuItem
+          icon="clock"
+          title="Histórico de Preparo"
+          onPress={() => navigation.navigate('CookingHistory')}
+        />
+        <MenuItem
+          icon="repeat"
+          title="Conversor de Medidas"
+          onPress={() => navigation.navigate('Converter')}
           showDivider={false}
         />
       </View>
@@ -244,6 +260,12 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: theme.colors.border,
   },
   statValue: {
     fontSize: 20,

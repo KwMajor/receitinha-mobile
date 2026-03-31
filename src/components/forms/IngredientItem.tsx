@@ -3,6 +3,7 @@ import { View, TextInput, TouchableOpacity, StyleSheet, Modal, Text, FlatList } 
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { UNITS } from '../../constants/units';
+import { QuickConverterModal } from '../common/QuickConverterModal';
 
 interface IngredientItemProps {
   quantity: string;
@@ -18,6 +19,7 @@ export const IngredientItem = ({
   quantity, unit, name, onChangeQuantity, onChangeUnit, onChangeName, onRemove
 }: IngredientItemProps) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [converterVisible, setConverterVisible] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -45,9 +47,27 @@ export const IngredientItem = ({
         returnKeyType="done"
       />
 
+      {/* Botão conversor rápido */}
+      <TouchableOpacity onPress={() => setConverterVisible(true)} style={styles.converterBtn} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+        <Feather name="repeat" size={15} color={theme.colors.primary} />
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={onRemove} style={styles.removeBtn}>
         <Feather name="x" size={20} color={theme.colors.error} />
       </TouchableOpacity>
+
+      {/* Modal conversor rápido */}
+      <QuickConverterModal
+        visible={converterVisible}
+        initialUnit={unit}
+        ingredientName={name}
+        onClose={() => setConverterVisible(false)}
+        onUse={(val, u) => {
+          onChangeQuantity(val);
+          onChangeUnit(u);
+          setConverterVisible(false);
+        }}
+      />
 
       {/* Modal simples para selecionar Unidade */}
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -113,6 +133,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.sm,
     padding: theme.spacing.sm,
     backgroundColor: theme.colors.background,
+  },
+  converterBtn: {
+    padding: theme.spacing.sm,
   },
   removeBtn: {
     padding: theme.spacing.sm,

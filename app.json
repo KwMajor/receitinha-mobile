@@ -37,7 +37,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "The app needs access to your camera.",
+        "NSCameraUsageDescription": "Usado para escanear códigos de barras de produtos e capturar fotos de receitas.",
         "NSPhotoLibraryUsageDescription": "The app needs access to your photos.",
         "ITSAppUsesNonExemptEncryption": false
       },

@@ -57,12 +57,39 @@ export const initDatabase = async (): Promise<void> => {
       CREATE TABLE IF NOT EXISTS barcode_cache (
         barcode TEXT PRIMARY KEY, product_name TEXT, cached_at INTEGER
       );
+
+      CREATE TABLE IF NOT EXISTS shopping_lists (
+        id TEXT PRIMARY KEY, user_id TEXT, name TEXT,
+        is_active INTEGER DEFAULT 0, created_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS shopping_items (
+        id TEXT PRIMARY KEY, list_id TEXT, name TEXT,
+        quantity REAL, unit TEXT, category TEXT,
+        is_checked INTEGER DEFAULT 0, added_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS week_plan (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        week_start TEXT,
+        day_index INTEGER,
+        meal_type TEXT,
+        recipe_id TEXT,
+        UNIQUE(user_id, week_start, day_index, meal_type)
+      );
     `);
     
     // Migração: adiciona is_active se não existir
     const categoryColumns = await database.getAllAsync("PRAGMA table_info(categories)") as any[];
-    if (!categoryColumns.some(c => c.name === 'is_active')) {
+    if (!categoryColumns.some((c: any) => c.name === 'is_active')) {
       await database.execAsync('ALTER TABLE categories ADD COLUMN is_active INTEGER DEFAULT 1');
+    }
+
+    // Migração: adiciona brand ao barcode_cache se não existir
+    const barcodeColumns = await database.getAllAsync("PRAGMA table_info(barcode_cache)") as any[];
+    if (!barcodeColumns.some((c: any) => c.name === 'brand')) {
+      await database.execAsync('ALTER TABLE barcode_cache ADD COLUMN brand TEXT');
     }
 
     console.log('✅ Banco de dados inicializado com sucesso.');

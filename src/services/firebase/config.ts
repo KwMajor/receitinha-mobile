@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import Constants from 'expo-constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // O Firebase Settings com as variáveis de ambiente devem ser configurados no arquivo app.json ("extra").
 // Substitua os valores indicados abaixo pelas chaves reais encontradas no seu Console do Firebase:
@@ -28,7 +27,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = (() => {
   try {
     return initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+      persistence: indexedDBLocalPersistence,
     });
   } catch (error: any) {
     // Em hot reload o auth pode ja estar inicializado
