@@ -306,7 +306,12 @@ export const ShoppingListDetailScreen: React.FC = () => {
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modalCard}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setAddModalVisible(false)}
+          />
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.modalCard}>
             <Text style={styles.modalTitle}>Adicionar item</Text>
 
             <View style={styles.modalField}>
@@ -365,9 +370,10 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 <Text style={styles.modalConfirmText}>Adicionar</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
+
     </SafeAreaView>
   );
 };
