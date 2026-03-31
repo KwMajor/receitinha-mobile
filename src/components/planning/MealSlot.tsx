@@ -9,16 +9,9 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { Recipe } from '../../types';
-import { MealType } from '../../services/sqlite/planningService';
-
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Café',
-  lunch: 'Almoço',
-  dinner: 'Jantar',
-};
 
 interface Props {
-  mealType: MealType;
+  label: string;
   recipe: Recipe | null;
   onPress: () => void;
   onLongPress: () => void;
@@ -28,7 +21,7 @@ interface Props {
 }
 
 export const MealSlot: React.FC<Props> = ({
-  mealType,
+  label,
   recipe,
   onPress,
   onLongPress,
@@ -72,7 +65,7 @@ export const MealSlot: React.FC<Props> = ({
       activeOpacity={0.7}
     >
       <Feather name="plus" size={14} color={theme.colors.textSecondary} />
-      <Text style={styles.emptyLabel}>{MEAL_LABELS[mealType]}</Text>
+      <Text style={styles.emptyLabel}>{label}</Text>
     </TouchableOpacity>
   );
 };

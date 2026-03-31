@@ -78,6 +78,16 @@ export const initDatabase = async (): Promise<void> => {
         recipe_id TEXT,
         UNIQUE(user_id, week_start, day_index, meal_type)
       );
+
+      CREATE TABLE IF NOT EXISTS week_meal_slots (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        week_start TEXT NOT NULL,
+        meal_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        slot_order INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(user_id, week_start, meal_type)
+      );
     `);
     
     // Migração: adiciona is_active se não existir

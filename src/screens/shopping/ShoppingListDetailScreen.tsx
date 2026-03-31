@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, SectionList, TouchableOpacity, StyleSheet,
   TextInput, KeyboardAvoidingView, Platform,
-  Alert, ActivityIndicator, Animated,
+  Alert, ActivityIndicator, Animated, Modal, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ import {
   getListById, getItems, toggleItem, removeItem,
   clearChecked, addItem,
 } from '../../services/sqlite/shoppingService';
+
+const UNITS = ['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'];
 
 type RouteParams = {
   ShoppingListDetail: {
@@ -64,6 +66,12 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [inputText, setInputText] = useState('');
+
+  // Add item modal
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [modalName, setModalName] = useState('');
+  const [modalQty, setModalQty] = useState('');
+  const [modalUnit, setModalUnit] = useState<string | null>(null);
 
   // Success banner for fromPlan
   const bannerOpacity = useRef(new Animated.Value(fromPlan ? 1 : 0)).current;
@@ -143,12 +151,21 @@ export const ShoppingListDetailScreen: React.FC = () => {
     );
   };
 
-  const handleAddItem = async () => {
-    const name = inputText.trim();
-    if (!name) return;
+  const openAddModal = () => {
+    setModalName(inputText.trim());
+    setModalQty('');
+    setModalUnit(null);
     setInputText('');
-    const newId = await addItem(listId, name);
-    // Reload to get category + proper sort
+    setAddModalVisible(true);
+  };
+
+  const handleConfirmAdd = async () => {
+    const name = modalName.trim();
+    if (!name) return;
+    const qty = modalQty.trim() ? parseFloat(modalQty.trim()) : undefined;
+    const unit = modalUnit ?? undefined;
+    setAddModalVisible(false);
+    await addItem(listId, name, isNaN(qty as number) ? undefined : qty, unit);
     const updated = await getItems(listId);
     setItems(updated);
   };
@@ -267,17 +284,90 @@ export const ShoppingListDetailScreen: React.FC = () => {
             value={inputText}
             onChangeText={setInputText}
             returnKeyType="done"
-            onSubmitEditing={handleAddItem}
+            onSubmitEditing={openAddModal}
           />
           <TouchableOpacity
-            style={[styles.addItemBtn, !inputText.trim() && styles.addItemBtnDisabled]}
-            onPress={handleAddItem}
-            disabled={!inputText.trim()}
+            style={styles.addItemBtn}
+            onPress={openAddModal}
           >
             <Feather name="plus" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Add item modal */}
+      <Modal
+        visible={addModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Adicionar item</Text>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Nome</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={modalName}
+                onChangeText={setModalName}
+                placeholder="Ex: Leite"
+                placeholderTextColor={theme.colors.textSecondary}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Quantidade (opcional)</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalInputQty]}
+                value={modalQty}
+                onChangeText={setModalQty}
+                placeholder="Ex: 2"
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Unidade (opcional)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.unitsRow}>
+                {UNITS.map((u) => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[styles.unitChip, modalUnit === u && styles.unitChipSelected]}
+                    onPress={() => setModalUnit(modalUnit === u ? null : u)}
+                  >
+                    <Text style={[styles.unitChipText, modalUnit === u && styles.unitChipTextSelected]}>
+                      {u}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setAddModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, !modalName.trim() && styles.modalConfirmDisabled]}
+                onPress={handleConfirmAdd}
+                disabled={!modalName.trim()}
+              >
+                <Text style={styles.modalConfirmText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -431,7 +521,96 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addItemBtnDisabled: { backgroundColor: theme.colors.border },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingBottom: 32,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalField: {
+    gap: 6,
+  },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    fontSize: 15,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+  },
+  modalInputQty: {
+    width: 120,
+  },
+  unitsRow: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  unitChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  unitChipSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '15',
+  },
+  unitChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  unitChipTextSelected: {
+    color: theme.colors.primary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+    marginTop: 4,
+  },
+  modalCancelBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  modalConfirmBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+  },
+  modalConfirmDisabled: { opacity: 0.4 },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
   fab: {
     position: 'absolute',
     right: theme.spacing.md,

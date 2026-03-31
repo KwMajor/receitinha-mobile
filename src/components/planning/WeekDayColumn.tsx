@@ -1,33 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
-import { DayPlan, MealType } from '../../services/sqlite/planningService';
+import { MealSlotConfig } from '../../services/sqlite/planningService';
 import { MealSlot } from './MealSlot';
 import { Recipe } from '../../types';
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
 interface DraggingSlot {
   dayIndex: number;
-  mealType: MealType;
+  mealType: string;
   recipe: Recipe;
 }
 
 interface Props {
   dayIndex: number;
   date: Date;
-  plan: DayPlan;
+  plan: { [mealType: string]: Recipe | null };
+  mealSlots: MealSlotConfig[];
   draggingSlot: DraggingSlot | null;
-  onSlotPress: (mealType: MealType) => void;
-  onSlotLongPress: (mealType: MealType) => void;
-  onRemove: (mealType: MealType) => void;
+  onSlotPress: (mealType: string) => void;
+  onSlotLongPress: (mealType: string) => void;
+  onRemove: (mealType: string) => void;
 }
 
 export const WeekDayColumn: React.FC<Props> = ({
   dayIndex,
   date,
   plan,
+  mealSlots,
   draggingSlot,
   onSlotPress,
   onSlotLongPress,
@@ -42,10 +43,10 @@ export const WeekDayColumn: React.FC<Props> = ({
     );
   })();
 
-  const isDragSource = (mealType: MealType) =>
+  const isDragSource = (mealType: string) =>
     draggingSlot?.dayIndex === dayIndex && draggingSlot?.mealType === mealType;
 
-  const isDropTarget = (mealType: MealType) =>
+  const isDropTarget = (mealType: string) =>
     draggingSlot !== null && !isDragSource(mealType);
 
   return (
@@ -59,16 +60,16 @@ export const WeekDayColumn: React.FC<Props> = ({
         </Text>
       </View>
 
-      {MEAL_TYPES.map((mealType) => (
+      {mealSlots.map((slot) => (
         <MealSlot
-          key={mealType}
-          mealType={mealType}
-          recipe={plan[mealType]}
-          onPress={() => onSlotPress(mealType)}
-          onLongPress={() => onSlotLongPress(mealType)}
-          onRemove={() => onRemove(mealType)}
-          isDropTarget={isDropTarget(mealType)}
-          isDragging={isDragSource(mealType)}
+          key={slot.mealType}
+          label={slot.label}
+          recipe={plan[slot.mealType] ?? null}
+          onPress={() => onSlotPress(slot.mealType)}
+          onLongPress={() => onSlotLongPress(slot.mealType)}
+          onRemove={() => onRemove(slot.mealType)}
+          isDropTarget={isDropTarget(slot.mealType)}
+          isDragging={isDragSource(slot.mealType)}
         />
       ))}
     </View>

@@ -7,6 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -15,14 +19,13 @@ import { theme } from '../../constants/theme';
 import { useWeekPlan } from '../../hooks/useWeekPlan';
 import { WeekDayColumn } from '../../components/planning/WeekDayColumn';
 import { RecipePickerModal } from './RecipePickerModal';
-import { MealType } from '../../services/sqlite/planningService';
 import { generateFromWeekPlan } from '../../services/sqlite/shoppingService';
 import { useAuthStore } from '../../store/authStore';
 import { Recipe } from '../../types';
 
 interface SelectedSlot {
   dayIndex: number;
-  mealType: MealType;
+  mealType: string;
 }
 
 interface DraggingSlot extends SelectedSlot {
@@ -34,6 +37,7 @@ export const WeekPlanScreen: React.FC = () => {
   const { user } = useAuthStore();
   const {
     weekPlan,
+    mealSlots,
     weekLabel,
     weekDates,
     weekStart,
@@ -43,11 +47,17 @@ export const WeekPlanScreen: React.FC = () => {
     goToPreviousWeek,
     setMeal,
     removeMeal,
+    addMealSlot,
+    removeExtraMealSlot,
+    moveMealSlotUp,
+    moveMealSlotDown,
   } = useWeekPlan();
 
   const [pickerTarget, setPickerTarget] = useState<SelectedSlot | null>(null);
   const [draggingSlot, setDraggingSlot] = useState<DraggingSlot | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [addSlotModalVisible, setAddSlotModalVisible] = useState(false);
+  const [newSlotLabel, setNewSlotLabel] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -56,9 +66,8 @@ export const WeekPlanScreen: React.FC = () => {
 
   // ── Slot interactions ─────────────────────────────────────────────────────
 
-  const handleSlotPress = (dayIndex: number, mealType: MealType) => {
+  const handleSlotPress = (dayIndex: number, mealType: string) => {
     if (draggingSlot) {
-      // Drop: place dragged recipe into this slot, clear source
       const isSameSlot =
         draggingSlot.dayIndex === dayIndex && draggingSlot.mealType === mealType;
 
@@ -94,17 +103,16 @@ export const WeekPlanScreen: React.FC = () => {
       return;
     }
 
-    // Normal press: open picker
     setPickerTarget({ dayIndex, mealType });
   };
 
-  const handleSlotLongPress = (dayIndex: number, mealType: MealType) => {
+  const handleSlotLongPress = (dayIndex: number, mealType: string) => {
     const recipe = weekPlan[dayIndex]?.[mealType];
     if (!recipe) return;
     setDraggingSlot({ dayIndex, mealType, recipe });
   };
 
-  const handleRemove = (dayIndex: number, mealType: MealType) => {
+  const handleRemove = (dayIndex: number, mealType: string) => {
     removeMeal(dayIndex, mealType);
   };
 
@@ -114,7 +122,32 @@ export const WeekPlanScreen: React.FC = () => {
     setPickerTarget(null);
   };
 
+  const handleAddSlot = async () => {
+    const label = newSlotLabel.trim();
+    if (!label) return;
+    await addMealSlot(label);
+    setNewSlotLabel('');
+    setAddSlotModalVisible(false);
+  };
+
+  const handleRemoveExtraSlot = (mealType: string, label: string) => {
+    Alert.alert(
+      'Remover refeição?',
+      `Deseja remover a refeição "${label}" desta semana? As receitas planejadas neste slot serão perdidas.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: () => removeExtraMealSlot(mealType),
+        },
+      ]
+    );
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const FIXED_TYPES = new Set(['breakfast', 'lunch', 'dinner']);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -173,15 +206,61 @@ export const WeekPlanScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Meal type labels column */}
+      {/* Grid */}
       <View style={styles.gridRow}>
+        {/* Meal type labels column */}
         <View style={styles.mealLabels}>
           <View style={styles.mealLabelHeader} />
-          {(['Café', 'Almoço', 'Jantar'] as const).map((label) => (
-            <View key={label} style={styles.mealLabelRow}>
-              <Text style={styles.mealLabelText}>{label}</Text>
+
+          {mealSlots.map((slot, idx) => (
+            <View key={slot.mealType} style={styles.mealLabelRow}>
+              <View style={styles.mealLabelContent}>
+                <Text style={styles.mealLabelText} numberOfLines={1}>
+                  {slot.label}
+                </Text>
+                <View style={styles.mealLabelActions}>
+                  <TouchableOpacity
+                    onPress={() => moveMealSlotUp(slot.mealType)}
+                    disabled={idx === 0}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  >
+                    <Feather
+                      name="chevron-up"
+                      size={12}
+                      color={idx === 0 ? theme.colors.border : theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => moveMealSlotDown(slot.mealType)}
+                    disabled={idx === mealSlots.length - 1}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  >
+                    <Feather
+                      name="chevron-down"
+                      size={12}
+                      color={idx === mealSlots.length - 1 ? theme.colors.border : theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                  {!FIXED_TYPES.has(slot.mealType) && (
+                    <TouchableOpacity
+                      onPress={() => handleRemoveExtraSlot(slot.mealType, slot.label)}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    >
+                      <Feather name="x" size={11} color={theme.colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
             </View>
           ))}
+
+          {/* Add meal slot button */}
+          <TouchableOpacity
+            style={styles.addSlotBtn}
+            onPress={() => setAddSlotModalVisible(true)}
+          >
+            <Feather name="plus" size={14} color={theme.colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Week grid */}
@@ -203,7 +282,8 @@ export const WeekPlanScreen: React.FC = () => {
                 key={dayIndex}
                 dayIndex={dayIndex}
                 date={date}
-                plan={weekPlan[dayIndex] ?? { breakfast: null, lunch: null, dinner: null }}
+                plan={weekPlan[dayIndex] ?? {}}
+                mealSlots={mealSlots}
                 draggingSlot={draggingSlot}
                 onSlotPress={(mealType) => handleSlotPress(dayIndex, mealType)}
                 onSlotLongPress={(mealType) => handleSlotLongPress(dayIndex, mealType)}
@@ -220,11 +300,56 @@ export const WeekPlanScreen: React.FC = () => {
         onClose={() => setPickerTarget(null)}
         onSelect={handlePickerSelect}
       />
+
+      {/* Add meal slot modal */}
+      <Modal
+        visible={addSlotModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddSlotModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Nova refeição</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ex: Lanche da tarde"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={newSlotLabel}
+              onChangeText={setNewSlotLabel}
+              autoFocus
+              onSubmitEditing={handleAddSlot}
+              returnKeyType="done"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => {
+                  setNewSlotLabel('');
+                  setAddSlotModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, !newSlotLabel.trim() && styles.modalConfirmDisabled]}
+                onPress={handleAddSlot}
+                disabled={!newSlotLabel.trim()}
+              >
+                <Text style={styles.modalConfirmText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-const MEAL_ROW_HEIGHT = 56 + 6; // slot height + margin
+const MEAL_ROW_HEIGHT = 56 + 6;
 const HEADER_HEIGHT = 50;
 
 const styles = StyleSheet.create({
@@ -288,7 +413,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   mealLabels: {
-    width: 52,
+    width: 68,
     paddingLeft: theme.spacing.sm,
   },
   mealLabelHeader: {
@@ -298,10 +423,28 @@ const styles = StyleSheet.create({
     height: MEAL_ROW_HEIGHT,
     justifyContent: 'center',
   },
+  mealLabelContent: {
+    gap: 2,
+  },
   mealLabelText: {
     fontSize: 10,
     color: theme.colors.textSecondary,
     fontWeight: '600',
+  },
+  mealLabelActions: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+  },
+  addSlotBtn: {
+    marginTop: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     paddingRight: theme.spacing.md,
@@ -309,5 +452,62 @@ const styles = StyleSheet.create({
   loader: {
     flex: 1,
     alignSelf: 'center',
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    fontSize: 15,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    justifyContent: 'flex-end',
+  },
+  modalCancelBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  modalConfirmBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+  },
+  modalConfirmDisabled: {
+    opacity: 0.4,
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

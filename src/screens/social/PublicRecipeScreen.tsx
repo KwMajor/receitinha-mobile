@@ -343,8 +343,8 @@ export const PublicRecipeScreen = () => {
 
           <View style={styles.tabContent}>
             {activeTab === 'ingredients' ? (
-              recipe.ingredients.map((ing) => (
-                <View key={ing.id} style={styles.ingredientRow}>
+              recipe.ingredients.map((ing, i) => (
+                <View key={i} style={styles.ingredientRow}>
                   <View style={styles.bullet} />
                   <Text style={styles.ingredientText}>
                     <Text style={styles.bold}>
@@ -356,7 +356,7 @@ export const PublicRecipeScreen = () => {
               ))
             ) : (
               recipe.steps.map((step, i) => (
-                <View key={step.id} style={styles.stepRow}>
+                <View key={i} style={styles.stepRow}>
                   <View style={styles.stepBadge}>
                     <Text style={styles.stepNum}>{i + 1}</Text>
                   </View>
