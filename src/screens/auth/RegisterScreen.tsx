@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigation } from '@react-navigation/native';
 import { signUp } from '../../services/firebase/auth';
+import { useAuthStore } from '../../store/authStore';
 import { getDatabase } from '../../services/sqlite/database';
 import { theme } from '../../constants/theme';
 
@@ -22,6 +23,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
+  const { setUser } = useAuthStore();
   const navigation = useNavigation<any>();
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
@@ -41,7 +43,14 @@ export const RegisterScreen = () => {
     try {
       setLoading(true);
       const user = await signUp(data.email, data.password, data.name);
-      
+
+      setUser({
+        id: user.uid,
+        name: data.name,
+        email: data.email,
+        createdAt: new Date(),
+      });
+
       const db = await getDatabase();
       await db.runAsync('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)', [
         user.uid,

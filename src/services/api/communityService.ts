@@ -1,5 +1,4 @@
 import { api } from './client';
-import { getDatabase } from '../sqlite/database';
 import { getRecipeById, createRecipe } from '../sqlite/recipeService';
 import { PublicRecipe, Rating } from '../../types';
 import { auth } from '../firebase/config';
@@ -52,9 +51,8 @@ export const publishRecipe = async (recipeId: string): Promise<void> => {
     })),
   });
 
-  // Marca como pública no SQLite local
-  const db = await getDatabase();
-  await db.runAsync('UPDATE recipes SET is_public = 1 WHERE id = ?', [recipeId]);
+  // Marca como pública no backend
+  await api.put(`/api/user/recipes/${recipeId}`, { isPublic: true });
 };
 
 // ─── Despublicar ──────────────────────────────────────────────────────────────
@@ -62,8 +60,7 @@ export const publishRecipe = async (recipeId: string): Promise<void> => {
 export const unpublishRecipe = async (recipeId: string): Promise<void> => {
   await api.delete(`/api/recipes/${recipeId}/publish`);
 
-  const db = await getDatabase();
-  await db.runAsync('UPDATE recipes SET is_public = 0 WHERE id = ?', [recipeId]);
+  await api.put(`/api/user/recipes/${recipeId}`, { isPublic: false });
 };
 
 // ─── Denunciar ────────────────────────────────────────────────────────────────
