@@ -9,6 +9,7 @@ import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy';
 
 import { theme } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
+import { api } from '../../services/api/client';
 import { getCategories } from '../../services/sqlite/categoryService';
 import { createRecipe, CreateRecipeInput } from '../../services/sqlite/recipeService';
 
@@ -92,9 +93,12 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     });
   }, [navigation, loading, titleHeader]);
 
-  const uploadPhoto = async (uri: string, recipeId: string): Promise<string> => {
-    const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const uploadPhoto = async (uri: string): Promise<string> => {
+    // Busca assinatura do backend — nunca expõe o API secret no app
+    const { signature, timestamp, apiKey, cloudName, folder } = await api.get<{
+      signature: string; timestamp: number; apiKey: string; cloudName: string; folder: string;
+    }>('/api/user/photos/sign');
+
     const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
     const result = await uploadAsync(uploadUrl, uri, {
@@ -103,13 +107,15 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       fieldName: 'file',
       mimeType: 'image/jpeg',
       parameters: {
-        upload_preset: uploadPreset!,
-        public_id: `recipes/${user?.id}/${recipeId}`,
+        api_key: apiKey,
+        timestamp: String(timestamp),
+        signature,
+        folder,
       },
     });
 
     if (result.status < 200 || result.status >= 300) {
-      console.error('Falha no upload da foto', { uri, recipeId, body: result.body });
+      console.error('Falha no upload da foto', { uri, body: result.body });
       throw new Error(`Upload falhou com status ${result.status}`);
     }
 
@@ -123,10 +129,9 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       setLoading(true);
       
       let finalPhotoUrl = data.photoUrl;
-      const temporalId = initialData?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9); // mock ID temporário para pasta do Firebase
 
       if (data.photoUrl && !data.photoUrl.startsWith('http')) {
-        finalPhotoUrl = await uploadPhoto(data.photoUrl, temporalId);
+        finalPhotoUrl = await uploadPhoto(data.photoUrl);
       }
 
       await onSubmitData({

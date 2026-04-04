@@ -34,6 +34,10 @@ async function saveCache(barcode: string, result: ProductResult): Promise<void> 
 }
 
 export async function lookupBarcode(barcode: string): Promise<ProductResult | null> {
+  if (!/^\d{8,14}$/.test(barcode)) {
+    throw new Error('Código de barras inválido.');
+  }
+
   // Check cache first
   const cached = await getCached(barcode);
   if (cached) return cached;

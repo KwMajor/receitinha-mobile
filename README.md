@@ -2,7 +2,6 @@
 
 Aplicativo mobile de receitas culinárias desenvolvido com React Native + Expo.
 
-
 ---
 
 ## Tecnologias
@@ -10,10 +9,12 @@ Aplicativo mobile de receitas culinárias desenvolvido com React Native + Expo.
 - **React Native** + **Expo**
 - **Firebase Authentication** — autenticação de usuários
 - **Cloudinary** — armazenamento de fotos
-- **SQLite** — persistência local de receitas, ingredientes, passos, favoritos e histórico
 - **Zustand** — gerenciamento de estado global
 - **React Hook Form** + **Zod** — validação de formulários
 - **React Navigation** — navegação entre telas
+- **receitinha-api** — backend próprio (Express + PostgreSQL) para persistência de todos os dados do usuário e funcionalidades sociais
+
+> Os dados do usuário (receitas, favoritos, coleções, planejamento, listas de compras e histórico) são salvos no backend, garantindo que nada seja perdido ao trocar de celular.
 
 ---
 
@@ -24,19 +25,26 @@ src/
 ├── components/
 │   ├── common/          # FavoriteButton, SkeletonCard, ServingsControl
 │   ├── forms/           # IngredientItem, StepItem, PhotoPicker
+│   ├── planning/        # WeekDayColumn, MealSlot
 │   └── recipe/          # RecipeForm, AddToCollectionModal
 ├── constants/           # theme
-├── hooks/               # useServings
+├── hooks/               # useServings, useWeekPlan
 ├── screens/
 │   ├── auth/            # Login, Register, ForgotPassword
+│   ├── planning/        # WeekPlanScreen
 │   ├── recipes/         # RecipeList, RecipeDetail, Create, Edit, Favorites, CollectionDetail
-│   └── settings/        # Profile, Categories, CookingHistory
+│   ├── settings/        # Profile, Categories, CookingHistory
+│   ├── shopping/        # ShoppingListScreen, ShoppingListDetailScreen
+│   └── social/          # CommunityFeedScreen, PublicRecipeScreen
 ├── services/
-│   ├── firebase/        # auth
-│   └── sqlite/          # recipeService, favoriteService, categoryService, cookingHistoryService
-├── store/               # authStore
+│   ├── api/             # client (fetch wrapper), communityService
+│   ├── firebase/        # auth, config
+│   └── sqlite/          # recipeService, favoriteService, categoryService,
+│                        # cookingHistoryService, shoppingService, planningService
+│                        # (todos fazem chamadas REST ao backend)
+├── store/               # authStore, communityStore
 ├── types/               # tipos globais
-└── utils/               # formatters, errorHandler
+└── utils/               # formatters, errorHandler, ingredientCategorizer
 ```
 
 ---
@@ -48,15 +56,18 @@ src/
    npm install
    ```
 
-2. Crie um arquivo `.env` na raiz com as variáveis:
+2. Suba o backend `receitinha-api` (ver README do backend).
+
+3. Crie um arquivo `.env` na raiz com as variáveis:
    ```env
+   EXPO_PUBLIC_API_URL=http://<ip-da-maquina>:3000
    EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=seu_cloud_name
    EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=seu_upload_preset
    ```
 
-3. Configure o Firebase em `src/services/firebase/` com seu `google-services.json` (Android) ou `GoogleService-Info.plist` (iOS).
+4. Configure o Firebase em `src/services/firebase/` com seu `google-services.json` (Android) ou `GoogleService-Info.plist` (iOS).
 
-4. Inicie o projeto:
+5. Inicie o projeto:
    ```bash
    npx expo start
    ```
@@ -89,28 +100,26 @@ src/
 
 | ID | Requisito | Prioridade | Dificuldade | Esforço | Status |
 |----|-----------|------------|-------------|---------|--------|
-| RF07 | Scanner de código de barras (câmera + Open Food Facts) ⚠️ | Alta | Alta | 4 dias | 🔲 Pendente |
-| RF05 | Planejamento semanal de refeições (drag & drop) | Alta | Alta | 5 dias | 🔲 Pendente |
-| RF06 | Geração automática de lista de compras | Alta | Média | 3 dias | 🔲 Pendente |
-| RF10 | Cálculo de informações nutricionais (tabela TACO) | Média | Média | 3 dias | 🔲 Pendente |
-| RF11 | Compartilhamento de receitas com a comunidade | Média | Alta | 5 dias | 🔲 Pendente |
-| RF12 | Avaliações e comentários em receitas públicas | Média | Média | 3 dias | 🔲 Pendente |
+| RF07 | Scanner de código de barras (câmera + Open Food Facts) | Alta | Alta | 4 dias | ✅ Concluído |
+| RF05 | Planejamento semanal de refeições + refeições extras e reordenação | Alta | Alta | 5 dias | ✅ Concluído |
+| RF06 | Geração automática de lista de compras a partir do planejamento | Alta | Média | 3 dias | ✅ Concluído |
+| RF10 | Cálculo de informações nutricionais (tabela TACO) | Média | Média | 3 dias | ✅ Concluído |
+| RF11 | Compartilhamento de receitas com a comunidade | Média | Alta | 5 dias | ✅ Concluído |
+| RF12 | Avaliações e comentários em receitas públicas | Média | Média | 3 dias | ✅ Concluído |
 | RF13 | Histórico de receitas preparadas com notas pessoais | Média | Baixa | 2 dias | ✅ Concluído |
-| RF17 | Conversor de medidas culinárias | Média | Baixa | 2 dias | 🔲 Pendente |
-| RF20 | Múltiplas listas de compras com duplicação | Média | Baixa | 2 dias | 🔲 Pendente |
+| RF16 | Backup e restauração de dados na nuvem | Média | Alta | 4 dias | ✅ Concluído |
+| RF17 | Conversor de medidas culinárias | Média | Baixa | 2 dias | ✅ Concluído |
+| RF20 | Múltiplas listas de compras com duplicação | Média | Baixa | 2 dias | ✅ Concluído |
 
-> ⚠️ **RF07 é requisito obrigatório de sensor** — deve ser priorizado logo após o planejamento semanal.
-
-**Entrega:** Planejamento semanal, lista de compras automática, scanner de câmera funcionando, nutrição por porção e feed social com avaliações.
+**Entrega:** Sprint 2 completa — planejamento semanal com slots personalizados, lista de compras automática, scanner de código de barras, nutrição por porção (tabela TACO), conversor de medidas, feed social com avaliações, histórico e todos os dados sincronizados na nuvem.
 
 ---
 
 ### Sprint 3 — Features Avançadas & Polish
-*Backup · GPS · Exportação · Vídeos · Acessibilidade · Extras*
+*GPS · Exportação · Vídeos · Acessibilidade · Extras*
 
 | ID | Requisito | Prioridade | Dificuldade | Esforço | Status |
 |----|-----------|------------|-------------|---------|--------|
-| RF16 | Backup e restauração de dados na nuvem | Média | Alta | 4 dias | 🔲 Pendente |
 | RF22 | Exportação da lista de compras em PDF/texto | Média | Média | 2 dias | 🔲 Pendente |
 | RF25 | Modo noturno e ajuste de tamanho de fonte | Média | Baixa | 2 dias | 🔲 Pendente |
 | RF14 | Sugestão de receitas pelos ingredientes disponíveis | Média | Média | 3 dias | 🔲 Pendente |
@@ -123,6 +132,6 @@ src/
 | RF26 | Relatório de gastos com compras | Baixa | Média | 3 dias | 🔲 Pendente |
 | RF29 | Integração com assistente de voz (opcional) | Baixa | Alta | 3 dias | 🔲 Pendente |
 
-**Entrega:** App completo e polido, com backup na nuvem, GPS, exportação, vídeos, acessibilidade e todas as features de nicho funcionando.
+**Entrega:** App completo e polido, com GPS, exportação, vídeos, acessibilidade e todas as features de nicho funcionando.
 
 ---
