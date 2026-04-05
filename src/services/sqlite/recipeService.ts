@@ -67,9 +67,15 @@ export const getRecipes = async (userId: string, filters?: RecipeFilters): Promi
   const conditions = ['r.user_id = ?'];
 
   if (filters?.query) {
+    // Escapa os wildcards do LIKE (%, _, \) para que o input do usuário
+    // seja tratado como texto literal, não como padrão SQL.
+    const safeQuery = filters.query
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
     qStr += 'LEFT JOIN ingredients i ON i.recipe_id = r.id ';
-    conditions.push(`(r.title LIKE ? OR i.name LIKE ?)`);
-    params.push(`%${filters.query}%`, `%${filters.query}%`);
+    conditions.push(`(r.title LIKE ? ESCAPE '\\' OR i.name LIKE ? ESCAPE '\\')`);
+    params.push(`%${safeQuery}%`, `%${safeQuery}%`);
   }
 
   if (filters?.categories && filters.categories.length > 0) {
@@ -129,20 +135,23 @@ export const updateRecipe = async (id: string, data: Partial<CreateRecipeInput>,
   try {
     await db.execAsync('BEGIN TRANSACTION;');
 
-    // Update root table
-    const mappedData: any = {};
-    if (data.title !== undefined) mappedData.title = data.title;
-    if (data.description !== undefined) mappedData.description = data.description;
-    if (data.prepTime !== undefined) mappedData.prep_time = data.prepTime;
-    if (data.servings !== undefined) mappedData.servings = data.servings;
-    if (data.category !== undefined) mappedData.category = data.category;
-    if (data.photoUrl !== undefined) mappedData.photo_url = data.photoUrl;
+    // Update root table — whitelist explícita de colunas para evitar injeção via prototype pollution
+    const ALLOWED_COLUMNS: Array<[string, any]> = [
+      ['title',       data.title],
+      ['description', data.description],
+      ['prep_time',   data.prepTime],
+      ['servings',    data.servings],
+      ['category',    data.category],
+      ['photo_url',   data.photoUrl],
+    ];
 
-    const fields = [];
-    const values = [];
-    for (const [key, value] of Object.entries(mappedData)) {
-      fields.push(`${key} = ?`);
-      values.push(value);
+    const fields: string[] = [];
+    const values: any[] = [];
+    for (const [col, val] of ALLOWED_COLUMNS) {
+      if (val !== undefined) {
+        fields.push(`${col} = ?`);
+        values.push(val);
+      }
     }
     
     if (fields.length > 0) {

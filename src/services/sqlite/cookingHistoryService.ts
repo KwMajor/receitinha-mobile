@@ -43,8 +43,12 @@ export const getHistory = async (userId: string, limit: number = 20): Promise<Hi
   return history;
 };
 
-export const deleteFromHistory = async (id: string): Promise<void> => {
+export const deleteFromHistory = async (id: string, userId?: string): Promise<void> => {
   const db = await getDatabase();
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT 1 FROM cooking_history WHERE id = ? AND user_id = ?', [id, userId]);
+    if (!owner) throw new Error('Acesso negado: entrada não pertence ao usuário.');
+  }
   await db.runAsync('DELETE FROM cooking_history WHERE id = ?', [id]);
 };
 

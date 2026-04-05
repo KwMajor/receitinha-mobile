@@ -53,31 +53,48 @@ export const getCollections = async (userId: string): Promise<Collection[]> => {
   }));
 };
 
-export const addToCollection = async (collectionId: string, recipeId: string): Promise<void> => {
+export const addToCollection = async (collectionId: string, recipeId: string, userId?: string): Promise<void> => {
   const db = await getDatabase();
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT 1 FROM collections WHERE id = ? AND user_id = ?', [collectionId, userId]);
+    if (!owner) throw new Error('Acesso negado: coleção não pertence ao usuário.');
+  }
   const existing = await db.getFirstAsync('SELECT 1 FROM collection_recipes WHERE collection_id = ? AND recipe_id = ?', [collectionId, recipeId]);
   if (!existing) {
     await db.runAsync('INSERT INTO collection_recipes (collection_id, recipe_id) VALUES (?, ?)', [collectionId, recipeId]);
   }
 };
 
-export const removeFromCollection = async (collectionId: string, recipeId: string): Promise<void> => {
+export const removeFromCollection = async (collectionId: string, recipeId: string, userId?: string): Promise<void> => {
   const db = await getDatabase();
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT 1 FROM collections WHERE id = ? AND user_id = ?', [collectionId, userId]);
+    if (!owner) throw new Error('Acesso negado: coleção não pertence ao usuário.');
+  }
   await db.runAsync('DELETE FROM collection_recipes WHERE collection_id = ? AND recipe_id = ?', [collectionId, recipeId]);
 };
 
-export const getCollectionRecipes = async (collectionId: string): Promise<Recipe[]> => {
+export const getCollectionRecipes = async (collectionId: string, userId?: string): Promise<Recipe[]> => {
   const db = await getDatabase();
-  const recipes = await db.getAllAsync(`
-    SELECT r.* FROM recipes r
-    INNER JOIN collection_recipes cr ON r.id = cr.recipe_id
-    WHERE cr.collection_id = ?
-  `, [collectionId]);
+  const query = userId
+    ? `SELECT r.* FROM recipes r
+       INNER JOIN collection_recipes cr ON r.id = cr.recipe_id
+       INNER JOIN collections c ON c.id = cr.collection_id
+       WHERE cr.collection_id = ? AND c.user_id = ?`
+    : `SELECT r.* FROM recipes r
+       INNER JOIN collection_recipes cr ON r.id = cr.recipe_id
+       WHERE cr.collection_id = ?`;
+  const params = userId ? [collectionId, userId] : [collectionId];
+  const recipes = await db.getAllAsync(query, params);
   return (recipes as any[]).map(r => ({ ...r, photoUrl: r.photo_url, prepTime: r.prep_time })) as Recipe[];
 };
 
-export const deleteCollection = async (id: string): Promise<void> => {
+export const deleteCollection = async (id: string, userId?: string): Promise<void> => {
   const db = await getDatabase();
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT 1 FROM collections WHERE id = ? AND user_id = ?', [id, userId]);
+    if (!owner) throw new Error('Acesso negado: coleção não pertence ao usuário.');
+  }
   await db.runAsync('DELETE FROM collection_recipes WHERE collection_id = ?', [id]);
   await db.runAsync('DELETE FROM collections WHERE id = ?', [id]);
 };

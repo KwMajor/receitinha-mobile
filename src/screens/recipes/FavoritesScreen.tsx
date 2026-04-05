@@ -38,7 +38,7 @@ export const FavoritesScreen = () => {
         setCollections(cols);
       }
     } catch (e) {
-      console.error(e);
+      // silencia para não expor detalhes de exceção
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,7 @@ export const FavoritesScreen = () => {
 
   const handleDeleteCollection = async (id: string) => {
     try {
-      await deleteCollection(id);
+      await deleteCollection(id, user?.id);
       loadData();
     } catch (e) {
       Alert.alert('Erro ao excluir', 'Não foi possível excluir a coleção. Tente novamente.');

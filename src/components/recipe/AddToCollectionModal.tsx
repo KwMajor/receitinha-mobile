@@ -36,14 +36,14 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
       // Determine which collections have this recipe
       const recipeColIds: string[] = [];
       for (const col of cols) {
-         const recipes = await getCollectionRecipes(col.id);
+         const recipes = await getCollectionRecipes(col.id, user.id);
          if (recipes.some(r => r.id === recipeId)) {
             recipeColIds.push(col.id);
          }
       }
       setRecipeCollections(recipeColIds);
     } catch (error) {
-      console.error(error);
+      Alert.alert('Erro ao carregar', 'Não foi possível carregar as coleções. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -67,10 +67,10 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
     try {
       const isIncluded = recipeCollections.includes(collectionId);
       if (isIncluded) {
-        await removeFromCollection(collectionId, recipeId);
+        await removeFromCollection(collectionId, recipeId, user.id);
         setRecipeCollections(prev => prev.filter(id => id !== collectionId));
       } else {
-        await addToCollection(collectionId, recipeId);
+        await addToCollection(collectionId, recipeId, user.id);
         setRecipeCollections(prev => [...prev, collectionId]);
       }
     } catch (error) {

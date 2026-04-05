@@ -36,7 +36,7 @@ export const CookingHistoryScreen = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteFromHistory(id);
+      await deleteFromHistory(id, user?.id);
       setHistory(prev => prev.filter(h => h.id !== id));
     } catch (error) {
       Alert.alert('Erro ao remover', 'Não foi possível remover este item do histórico. Tente novamente.');

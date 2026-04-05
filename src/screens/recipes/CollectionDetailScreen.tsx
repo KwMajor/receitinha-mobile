@@ -35,7 +35,7 @@ export const CollectionDetailScreen = () => {
 
   const loadRecipes = async () => {
     try {
-      const data = await getCollectionRecipes(collectionId);
+      const data = await getCollectionRecipes(collectionId, user?.id);
       setRecipes(data);
     } catch (error) {
       Alert.alert('Erro ao carregar', 'Não foi possível carregar as receitas desta coleção. Tente novamente.');
@@ -61,7 +61,7 @@ export const CollectionDetailScreen = () => {
 
   const handleAddRecipe = async (recipe: Recipe) => {
     try {
-      await addToCollection(collectionId, recipe.id);
+      await addToCollection(collectionId, recipe.id, user?.id);
       setRecipes(prev => [...prev, recipe]);
       setAllRecipes(prev => prev.filter(r => r.id !== recipe.id));
     } catch (error) {
@@ -78,7 +78,7 @@ export const CollectionDetailScreen = () => {
 
   const handleDeleteCollection = async () => {
     try {
-      await deleteCollection(collectionId);
+      await deleteCollection(collectionId, user?.id);
       navigation.goBack();
     } catch (error) {
       Alert.alert('Erro ao excluir', 'Não foi possível excluir a coleção. Tente novamente.');
@@ -93,7 +93,7 @@ export const CollectionDetailScreen = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            await removeFromCollection(collectionId, recipeId);
+            await removeFromCollection(collectionId, recipeId, user?.id);
             setRecipes(prev => prev.filter(r => r.id !== recipeId));
           } catch (error) {
             Alert.alert('Erro ao remover', 'Não foi possível remover a receita da coleção. Tente novamente.');
