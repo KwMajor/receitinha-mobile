@@ -26,12 +26,6 @@
           "cameraPermission": "The app needs access to your camera to let you scan or take photos of recipes."
         }
       ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow the app to use your location."
-        }
-      ],
       "expo-notifications"
     ],
     "ios": {
@@ -55,9 +49,6 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.anonymous.receitinha"
     },

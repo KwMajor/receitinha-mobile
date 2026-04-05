@@ -3,6 +3,7 @@ import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIn
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { getRecipeById, deleteRecipe } from '../../services/sqlite/recipeService';
+import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
 import { formatTime, formatQuantity, formatUnit } from '../../utils/formatters';
 import { Recipe } from '../../types';
@@ -15,6 +16,7 @@ export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { recipeId } = route.params;
+  const { user } = useAuthStore();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export const RecipeDetailScreen = () => {
 
   const loadRecipe = async () => {
     try {
-      const data = await getRecipeById(recipeId);
+      const data = await getRecipeById(recipeId, user?.id);
       setRecipe(data);
     } catch (error) {
       Alert.alert('Erro ao carregar', 'Não foi possível carregar os detalhes da receita. Tente novamente.');
@@ -53,7 +55,7 @@ export const RecipeDetailScreen = () => {
 
   const handleDelete = async () => {
     try {
-      await deleteRecipe(recipeId);
+      await deleteRecipe(recipeId, user?.id);
       navigation.goBack();
     } catch (error) {
       Alert.alert('Erro ao excluir', 'Não foi possível excluir a receita. Tente novamente.');

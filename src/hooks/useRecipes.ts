@@ -45,7 +45,7 @@ export const useRecipes = () => {
 
   const removeRecipe = async (id: string) => {
     try {
-      await deleteRecipeService(id);
+      await deleteRecipeService(id, user?.id);
       setRecipes(prev => prev.filter(r => r.id !== id));
     } catch (err: any) {
       setError(err.message || 'Erro ao deletar receita');

@@ -109,7 +109,6 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     });
 
     if (result.status < 200 || result.status >= 300) {
-      console.error('Falha no upload da foto', { uri, recipeId, body: result.body });
       throw new Error(`Upload falhou com status ${result.status}`);
     }
 

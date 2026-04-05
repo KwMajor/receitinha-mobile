@@ -21,7 +21,6 @@ export const handleFirebaseError = (code: string): string => {
   }
 };
 
-export const handleSQLiteError = (error: Error | any): string => {
-  console.error('SQLite Error:', error);
+export const handleSQLiteError = (_error: Error | any): string => {
   return 'Erro ao acessar os dados locais. Tente fechar e reabrir o aplicativo.';
 };

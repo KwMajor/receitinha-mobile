@@ -95,9 +95,11 @@ export const getRecipes = async (userId: string, filters?: RecipeFilters): Promi
   })) as any;
 };
 
-export const getRecipeById = async (id: string): Promise<Recipe | null> => {
+export const getRecipeById = async (id: string, userId?: string): Promise<Recipe | null> => {
   const db = await getDatabase();
-  const recipe = await db.getFirstAsync('SELECT * FROM recipes WHERE id = ?', [id]);
+  const recipe = userId
+    ? await db.getFirstAsync('SELECT * FROM recipes WHERE id = ? AND user_id = ?', [id, userId])
+    : await db.getFirstAsync('SELECT * FROM recipes WHERE id = ?', [id]);
   if (!recipe) return null;
 
   const ingredients = await db.getAllAsync('SELECT * FROM ingredients WHERE recipe_id = ? ORDER BY "order" ASC', [id]);
@@ -115,10 +117,15 @@ export const getRecipeById = async (id: string): Promise<Recipe | null> => {
   } as any;
 };
 
-export const updateRecipe = async (id: string, data: Partial<CreateRecipeInput>): Promise<void> => {
+export const updateRecipe = async (id: string, data: Partial<CreateRecipeInput>, userId?: string): Promise<void> => {
   const db = await getDatabase();
   const now = Date.now();
-  
+
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT id FROM recipes WHERE id = ? AND user_id = ?', [id, userId]);
+    if (!owner) throw new Error('Acesso negado: receita não pertence ao usuário.');
+  }
+
   try {
     await db.execAsync('BEGIN TRANSACTION;');
 
@@ -176,8 +183,14 @@ export const updateRecipe = async (id: string, data: Partial<CreateRecipeInput>)
   }
 };
 
-export const deleteRecipe = async (id: string): Promise<void> => {
+export const deleteRecipe = async (id: string, userId?: string): Promise<void> => {
   const db = await getDatabase();
+
+  if (userId) {
+    const owner = await db.getFirstAsync('SELECT id FROM recipes WHERE id = ? AND user_id = ?', [id, userId]);
+    if (!owner) throw new Error('Acesso negado: receita não pertence ao usuário.');
+  }
+
   try {
     await db.execAsync('BEGIN TRANSACTION;');
     await db.runAsync('DELETE FROM steps WHERE recipe_id = ?', [id]);

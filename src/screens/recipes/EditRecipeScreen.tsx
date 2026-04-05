@@ -22,7 +22,7 @@ export default function EditRecipeScreen() {
 
   const loadRecipe = async () => {
     try {
-      const recipe = await getRecipeById(recipeId);
+      const recipe = await getRecipeById(recipeId, user?.id);
       if (recipe) {
         setInitialData({
           title: recipe.title,
@@ -71,11 +71,10 @@ export default function EditRecipeScreen() {
         }))
       };
 
-      await updateRecipe(recipeId, input);
+      await updateRecipe(recipeId, input, user?.id);
       Alert.alert('Receita atualizada!', `"${input.title}" foi salva com as alterações.`);
       navigation.goBack();
     } catch (error) {
-      console.error(error);
       Alert.alert('Erro ao salvar', 'Não foi possível salvar as alterações. Tente novamente.');
     }
   };

@@ -46,8 +46,10 @@ export const ProfileScreen = () => {
         await updateUserEmail(editEmail.trim());
         Alert.alert('Confirme seu novo e-mail', `Enviamos um link de confirmação para ${editEmail.trim()}. Acesse seu e-mail e clique no link para concluir a alteração.`);
       }
+      // A04: Atualiza apenas o nome localmente; o e-mail só é atualizado após
+      // o usuário clicar no link de verificação enviado pelo Firebase.
       const { setUser } = useAuthStore.getState();
-      setUser({ ...user!, name: editName.trim(), email: editEmail.trim() });
+      setUser({ ...user!, name: editName.trim() });
       setEditModalVisible(false);
     } catch (error: any) {
       const msg = error?.code === 'auth/requires-recent-login'
