@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigation } from '@react-navigation/native';
 import { signUp } from '../../services/firebase/auth';
+import { useAuthStore } from '../../store/authStore';
 import { getDatabase } from '../../services/sqlite/database';
 import { theme } from '../../constants/theme';
 
@@ -44,7 +45,7 @@ export const RegisterScreen = () => {
     try {
       setLoading(true);
       const user = await signUp(data.email, data.password, data.name);
-      
+
       const db = await getDatabase();
       await db.runAsync('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)', [
         user.uid,
@@ -52,6 +53,13 @@ export const RegisterScreen = () => {
         data.email,
         Date.now()
       ]);
+
+      useAuthStore.getState().setUser({
+        id: user.uid,
+        name: data.name,
+        email: user.email || data.email,
+        createdAt: new Date(),
+      });
       
     } catch (error: any) {
       Alert.alert('Erro', getFirebaseErrorMessage(error));

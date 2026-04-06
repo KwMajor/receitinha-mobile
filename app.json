@@ -2,6 +2,7 @@
   "expo": {
     "name": "receitinha",
     "slug": "receitinha",
+    "scheme": "receitinha",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -48,7 +49,7 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "package": "com.anonymous.receitinha"
     },
