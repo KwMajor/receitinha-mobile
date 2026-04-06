@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -20,13 +20,10 @@ export const FavoritesScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadData();
-    }, [activeTab])
-  );
-
-  const loadData = async () => {
+  // loadData memoizado com todas as dependências para evitar closure stale:
+  // sem isso, o user capturado pode ser null em renders transitórios (onAuthStateChanged)
+  // e o if (!user) return aborta o reload silenciosamente ao voltar da CollectionDetail.
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -37,12 +34,14 @@ export const FavoritesScreen = () => {
         const cols = await getCollections(user.id);
         setCollections(cols);
       }
-    } catch (e) {
+    } catch {
       // silencia para não expor detalhes de exceção
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, activeTab]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim() || !user) return;
