@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { CATEGORIES } from '../../constants/categories';
 import { CommunityRecipeCard } from '../../components/recipe/CommunityRecipeCard';
 import { getFeed } from '../../services/api/communityService';
 import { useCommunityStore } from '../../store/communityStore';
@@ -24,6 +26,7 @@ export const CommunityFeedScreen = () => {
 
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const isFetchingNext = useRef(false);
 
@@ -75,15 +78,18 @@ export const CommunityFeedScreen = () => {
     }
   };
 
-  // ── Filtro local por query ───────────────────────────────────────────────
-  const displayedFeed: PublicRecipe[] = query.trim()
-    ? feed.filter(
-        (r) =>
-          r.title.toLowerCase().includes(query.toLowerCase()) ||
-          r.authorName.toLowerCase().includes(query.toLowerCase()) ||
-          r.category.toLowerCase().includes(query.toLowerCase()),
-      )
-    : feed;
+  // ── Filtro local por query e/ou categoria ───────────────────────────────
+  const displayedFeed: PublicRecipe[] = feed.filter((r) => {
+    const q = query.trim().toLowerCase();
+    const matchesQuery =
+      !q ||
+      r.title.toLowerCase().includes(q) ||
+      r.authorName.toLowerCase().includes(q);
+    const matchesCategory =
+      !selectedCategory ||
+      r.category.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesQuery && matchesCategory;
+  });
 
   // ── Rodapé da lista ──────────────────────────────────────────────────────
   const ListFooter = () => {
@@ -96,17 +102,19 @@ export const CommunityFeedScreen = () => {
   };
 
   // ── Estado vazio ─────────────────────────────────────────────────────────
+  const hasActiveFilter = query.trim().length > 0 || selectedCategory !== null;
+
   const ListEmpty = () => {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
         <Feather name="globe" size={64} color={theme.colors.border} />
         <Text style={styles.emptyTitle}>
-          {query ? 'Nenhuma receita encontrada' : 'A comunidade está vazia'}
+          {hasActiveFilter ? 'Nenhuma receita encontrada' : 'A comunidade está vazia'}
         </Text>
         <Text style={styles.emptySubtitle}>
-          {query
-            ? 'Tente outro termo de busca.'
+          {hasActiveFilter
+            ? 'Tente outro termo ou categoria.'
             : 'Seja o primeiro a compartilhar uma receita!'}
         </Text>
       </View>
@@ -118,19 +126,33 @@ export const CommunityFeedScreen = () => {
       {/* ── Header ── */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Comunidade</Text>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => {
-            setShowSearch((prev) => !prev);
-            if (showSearch) setQuery('');
-          }}
-        >
-          <Feather
-            name={showSearch ? 'x' : 'search'}
-            size={22}
-            color={theme.colors.text}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* Indicador de filtro de categoria ativo */}
+          {selectedCategory && (
+            <TouchableOpacity
+              style={styles.filterBadge}
+              onPress={() => setSelectedCategory(null)}
+            >
+              <Text style={styles.filterBadgeText} numberOfLines={1}>
+                {selectedCategory}
+              </Text>
+              <Feather name="x" size={12} color={theme.colors.primary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => {
+              setShowSearch((prev) => !prev);
+              if (showSearch) setQuery('');
+            }}
+          >
+            <Feather
+              name={showSearch ? 'x' : 'search'}
+              size={22}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── SearchBar ── */}
@@ -139,7 +161,7 @@ export const CommunityFeedScreen = () => {
           <Feather name="search" size={16} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar receitas, autores…"
+            placeholder="Buscar por nome de receita…"
             placeholderTextColor={theme.colors.textSecondary}
             value={query}
             onChangeText={setQuery}
@@ -153,6 +175,37 @@ export const CommunityFeedScreen = () => {
           )}
         </View>
       )}
+
+      {/* ── Chips de categoria ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsContainer}
+        style={styles.chipsScroll}
+      >
+        <TouchableOpacity
+          style={[styles.chip, selectedCategory === null && styles.chipActive]}
+          onPress={() => setSelectedCategory(null)}
+        >
+          <Text style={[styles.chipText, selectedCategory === null && styles.chipTextActive]}>
+            Todas
+          </Text>
+        </TouchableOpacity>
+        {CATEGORIES.map((cat) => {
+          const active = selectedCategory === cat;
+          return (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setSelectedCategory(active ? null : cat)}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* ── Erro ── */}
       {error && !isLoading && (
@@ -215,6 +268,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '18',
+    borderRadius: theme.borderRadius.round,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    maxWidth: 120,
+  },
+  filterBadgeText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
   iconBtn: {
     width: 40,
     height: 40,
@@ -222,6 +296,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 20,
     backgroundColor: theme.colors.surface,
+  },
+  // ── Chips de categoria ──────────────────────────────────────────────────
+  chipsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  chipsContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.round,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
   },
   searchBar: {
     flexDirection: 'row',
