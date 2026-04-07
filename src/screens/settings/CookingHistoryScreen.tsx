@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -33,17 +33,6 @@ export const CookingHistoryScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthStore();
   const navigation = useNavigation<any>();
-
-  // recipeId → number of times cooked (derived from all entries)
-  const cookCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const section of sections) {
-      for (const entry of section.data) {
-        map.set(entry.recipeId, (map.get(entry.recipeId) ?? 0) + 1);
-      }
-    }
-    return map;
-  }, [sections]);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -90,7 +79,6 @@ export const CookingHistoryScreen = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const count = cookCountMap.get(item.recipeId) ?? 1;
 
     return (
       <Swipeable renderRightActions={() => renderRightActions(item.id)}>
@@ -111,9 +99,6 @@ export const CookingHistoryScreen = () => {
               <Text style={styles.recipeTitle} numberOfLines={1}>
                 {recipe ? recipe.title : 'Receita excluída'}
               </Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{count}×</Text>
-              </View>
             </View>
 
             <View style={styles.row}>

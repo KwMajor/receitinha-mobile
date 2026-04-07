@@ -131,7 +131,7 @@ export const ProfileScreen = () => {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{cookCount}</Text>
-            <Text style={styles.statLabel}>Vezes Preparadas</Text>
+            <Text style={styles.statLabel}>Receitas Finalizadas</Text>
           </View>
         </View>
       </View>
@@ -186,7 +186,7 @@ export const ProfileScreen = () => {
             <TextInput
               style={styles.input}
               value={editName}
-              onChangeText={setEditName}
+              onChangeText={(text) => setEditName(text.replace(/[^\p{L}\p{M}\s]/gu, ''))}
               placeholder="Seu nome"
               returnKeyType="done"
             />

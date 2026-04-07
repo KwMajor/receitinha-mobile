@@ -4,7 +4,8 @@ import { theme } from '../../constants/theme';
 import { Rating } from '../../types';
 import { StarRating } from './StarRating';
 
-function formatRelativeDate(iso: string): string {
+function formatRelativeDate(iso: string | undefined): string {
+  if (!iso) return '';
   const diffMs  = Date.now() - new Date(iso).getTime();
   const diffMin  = Math.floor(diffMs / 60_000);
   const diffHour = Math.floor(diffMin / 60);
@@ -18,8 +19,8 @@ function formatRelativeDate(iso: string): string {
   return 'agora mesmo';
 }
 
-function AuthorAvatar({ name }: { name: string }) {
-  const initials = name
+function AuthorAvatar({ name }: { name: string | undefined }) {
+  const initials = (name ?? '')
     .split(' ')
     .slice(0, 2)
     .map((n) => n[0]?.toUpperCase() ?? '')
