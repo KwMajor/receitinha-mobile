@@ -1,10 +1,6 @@
 import { api } from '../api/client';
 import { Category } from '../../types';
 
-export const initDefaultCategories = async (_userId: string): Promise<void> => {
-  // Server auto-creates defaults on first GET /api/user/categories
-};
-
 export const getCategories = async (_userId: string): Promise<Category[]> => {
   return api.get<Category[]>('/api/user/categories');
 };

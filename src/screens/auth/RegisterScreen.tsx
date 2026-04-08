@@ -6,7 +6,6 @@ import * as z from 'zod';
 import { useNavigation } from '@react-navigation/native';
 import { signUp } from '../../services/firebase/auth';
 import { useAuthStore } from '../../store/authStore';
-import { getDatabase } from '../../services/sqlite/database';
 import { theme } from '../../constants/theme';
 
 const registerSchema = z.object({
@@ -50,15 +49,6 @@ export const RegisterScreen = () => {
         email: data.email,
         createdAt: new Date(),
       });
-
-      const db = await getDatabase();
-      await db.runAsync('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)', [
-        user.uid,
-        data.name,
-        data.email,
-        Date.now()
-      ]);
-      
     } catch (error: any) {
       Alert.alert('Erro', getFirebaseErrorMessage(error));
     } finally {

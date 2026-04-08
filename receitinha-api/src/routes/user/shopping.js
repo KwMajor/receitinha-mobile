@@ -57,10 +57,13 @@ router.post('/lists', async (req, res) => {
 // PUT /api/user/shopping/lists/:id
 router.put('/lists/:id', async (req, res) => {
   try {
-    const { name } = req.body;
+    const name = req.body.name?.trim();
+    if (!name) return res.status(400).json({ message: 'Nome é obrigatório.' });
+    if (name.length > 100) return res.status(400).json({ message: 'Nome muito longo (máx. 100 caracteres).' });
+    if (!await requireListOwnership(req.params.id, req.user.uid, res)) return;
     await pool.query(
       'UPDATE user_shopping_lists SET name = $1 WHERE id = $2 AND user_id = $3',
-      [name.trim(), req.params.id, req.user.uid]
+      [name, req.params.id, req.user.uid]
     );
     res.status(204).send();
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
@@ -98,6 +101,7 @@ router.get('/lists/active', async (req, res) => {
 // GET /api/user/shopping/lists/:id/items
 router.get('/lists/:id/items', async (req, res) => {
   try {
+    if (!await requireListOwnership(req.params.id, req.user.uid, res)) return;
     const { rows } = await pool.query(
       'SELECT * FROM user_shopping_items WHERE list_id = $1 ORDER BY category ASC, name ASC',
       [req.params.id]
@@ -132,12 +136,17 @@ async function requireItemOwnership(itemId, userId, res) {
 router.post('/lists/:id/items', async (req, res) => {
   try {
     if (!await requireListOwnership(req.params.id, req.user.uid, res)) return;
-    const { name, quantity, unit, category } = req.body;
-    if (!name?.trim()) return res.status(400).json({ message: 'Nome é obrigatório.' });
+    const name = req.body.name?.trim();
+    if (!name) return res.status(400).json({ message: 'Nome é obrigatório.' });
+    if (name.length > 200) return res.status(400).json({ message: 'Nome muito longo (máx. 200 caracteres).' });
+    const quantity = req.body.quantity != null ? Number(req.body.quantity) : null;
+    if (quantity !== null && (isNaN(quantity) || quantity < 0)) return res.status(400).json({ message: 'Quantidade inválida.' });
+    const unit = typeof req.body.unit === 'string' ? req.body.unit.trim().slice(0, 20) : null;
+    const category = typeof req.body.category === 'string' ? req.body.category.trim().slice(0, 50) : 'Outros';
     const id = randomUUID();
     await pool.query(
       'INSERT INTO user_shopping_items (id, list_id, name, quantity, unit, category, is_checked) VALUES ($1,$2,$3,$4,$5,$6,FALSE)',
-      [id, req.params.id, name.trim(), quantity ?? null, unit ?? null, category ?? 'Outros']
+      [id, req.params.id, name, quantity, unit || null, category || 'Outros']
     );
     res.status(201).json({ id });
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
@@ -172,11 +181,15 @@ router.delete('/lists/:id/checked', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
 });
 
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 // POST /api/user/shopping/generate - generate list from week plan
 router.post('/generate', async (req, res) => {
   try {
     const { weekStart } = req.body;
-    if (!weekStart) return res.status(400).json({ message: 'weekStart é obrigatório.' });
+    if (!weekStart || !DATE_REGEX.test(weekStart) || isNaN(Date.parse(weekStart))) {
+      return res.status(400).json({ message: 'weekStart deve ser uma data válida no formato YYYY-MM-DD.' });
+    }
 
     const { rows: planRows } = await pool.query(
       'SELECT DISTINCT recipe_id FROM user_week_plan WHERE user_id = $1 AND week_start = $2',

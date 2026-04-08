@@ -410,7 +410,8 @@ export const PublicRecipeScreen = () => {
               {userRating ? (
                 <>
                   <StarRating value={userRating.stars} readonly size="sm" />
-                  <Text style={styles.rateBtnText}>Sua avaliação · Editar</Text>
+                  <Text style={[styles.rateBtnText, styles.rateBtnEditingText]}>Sua avaliação · Editar</Text>
+                  <Feather name="edit-2" size={14} color={theme.colors.primary} />
                 </>
               ) : (
                 <>
@@ -618,8 +619,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm, backgroundColor: theme.colors.primary,
     padding: theme.spacing.md, borderRadius: theme.borderRadius.md,
   },
-  rateBtnEditing: { backgroundColor: theme.colors.surface },
+  rateBtnEditing: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
   rateBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  rateBtnEditingText: { color: theme.colors.primary },
   ratingsDivider: { height: 1, backgroundColor: theme.colors.border, marginTop: theme.spacing.md },
   ratingCardWrapper: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm },
 

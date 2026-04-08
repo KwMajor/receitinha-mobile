@@ -37,9 +37,6 @@ export const deleteHistoryEntry = async (id: string): Promise<void> => {
   await api.delete(`/api/user/history/${id}`);
 };
 
-/** @deprecated use deleteHistoryEntry */
-export const deleteFromHistory = deleteHistoryEntry;
-
 export const getRecipeStats = async (
   _userId: string,
   recipeId: string

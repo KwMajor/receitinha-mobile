@@ -14,8 +14,6 @@ Aplicativo mobile de receitas culinárias desenvolvido com React Native + Expo.
 - **React Navigation** — navegação entre telas
 - **receitinha-api** — backend próprio (Express + PostgreSQL) para persistência de todos os dados do usuário e funcionalidades sociais
 
-> Os dados do usuário (receitas, favoritos, coleções, planejamento, listas de compras e histórico) são salvos no backend, garantindo que nada seja perdido ao trocar de celular.
-
 ---
 
 ## Estrutura do Projeto

@@ -6,6 +6,9 @@ const auth = require('../../middleware/auth');
 const router = Router();
 router.use(auth);
 
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+function isValidDate(s) { return DATE_REGEX.test(s) && !isNaN(Date.parse(s)); }
+
 const DEFAULT_MEAL_SLOTS = [
   { mealType: 'breakfast', label: 'Café', order: 0 },
   { mealType: 'lunch',     label: 'Almoço', order: 1 },
@@ -32,7 +35,7 @@ async function ensureSlots(userId, weekStart) {
 router.get('/slots', async (req, res) => {
   try {
     const { weekStart } = req.query;
-    if (!weekStart) return res.status(400).json({ message: 'weekStart é obrigatório.' });
+    if (!isValidDate(weekStart)) return res.status(400).json({ message: 'weekStart deve ser uma data válida no formato YYYY-MM-DD.' });
     await ensureSlots(req.user.uid, weekStart);
     const { rows } = await pool.query(
       'SELECT meal_type, label, slot_order FROM user_week_meal_slots WHERE user_id = $1 AND week_start = $2 ORDER BY slot_order',
@@ -46,7 +49,9 @@ router.get('/slots', async (req, res) => {
 router.post('/slots', async (req, res) => {
   try {
     const { weekStart, label } = req.body;
-    if (!weekStart || !label?.trim()) return res.status(400).json({ message: 'weekStart e label são obrigatórios.' });
+    if (!isValidDate(weekStart)) return res.status(400).json({ message: 'weekStart deve ser uma data válida no formato YYYY-MM-DD.' });
+    if (!label?.trim()) return res.status(400).json({ message: 'label é obrigatório.' });
+    if (label.trim().length > 100) return res.status(400).json({ message: 'label muito longo (máx. 100 caracteres).' });
     await ensureSlots(req.user.uid, weekStart);
     const { rows: [max] } = await pool.query(
       'SELECT MAX(slot_order) as max_order FROM user_week_meal_slots WHERE user_id = $1 AND week_start = $2',
@@ -70,7 +75,7 @@ router.post('/slots', async (req, res) => {
 router.delete('/slots/:mealType', async (req, res) => {
   try {
     const { weekStart } = req.query;
-    if (!weekStart) return res.status(400).json({ message: 'weekStart é obrigatório.' });
+    if (!isValidDate(weekStart)) return res.status(400).json({ message: 'weekStart deve ser uma data válida no formato YYYY-MM-DD.' });
     await pool.query(
       'DELETE FROM user_week_meal_slots WHERE user_id = $1 AND week_start = $2 AND meal_type = $3',
       [req.user.uid, weekStart, req.params.mealType]
@@ -87,7 +92,8 @@ router.delete('/slots/:mealType', async (req, res) => {
 router.put('/slots/reorder', async (req, res) => {
   try {
     const { weekStart, orderedTypes } = req.body;
-    if (!weekStart || !Array.isArray(orderedTypes)) return res.status(400).json({ message: 'Parâmetros inválidos.' });
+    if (!isValidDate(weekStart) || !Array.isArray(orderedTypes)) return res.status(400).json({ message: 'Parâmetros inválidos.' });
+    if (orderedTypes.length > 20) return res.status(400).json({ message: 'Número de slots excede o limite.' });
     for (let i = 0; i < orderedTypes.length; i++) {
       await pool.query(
         'UPDATE user_week_meal_slots SET slot_order = $1 WHERE user_id = $2 AND week_start = $3 AND meal_type = $4',
@@ -102,7 +108,7 @@ router.put('/slots/reorder', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { weekStart } = req.query;
-    if (!weekStart) return res.status(400).json({ message: 'weekStart é obrigatório.' });
+    if (!isValidDate(weekStart)) return res.status(400).json({ message: 'weekStart deve ser uma data válida no formato YYYY-MM-DD.' });
     await ensureSlots(req.user.uid, weekStart);
     const { rows } = await pool.query(
       `SELECT wp.day_index, wp.meal_type, wp.recipe_id,
@@ -132,8 +138,11 @@ router.get('/', async (req, res) => {
 router.put('/meal', async (req, res) => {
   try {
     const { weekStart, dayIndex, mealType, recipeId } = req.body;
-    if (!weekStart || dayIndex === undefined || !mealType || !recipeId)
+    if (!isValidDate(weekStart) || dayIndex === undefined || !mealType || !recipeId)
       return res.status(400).json({ message: 'Parâmetros inválidos.' });
+    const dayIdx = Number(dayIndex);
+    if (!Number.isInteger(dayIdx) || dayIdx < 0 || dayIdx > 6)
+      return res.status(400).json({ message: 'dayIndex deve ser entre 0 e 6.' });
     const id = `${req.user.uid}_${weekStart}_${dayIndex}_${mealType}`;
     await pool.query(
       `INSERT INTO user_week_plan (id, user_id, week_start, day_index, meal_type, recipe_id)
@@ -149,8 +158,11 @@ router.put('/meal', async (req, res) => {
 router.delete('/meal', async (req, res) => {
   try {
     const { weekStart, dayIndex, mealType } = req.body;
-    if (!weekStart || dayIndex === undefined || !mealType)
+    if (!isValidDate(weekStart) || dayIndex === undefined || !mealType)
       return res.status(400).json({ message: 'Parâmetros inválidos.' });
+    const dayIdx = Number(dayIndex);
+    if (!Number.isInteger(dayIdx) || dayIdx < 0 || dayIdx > 6)
+      return res.status(400).json({ message: 'dayIndex deve ser entre 0 e 6.' });
     await pool.query(
       'DELETE FROM user_week_plan WHERE user_id = $1 AND week_start = $2 AND day_index = $3 AND meal_type = $4',
       [req.user.uid, weekStart, dayIndex, mealType]

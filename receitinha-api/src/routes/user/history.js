@@ -10,7 +10,7 @@ router.use(auth);
 router.get('/', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 100, 200);
-    const offset = parseInt(req.query.offset) || 0;
+    const offset = Math.min(Math.max(parseInt(req.query.offset) || 0, 0), 100000);
     const { rows } = await pool.query(
       `SELECT ch.id, ch.user_id, ch.recipe_id, ch.cooked_at, ch.notes,
               r.title, r.photo_url, r.category

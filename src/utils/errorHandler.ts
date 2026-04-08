@@ -20,8 +20,3 @@ export const handleFirebaseError = (code: string): string => {
       return 'Não foi possível completar a ação. Verifique sua conexão e tente novamente.';
   }
 };
-
-export const handleSQLiteError = (error: Error | any): string => {
-  console.error('SQLite Error:', error);
-  return 'Erro ao acessar os dados locais. Tente fechar e reabrir o aplicativo.';
-};

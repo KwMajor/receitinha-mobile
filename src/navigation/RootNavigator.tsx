@@ -5,8 +5,6 @@ import { onAuthStateChanged } from '../services/firebase/auth';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { SplashScreen } from '../screens/auth/SplashScreen';
-import { initDefaultCategories } from '../services/sqlite/categoryService';
-
 export const RootNavigator = () => {
   const { isAuthenticated, isLoading, setLoading, setUser } = useAuthStore();
 
@@ -19,7 +17,6 @@ export const RootNavigator = () => {
           email: firebaseUser.email || '',
           createdAt: new Date(),
         });
-        initDefaultCategories(firebaseUser.uid);
       } else {
         setUser(null);
       }

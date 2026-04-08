@@ -42,8 +42,8 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
          }
       }
       setRecipeCollections(recipeColIds);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // silencia — coleções permanecem do estado anterior
     } finally {
       setLoading(false);
     }

@@ -37,8 +37,8 @@ export const FavoritesScreen = () => {
         const cols = await getCollections(user.id);
         setCollections(cols);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // silencia
     } finally {
       setLoading(false);
     }

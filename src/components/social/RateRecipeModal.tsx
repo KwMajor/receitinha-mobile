@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +16,7 @@ import { theme } from '../../constants/theme';
 import { Rating } from '../../types';
 import { submitRating } from '../../services/api/communityService';
 import { StarRating } from './StarRating';
+import { useAuthStore } from '../../store/authStore';
 
 const MAX_CHARS = 500;
 
@@ -30,6 +30,19 @@ interface Props {
   onSubmitted: (rating: Rating) => void;
 }
 
+function UserAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase() ?? '')
+    .join('');
+  return (
+    <View style={styles.avatar}>
+      <Text style={styles.avatarText}>{initials}</Text>
+    </View>
+  );
+}
+
 export const RateRecipeModal = ({
   visible,
   recipeId,
@@ -37,6 +50,7 @@ export const RateRecipeModal = ({
   onClose,
   onSubmitted,
 }: Props) => {
+  const { user } = useAuthStore();
   const [stars, setStars] = useState(existingRating?.stars ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,6 +108,14 @@ export const RateRecipeModal = ({
           <Text style={styles.title}>
             {isEditing ? 'Editar avaliação' : 'Avaliar receita'}
           </Text>
+
+          {/* Avatar + nome do usuário */}
+          {user && (
+            <View style={styles.userRow}>
+              <UserAvatar name={user.name || 'Usuário'} />
+              <Text style={styles.userName}>{user.name || 'Usuário'}</Text>
+            </View>
+          )}
 
           {/* Estrelas interativas */}
           <View style={styles.starsContainer}>
@@ -199,8 +221,33 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 15,
     color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
     minHeight: 90,
     maxHeight: 160,
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   charCount: {
     alignSelf: 'flex-end',

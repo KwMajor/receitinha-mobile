@@ -7,6 +7,18 @@ const router = Router();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function mapRating(r) {
+  return {
+    id: r.id,
+    recipeId: r.recipe_id,
+    userId: r.user_id,
+    authorName: r.author_name,
+    stars: r.stars,
+    comment: r.comment ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
 async function getStats(recipeId) {
   const { rows } = await pool.query(
     'SELECT COALESCE(AVG(stars), 0) AS avg, COUNT(*) AS count FROM ratings WHERE recipe_id = $1',
@@ -169,7 +181,7 @@ router.get('/:id/ratings', auth, async (req, res) => {
         'SELECT * FROM ratings WHERE recipe_id = $1 AND user_id = $2',
         [req.params.id, req.user.uid]
       );
-      return res.json(rows[0] ?? null);
+      return res.json(rows[0] ? mapRating(rows[0]) : null);
     }
 
     const limit = Math.min(parseInt(req.query.limit) || 15, 50);
@@ -194,7 +206,7 @@ router.get('/:id/ratings', auth, async (req, res) => {
     const page = hasMore ? rows.slice(0, limit) : rows;
     const nextCursor = hasMore ? page[page.length - 1].created_at : null;
 
-    res.json({ ratings: page, nextCursor });
+    res.json({ ratings: page.map(mapRating), nextCursor });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro interno.' });
@@ -211,10 +223,11 @@ router.post('/:id/ratings', auth, async (req, res) => {
     );
     if (!recipe[0]) return res.status(404).json({ message: 'Receita não encontrada.' });
 
-    const { stars, comment } = req.body;
-    if (typeof stars !== 'number' || stars < 0 || stars > 5) {
-      return res.status(400).json({ message: 'Estrelas deve ser entre 0 e 5.' });
+    const stars = Number(req.body.stars);
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+      return res.status(400).json({ message: 'Estrelas deve ser um número inteiro entre 1 e 5.' });
     }
+    const comment = typeof req.body.comment === 'string' ? req.body.comment.trim().slice(0, 500) : null;
 
     const { rows: existing } = await pool.query(
       'SELECT id FROM ratings WHERE recipe_id = $1 AND user_id = $2',
@@ -224,17 +237,17 @@ router.post('/:id/ratings', auth, async (req, res) => {
     if (existing[0]) {
       const { rows } = await pool.query(
         'UPDATE ratings SET stars = $1, comment = $2, author_name = $3 WHERE id = $4 RETURNING *',
-        [stars, comment ?? null, req.user.name, existing[0].id]
+        [stars, comment || null, req.user.name, existing[0].id]
       );
-      return res.json(rows[0]);
+      return res.json(mapRating(rows[0]));
     }
 
     const { rows } = await pool.query(
       `INSERT INTO ratings (id, recipe_id, user_id, author_name, stars, comment)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [randomUUID(), req.params.id, req.user.uid, req.user.name, stars, comment ?? null]
+      [randomUUID(), req.params.id, req.user.uid, req.user.name, stars, comment || null]
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json(mapRating(rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro interno.' });

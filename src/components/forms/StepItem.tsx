@@ -10,11 +10,12 @@ interface StepItemProps {
   onChangeInstruction: (val: string) => void;
   onChangeTimer: (val: string) => void;
   onRemove: () => void;
-  drag?: () => void; // Apenas placeholder para a prop do hook de reordenação se usar depois
+  timerError?: string;
+  drag?: () => void;
 }
 
 export const StepItem = ({
-  order, instruction, timerMinutes, onChangeInstruction, onChangeTimer, onRemove, drag
+  order, instruction, timerMinutes, onChangeInstruction, onChangeTimer, onRemove, timerError, drag
 }: StepItemProps) => {
   return (
     <View style={styles.container}>
@@ -36,16 +37,17 @@ export const StepItem = ({
         />
         
         <View style={styles.timerContainer}>
-          <Feather name="clock" size={16} color={theme.colors.textSecondary} style={{ marginRight: 4 }} />
+          <Feather name="clock" size={16} color={timerError ? theme.colors.error : theme.colors.textSecondary} style={{ marginRight: 4 }} />
           <TextInput
-            style={styles.timerInput}
-            placeholder="Timer (min)"
+            style={[styles.timerInput, timerError ? styles.timerInputError : null]}
+            placeholder="Tempo (min) *"
             keyboardType="numeric"
             value={timerMinutes}
             onChangeText={v => onChangeTimer(v.replace(/[^0-9]/g, ''))}
             returnKeyType="done"
           />
         </View>
+        {timerError && <Text style={styles.timerErrorText}>{timerError}</Text>}
       </View>
 
       <TouchableOpacity onPress={onRemove} style={styles.removeBtn}>
@@ -110,6 +112,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  timerInputError: {
+    borderColor: theme.colors.error,
+  },
+  timerErrorText: {
+    fontSize: 12,
+    color: theme.colors.error,
+    marginTop: 2,
   },
   removeBtn: {
     padding: theme.spacing.xs,

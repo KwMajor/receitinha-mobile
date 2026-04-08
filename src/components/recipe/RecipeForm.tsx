@@ -11,7 +11,6 @@ import { theme } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../services/api/client';
 import { getCategories } from '../../services/sqlite/categoryService';
-import { createRecipe, CreateRecipeInput } from '../../services/sqlite/recipeService';
 
 import { PhotoPicker } from '../../components/forms/PhotoPicker';
 import { IngredientItem } from '../../components/forms/IngredientItem';
@@ -21,9 +20,6 @@ const recipeSchema = z.object({
   title: z.string().min(1, 'O título é obrigatório'),
   description: z.string().optional(),
   category: z.string().min(1, 'Selecione uma categoria'),
-  prepTime: z.string()
-    .min(1, 'O tempo é obrigatório')
-    .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   servings: z.string()
     .min(1, 'Obrigatório')
     .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
@@ -36,10 +32,10 @@ const recipeSchema = z.object({
     name: z.string().min(1)
   })).min(1, 'Adicione pelo menos 1 ingrediente'),
   steps: z.array(z.object({
-    instruction: z.string().min(1),
+    instruction: z.string().min(1, 'Descreva o passo'),
     timerMinutes: z.string()
-      .refine(v => !v || (/^\d+$/.test(v) && Number(v) > 0), 'Informe um número inteiro positivo')
-      .optional()
+      .min(1, 'Informe o tempo deste passo')
+      .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   })).min(1, 'Adicione pelo menos 1 passo')
 });
 
@@ -64,7 +60,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     }
   }, [user?.id]);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<RecipeFormData>({
+  const { control, handleSubmit, formState: { errors } } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
     defaultValues: initialData || {
       category: '',
@@ -75,12 +71,6 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
-
-  const watchedSteps = watch('steps');
-  useEffect(() => {
-    const sum = watchedSteps.reduce((acc, s) => acc + (parseInt(s.timerMinutes || '0') || 0), 0);
-    if (sum > 0) setValue('prepTime', sum.toString());
-  }, [watchedSteps]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -115,7 +105,6 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     });
 
     if (result.status < 200 || result.status >= 300) {
-      console.error('Falha no upload da foto', { uri, body: result.body });
       throw new Error(`Upload falhou com status ${result.status}`);
     }
 
@@ -127,20 +116,21 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     if (!user) return;
     try {
       setLoading(true);
-      
-      let finalPhotoUrl = data.photoUrl;
 
+      let finalPhotoUrl = data.photoUrl;
       if (data.photoUrl && !data.photoUrl.startsWith('http')) {
         finalPhotoUrl = await uploadPhoto(data.photoUrl);
       }
 
+      const prepTime = data.steps.reduce((acc, s) => acc + parseInt(s.timerMinutes, 10), 0);
+
       await onSubmitData({
-         ...data,
-         photoUrl: finalPhotoUrl
+        ...data,
+        prepTime,
+        photoUrl: finalPhotoUrl,
       });
 
     } catch (error) {
-      console.error(error);
       Alert.alert('Erro ao salvar', 'Não foi possível salvar a receita. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
@@ -179,23 +169,13 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           </View>
         )} />
 
-        <View style={styles.row}>
-          <Controller control={control} name="prepTime" render={({ field: { onChange, value } }) => (
-            <View style={[styles.inputGroup, { flex: 1, marginRight: theme.spacing.sm }]}>
-              <Text style={styles.label}>Tempo (min) *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="45" returnKeyType="done" />
-              {errors.prepTime && <Text style={styles.error}>{errors.prepTime.message}</Text>}
-            </View>
-          )} />
-
-          <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Porções *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" returnKeyType="done" />
-              {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
-            </View>
-          )} />
-        </View>
+        <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Porções *</Text>
+            <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" returnKeyType="done" />
+            {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
+          </View>
+        )} />
 
         <Controller control={control} name="category" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
@@ -259,22 +239,26 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       {/* SEÇÃO 4 — Modo de preparo */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Modo de Preparo *</Text>
-        {errors.steps && <Text style={styles.error}>{errors.steps.message}</Text>}
-        
+        <Text style={styles.sectionHint}>Cada passo deve ter um tempo — o total será o tempo de preparo da receita.</Text>
+        {errors.steps && typeof errors.steps.message === 'string' && (
+          <Text style={styles.error}>{errors.steps.message}</Text>
+        )}
+
         {stepFields.map((field, index) => (
           <View key={field.id}>
-             <Controller control={control} name={`steps.${index}.instruction`} render={({field: {onChange, value}}) => (
-               <Controller control={control} name={`steps.${index}.timerMinutes`} render={({field: {onChange: onChangeT, value: valueT}}) => (
-                 <StepItem
-                   order={index + 1}
-                   instruction={value}
-                   onChangeInstruction={onChange}
-                   timerMinutes={valueT}
-                   onChangeTimer={onChangeT}
-                   onRemove={() => removeStep(index)}
-                 />
-               )} />
-             )} />
+            <Controller control={control} name={`steps.${index}.instruction`} render={({field: {onChange, value}}) => (
+              <Controller control={control} name={`steps.${index}.timerMinutes`} render={({field: {onChange: onChangeT, value: valueT}}) => (
+                <StepItem
+                  order={index + 1}
+                  instruction={value}
+                  onChangeInstruction={onChange}
+                  timerMinutes={valueT}
+                  onChangeTimer={onChangeT}
+                  onRemove={() => removeStep(index)}
+                  timerError={errors.steps?.[index]?.timerMinutes?.message}
+                />
+              )} />
+            )} />
           </View>
         ))}
         <TouchableOpacity style={styles.addButton} onPress={() => appendStep({ instruction: '', timerMinutes: '' })}>
@@ -297,6 +281,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: '#fff' },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
+  sectionHint: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: theme.spacing.md, marginTop: -theme.spacing.sm },
   error: { color: theme.colors.error, fontSize: 12, marginTop: 4 },
   addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.spacing.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.primary, borderRadius: theme.borderRadius.md, marginTop: theme.spacing.sm },
   addButtonText: { color: theme.colors.primary, fontWeight: 'bold', marginLeft: theme.spacing.sm },

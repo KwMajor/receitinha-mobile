@@ -14,13 +14,14 @@ import { auth } from './config';
 export const signUp = async (email: string, password: string, name: string): Promise<FirebaseUser> => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
-  
-  // Atualiza o perfil com o nome do usuário
+
   await updateProfile(user, { displayName: name });
-  
-  // Como updateProfile só afeta o currentUser atual, podemos recarregá-lo
   await user.reload();
-  
+  // Força refresh do token para que o claim "name" já esteja presente
+  // na primeira chamada à API — sem isso, payload.name é null e o backend
+  // usa o email como fallback.
+  await user.getIdToken(true);
+
   return auth.currentUser || user;
 };
 
@@ -40,6 +41,7 @@ export const resetPassword = async (email: string): Promise<void> => {
 export const updateUserName = async (name: string): Promise<void> => {
   if (!auth.currentUser) throw new Error('Usuário não autenticado');
   await updateProfile(auth.currentUser, { displayName: name });
+  await auth.currentUser.getIdToken(true);
 };
 
 export const updateUserEmail = async (newEmail: string): Promise<void> => {

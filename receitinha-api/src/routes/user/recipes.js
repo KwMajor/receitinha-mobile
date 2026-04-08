@@ -48,20 +48,25 @@ router.get('/', async (req, res) => {
     const params = [req.user.uid];
     let i = 2;
 
-    if (query) {
+    if (query && typeof query === 'string') {
+      const safeQuery = query.trim().slice(0, 200);
       sql += ` AND (r.title ILIKE $${i} OR EXISTS (
         SELECT 1 FROM user_ingredients ing WHERE ing.recipe_id = r.id AND ing.name ILIKE $${i}
       ))`;
-      params.push(`%${query}%`); i++;
+      params.push(`%${safeQuery}%`); i++;
     }
-    if (cats.length) {
-      const ph = cats.map((_, j) => `$${i + j}`).join(',');
+    const validCats = Array.isArray(cats)
+      ? cats.filter(c => typeof c === 'string' && c.trim().length > 0).slice(0, 50)
+      : [];
+    if (validCats.length) {
+      const ph = validCats.map((_, j) => `$${i + j}`).join(',');
       sql += ` AND r.category IN (${ph})`;
-      params.push(...cats); i += cats.length;
+      params.push(...validCats); i += validCats.length;
     }
-    if (maxPrepTime && parseInt(maxPrepTime) < 120) {
+    const prepTimeNum = parseInt(maxPrepTime);
+    if (!isNaN(prepTimeNum) && prepTimeNum > 0 && prepTimeNum <= 1440) {
       sql += ` AND r.prep_time <= $${i}`;
-      params.push(parseInt(maxPrepTime));
+      params.push(prepTimeNum);
     }
 
     sql += ' ORDER BY r.created_at DESC';
@@ -86,28 +91,47 @@ router.get('/:id', async (req, res) => {
 // POST /api/user/recipes
 router.post('/', async (req, res) => {
   try {
-    const { title, description, prepTime, servings, category, photoUrl, isPublic, ingredients = [], steps = [] } = req.body;
-    if (!title?.trim()) return res.status(400).json({ message: 'Título é obrigatório.' });
+    const title = req.body.title?.trim();
+    if (!title) return res.status(400).json({ message: 'Título é obrigatório.' });
+    if (title.length > 200) return res.status(400).json({ message: 'Título muito longo (máx. 200 caracteres).' });
+
+    const description = typeof req.body.description === 'string' ? req.body.description.trim().slice(0, 5000) : '';
+    const prepTime = Number(req.body.prepTime ?? 0);
+    if (isNaN(prepTime) || prepTime < 0 || prepTime > 1440) return res.status(400).json({ message: 'Tempo de preparo inválido (0–1440 min).' });
+    const servings = Number(req.body.servings ?? 1);
+    if (isNaN(servings) || servings < 1 || servings > 100) return res.status(400).json({ message: 'Porções inválidas (1–100).' });
+    const category = typeof req.body.category === 'string' ? req.body.category.trim().slice(0, 100) : '';
+    const photoUrl = typeof req.body.photoUrl === 'string' ? req.body.photoUrl.slice(0, 500) : null;
+    const isPublic = req.body.isPublic === true;
+    const ingredients = Array.isArray(req.body.ingredients) ? req.body.ingredients.slice(0, 100) : [];
+    const steps = Array.isArray(req.body.steps) ? req.body.steps.slice(0, 100) : [];
 
     const id = randomUUID();
     await pool.query(
       `INSERT INTO user_recipes (id, user_id, title, description, prep_time, servings, category, photo_url, is_public)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [id, req.user.uid, title.trim(), description ?? '', prepTime ?? 0, servings ?? 1, category ?? '', photoUrl ?? null, isPublic ?? false]
+      [id, req.user.uid, title, description, prepTime, servings, category, photoUrl, isPublic]
     );
 
     for (let j = 0; j < ingredients.length; j++) {
       const ing = ingredients[j];
+      const ingName = typeof ing.name === 'string' ? ing.name.trim().slice(0, 200) : '';
+      if (!ingName) continue;
+      const ingQty = Number(ing.quantity ?? 0);
+      const ingUnit = typeof ing.unit === 'string' ? ing.unit.trim().slice(0, 50) : '';
       await pool.query(
         'INSERT INTO user_ingredients (id, recipe_id, name, quantity, unit, sort_order) VALUES ($1,$2,$3,$4,$5,$6)',
-        [randomUUID(), id, ing.name, ing.quantity, ing.unit, j]
+        [randomUUID(), id, ingName, isNaN(ingQty) ? 0 : ingQty, ingUnit, j]
       );
     }
     for (let j = 0; j < steps.length; j++) {
       const step = steps[j];
+      const instruction = typeof step.instruction === 'string' ? step.instruction.trim().slice(0, 2000) : '';
+      if (!instruction) continue;
+      const timerMinutes = step.timerMinutes != null ? Number(step.timerMinutes) : null;
       await pool.query(
         'INSERT INTO user_steps (id, recipe_id, instruction, timer_minutes, sort_order) VALUES ($1,$2,$3,$4,$5)',
-        [randomUUID(), id, step.instruction, step.timerMinutes ?? null, j]
+        [randomUUID(), id, instruction, (timerMinutes != null && !isNaN(timerMinutes) && timerMinutes > 0) ? timerMinutes : null, j]
       );
     }
 
@@ -123,13 +147,25 @@ router.put('/:id', async (req, res) => {
     const { title, description, prepTime, servings, category, photoUrl, isPublic, ingredients, steps } = req.body;
     const fields = []; const vals = [];
     let i = 1;
-    if (title !== undefined)       { fields.push(`title=$${i++}`);       vals.push(title.trim()); }
-    if (description !== undefined) { fields.push(`description=$${i++}`); vals.push(description); }
-    if (prepTime !== undefined)    { fields.push(`prep_time=$${i++}`);   vals.push(prepTime); }
-    if (servings !== undefined)    { fields.push(`servings=$${i++}`);    vals.push(servings); }
-    if (category !== undefined)    { fields.push(`category=$${i++}`);    vals.push(category); }
-    if (photoUrl !== undefined)    { fields.push(`photo_url=$${i++}`);   vals.push(photoUrl); }
-    if (isPublic !== undefined)    { fields.push(`is_public=$${i++}`);   vals.push(isPublic); }
+    if (title !== undefined) {
+      const t = title?.trim();
+      if (!t || t.length > 200) return res.status(400).json({ message: 'Título inválido (1–200 caracteres).' });
+      fields.push(`title=$${i++}`); vals.push(t);
+    }
+    if (description !== undefined) { fields.push(`description=$${i++}`); vals.push(typeof description === 'string' ? description.trim().slice(0, 5000) : ''); }
+    if (prepTime !== undefined) {
+      const pt = Number(prepTime);
+      if (isNaN(pt) || pt < 0 || pt > 1440) return res.status(400).json({ message: 'Tempo de preparo inválido (0–1440 min).' });
+      fields.push(`prep_time=$${i++}`); vals.push(pt);
+    }
+    if (servings !== undefined) {
+      const sv = Number(servings);
+      if (isNaN(sv) || sv < 1 || sv > 100) return res.status(400).json({ message: 'Porções inválidas (1–100).' });
+      fields.push(`servings=$${i++}`); vals.push(sv);
+    }
+    if (category !== undefined)    { fields.push(`category=$${i++}`);    vals.push(typeof category === 'string' ? category.trim().slice(0, 100) : ''); }
+    if (photoUrl !== undefined)    { fields.push(`photo_url=$${i++}`);   vals.push(typeof photoUrl === 'string' ? photoUrl.slice(0, 500) : null); }
+    if (isPublic !== undefined)    { fields.push(`is_public=$${i++}`);   vals.push(isPublic === true); }
 
     if (fields.length) {
       fields.push(`updated_at=NOW()`);

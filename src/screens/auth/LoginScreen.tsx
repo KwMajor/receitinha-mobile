@@ -40,7 +40,6 @@ export const LoginScreen = () => {
       setLoading(true);
       await signIn(data.email, data.password);
     } catch (error: any) {
-      console.error('Falha no login', error);
       Alert.alert('Falha no login', getFirebaseErrorMessage(error));
     } finally {
       setLoading(false);

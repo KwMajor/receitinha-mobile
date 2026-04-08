@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ActivityIndicator, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import RecipeForm, { RecipeFormData } from '../../components/recipe/RecipeForm';
+import RecipeForm from '../../components/recipe/RecipeForm';
 import { updateRecipe, getRecipeById, CreateRecipeInput } from '../../services/sqlite/recipeService';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
@@ -11,7 +11,7 @@ export default function EditRecipeScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore(state => state.user);
   
-  const [initialData, setInitialData] = useState<RecipeFormData | null>(null);
+  const [initialData, setInitialData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const recipeId = route.params.id;
@@ -27,7 +27,6 @@ export default function EditRecipeScreen() {
         setInitialData({
           title: recipe.title,
           description: recipe.description || '',
-          prepTime: recipe.prepTime.toString(),
           servings: recipe.servings.toString(),
           category: recipe.category,
           photoUrl: recipe.photoUrl || '',
@@ -38,7 +37,7 @@ export default function EditRecipeScreen() {
           })),
           steps: recipe.steps.map((s: any) => ({
             instruction: s.instruction,
-            timerMinutes: s.timer_minutes ? s.timer_minutes.toString() : ''
+            timerMinutes: s.timer_minutes ? s.timer_minutes.toString() : '',
           }))
         });
       }
@@ -49,33 +48,32 @@ export default function EditRecipeScreen() {
     }
   };
 
-  const handleSubmit = async (data: RecipeFormData) => {
+  const handleSubmit = async (data: any) => {
     if (!user) return;
     try {
       const input: CreateRecipeInput = {
         title: data.title,
         description: data.description || '',
-        prepTime: parseInt(data.prepTime, 10),
+        prepTime: data.prepTime,
         servings: parseInt(data.servings, 10),
         category: data.category,
         photoUrl: data.photoUrl,
         isPublic: false,
-        ingredients: data.ingredients.map(i => ({ 
-          name: i.name, 
-          quantity: parseFloat(i.quantity.replace(',','.')), 
-          unit: i.unit 
+        ingredients: data.ingredients.map((i: any) => ({
+          name: i.name,
+          quantity: parseFloat(i.quantity.replace(',','.')),
+          unit: i.unit
         })),
-        steps: data.steps.map(s => ({ 
-          instruction: s.instruction, 
-          timerMinutes: s.timerMinutes ? parseInt(s.timerMinutes, 10) : undefined 
+        steps: data.steps.map((s: any) => ({
+          instruction: s.instruction,
+          timerMinutes: parseInt(s.timerMinutes, 10),
         }))
       };
 
       await updateRecipe(recipeId, input);
       Alert.alert('Receita atualizada!', `"${input.title}" foi salva com as alterações.`);
       navigation.goBack();
-    } catch (error) {
-      console.error(error);
+    } catch {
       Alert.alert('Erro ao salvar', 'Não foi possível salvar as alterações. Tente novamente.');
     }
   };
