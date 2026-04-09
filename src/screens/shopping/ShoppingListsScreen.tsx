@@ -156,8 +156,18 @@ export const ShoppingListsScreen: React.FC = () => {
             {item.itemCount ?? 0} {item.itemCount === 1 ? 'item' : 'itens'}
             {(item.pendingCount ?? 0) > 0
               ? ` · ${item.pendingCount} pendente${item.pendingCount === 1 ? '' : 's'}`
-              : ' · tudo marcado'}
+              : (item.itemCount ?? 0) > 0 ? ' · tudo marcado ✓' : ''}
           </Text>
+          {(item.itemCount ?? 0) > 0 && (
+            <View style={styles.cardProgressTrack}>
+              <View
+                style={[
+                  styles.cardProgressFill,
+                  { width: `${Math.round((((item.itemCount ?? 0) - (item.pendingCount ?? 0)) / (item.itemCount ?? 1)) * 100)}%` },
+                ]}
+              />
+            </View>
+          )}
         </View>
         <Feather name="chevron-right" size={18} color={theme.colors.textSecondary} />
       </TouchableOpacity>
@@ -249,64 +259,94 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  title: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
+  title: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 9,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.round,
     gap: 6,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  addBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   loader: { flex: 1, marginTop: 40 },
   listCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+    borderRadius: 14,
+    padding: theme.spacing.md,
     gap: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 3,
   },
   listIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary + '15',
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary + '18',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  listInfo: { flex: 1 },
+  listInfo: { flex: 1, gap: 6 },
   listNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  listName: { fontSize: 15, fontWeight: '600', color: theme.colors.text, flexShrink: 1 },
+  listName: { fontSize: 15, fontWeight: '700', color: theme.colors.text, flexShrink: 1 },
   activeBadge: {
     backgroundColor: theme.colors.success + '20',
     borderRadius: theme.borderRadius.round,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  activeBadgeText: { fontSize: 11, color: theme.colors.success, fontWeight: '600' },
-  listMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  activeBadgeText: { fontSize: 11, color: theme.colors.success, fontWeight: '700' },
+  listMeta: { fontSize: 12, color: theme.colors.textSecondary },
+  cardProgressTrack: {
+    height: 4,
+    backgroundColor: theme.colors.border,
+    borderRadius: 2,
+  },
+  cardProgressFill: {
+    height: 4,
+    backgroundColor: theme.colors.success,
+    borderRadius: 2,
+  },
   renameAction: {
     backgroundColor: '#4A90E2',
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
     gap: 4,
+    marginTop: theme.spacing.sm,
+    marginLeft: theme.spacing.md,
   },
   deleteAction: {
     backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
     gap: 4,
+    marginTop: theme.spacing.sm,
+    marginRight: theme.spacing.md,
   },
   actionLabel: { color: '#fff', fontSize: 11, fontWeight: '600' },
   emptyContainer: { flex: 1, justifyContent: 'center' },

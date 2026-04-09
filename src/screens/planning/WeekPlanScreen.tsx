@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,18 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { useWeekPlan } from '../../hooks/useWeekPlan';
-import { WeekDayColumn } from '../../components/planning/WeekDayColumn';
+import { MealSlot } from '../../components/planning/MealSlot';
 import { RecipePickerModal } from './RecipePickerModal';
 import { generateFromWeekPlan } from '../../services/sqlite/shoppingService';
 import { useAuthStore } from '../../store/authStore';
 import { Recipe } from '../../types';
+
+const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const DAY_COL_WIDTH = 54;
+const MEAL_COL_WIDTH = 110;
+const HEADER_HEIGHT = 52;
+const CELL_HEIGHT = 62;
 
 interface SelectedSlot {
   dayIndex: number;
@@ -45,6 +52,7 @@ export const WeekPlanScreen: React.FC = () => {
     refresh,
     goToNextWeek,
     goToPreviousWeek,
+    goToWeek,
     setMeal,
     removeMeal,
     addMealSlot,
@@ -58,11 +66,25 @@ export const WeekPlanScreen: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [addSlotModalVisible, setAddSlotModalVisible] = useState(false);
   const [newSlotLabel, setNewSlotLabel] = useState('');
-  const scrollRef = useRef<ScrollView>(null);
+  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
 
   useEffect(() => {
     refresh();
   }, []);
+
+  const FIXED_TYPES = new Set(['breakfast', 'lunch', 'dinner']);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
 
   // ── Slot interactions ─────────────────────────────────────────────────────
 
@@ -145,9 +167,16 @@ export const WeekPlanScreen: React.FC = () => {
     );
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const handleSelectMonth = (year: number, month: number) => {
+    const first = new Date(year, month, 1, 12);
+    const dayOfWeek = first.getDay();
+    first.setDate(first.getDate() - dayOfWeek);
+    const ws = first.toISOString().split('T')[0];
+    goToWeek(ws);
+    setMonthPickerVisible(false);
+  };
 
-  const FIXED_TYPES = new Set(['breakfast', 'lunch', 'dinner']);
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -157,7 +186,18 @@ export const WeekPlanScreen: React.FC = () => {
           <Feather name="chevron-left" size={22} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={styles.weekLabel}>{weekLabel}</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.weekLabel}>{weekLabel}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setPickerYear(new Date().getFullYear());
+              setMonthPickerVisible(true);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="calendar" size={16} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.navBtn} onPress={goToNextWeek}>
           <Feather name="chevron-right" size={22} color={theme.colors.text} />
@@ -207,92 +247,120 @@ export const WeekPlanScreen: React.FC = () => {
       )}
 
       {/* Grid */}
-      <View style={styles.gridRow}>
-        {/* Meal type labels column */}
-        <View style={styles.mealLabels}>
-          <View style={styles.mealLabelHeader} />
-
-          {mealSlots.map((slot, idx) => (
-            <View key={slot.mealType} style={styles.mealLabelRow}>
-              <View style={styles.mealLabelContent}>
-                <Text style={styles.mealLabelText} numberOfLines={1}>
-                  {slot.label}
-                </Text>
-                <View style={styles.mealLabelActions}>
-                  <TouchableOpacity
-                    onPress={() => moveMealSlotUp(slot.mealType)}
-                    disabled={idx === 0}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                  >
-                    <Feather
-                      name="chevron-up"
-                      size={12}
-                      color={idx === 0 ? theme.colors.border : theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => moveMealSlotDown(slot.mealType)}
-                    disabled={idx === mealSlots.length - 1}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                  >
-                    <Feather
-                      name="chevron-down"
-                      size={12}
-                      color={idx === mealSlots.length - 1 ? theme.colors.border : theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                  {!FIXED_TYPES.has(slot.mealType) && (
-                    <TouchableOpacity
-                      onPress={() => handleRemoveExtraSlot(slot.mealType, slot.label)}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                      <Feather name="x" size={11} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  )}
+      {isLoading ? (
+        <ActivityIndicator style={styles.loader} color={theme.colors.primary} size="large" />
+      ) : (
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.gridContainer}>
+            {/* Fixed left column: empty corner + day labels */}
+            <View style={styles.leftColumn}>
+              <View style={{ height: HEADER_HEIGHT }} />
+              {weekDates.map((date, dayIndex) => (
+                <View
+                  key={dayIndex}
+                  style={[styles.dayLabelCell, isToday(date) && styles.dayLabelToday]}
+                >
+                  <Text style={[styles.dayName, isToday(date) && styles.dayNameToday]}>
+                    {DAY_NAMES[dayIndex]}
+                  </Text>
+                  <Text style={[styles.dayNumber, isToday(date) && styles.dayNumberToday]}>
+                    {date.getDate()}
+                  </Text>
                 </View>
-              </View>
+              ))}
             </View>
-          ))}
 
-          {/* Add meal slot button */}
-          <TouchableOpacity
-            style={styles.addSlotBtn}
-            onPress={() => setAddSlotModalVisible(true)}
-          >
-            <Feather name="plus" size={14} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </View>
+            {/* Horizontally scrollable: meal type headers + cells */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+              <View>
+                {/* Meal type header row */}
+                <View style={[styles.mealHeaderRow, { height: HEADER_HEIGHT }]}>
+                  {mealSlots.map((slot, idx) => (
+                    <View
+                      key={slot.mealType}
+                      style={[styles.mealHeaderCell, { width: MEAL_COL_WIDTH }]}
+                    >
+                      <Text style={styles.mealHeaderText} numberOfLines={1}>
+                        {slot.label}
+                      </Text>
+                      <View style={styles.mealHeaderActions}>
+                        <TouchableOpacity
+                          onPress={() => moveMealSlotUp(slot.mealType)}
+                          disabled={idx === 0}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                        >
+                          <Feather
+                            name="chevron-left"
+                            size={12}
+                            color={idx === 0 ? theme.colors.border : theme.colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => moveMealSlotDown(slot.mealType)}
+                          disabled={idx === mealSlots.length - 1}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                        >
+                          <Feather
+                            name="chevron-right"
+                            size={12}
+                            color={
+                              idx === mealSlots.length - 1
+                                ? theme.colors.border
+                                : theme.colors.textSecondary
+                            }
+                          />
+                        </TouchableOpacity>
+                        {!FIXED_TYPES.has(slot.mealType) && (
+                          <TouchableOpacity
+                            onPress={() => handleRemoveExtraSlot(slot.mealType, slot.label)}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                          >
+                            <Feather name="x" size={11} color={theme.colors.textSecondary} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ))}
 
-        {/* Week grid */}
-        {isLoading ? (
-          <ActivityIndicator
-            style={styles.loader}
-            color={theme.colors.primary}
-            size="large"
-          />
-        ) : (
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {weekDates.map((date, dayIndex) => (
-              <WeekDayColumn
-                key={dayIndex}
-                dayIndex={dayIndex}
-                date={date}
-                plan={weekPlan[dayIndex] ?? {}}
-                mealSlots={mealSlots}
-                draggingSlot={draggingSlot}
-                onSlotPress={(mealType) => handleSlotPress(dayIndex, mealType)}
-                onSlotLongPress={(mealType) => handleSlotLongPress(dayIndex, mealType)}
-                onRemove={(mealType) => handleRemove(dayIndex, mealType)}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </View>
+                  {/* Add meal slot button */}
+                  <TouchableOpacity
+                    style={styles.addSlotBtn}
+                    onPress={() => setAddSlotModalVisible(true)}
+                  >
+                    <Feather name="plus" size={14} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Day rows */}
+                {weekDates.map((_date, dayIndex) => (
+                  <View key={dayIndex} style={[styles.mealRow, { height: CELL_HEIGHT }]}>
+                    {mealSlots.map((slot) => {
+                      const isDragSrc =
+                        draggingSlot?.dayIndex === dayIndex &&
+                        draggingSlot?.mealType === slot.mealType;
+                      const isDropTgt =
+                        draggingSlot !== null && !isDragSrc;
+                      return (
+                        <View key={slot.mealType} style={[styles.slotWrapper, { width: MEAL_COL_WIDTH }]}>
+                          <MealSlot
+                            label=""
+                            recipe={weekPlan[dayIndex]?.[slot.mealType] ?? null}
+                            onPress={() => handleSlotPress(dayIndex, slot.mealType)}
+                            onLongPress={() => handleSlotLongPress(dayIndex, slot.mealType)}
+                            onRemove={() => handleRemove(dayIndex, slot.mealType)}
+                            isDropTarget={isDropTgt}
+                            isDragging={isDragSrc}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </ScrollView>
+      )}
 
       {/* Recipe picker modal */}
       <RecipePickerModal
@@ -345,18 +413,55 @@ export const WeekPlanScreen: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Month picker modal */}
+      <Modal
+        visible={monthPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMonthPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMonthPickerVisible(false)}
+        >
+          <TouchableOpacity style={styles.monthPickerCard} activeOpacity={1}>
+            <View style={styles.yearRow}>
+              <TouchableOpacity
+                onPress={() => setPickerYear((y) => y - 1)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="chevron-left" size={22} color={theme.colors.text} />
+              </TouchableOpacity>
+              <Text style={styles.yearText}>{pickerYear}</Text>
+              <TouchableOpacity
+                onPress={() => setPickerYear((y) => y + 1)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="chevron-right" size={22} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.monthGrid}>
+              {MONTH_NAMES.map((name, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.monthBtn}
+                  onPress={() => handleSelectMonth(pickerYear, idx)}
+                >
+                  <Text style={styles.monthBtnText}>{name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-const MEAL_ROW_HEIGHT = 56 + 6;
-const HEADER_HEIGHT = 50;
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  safeArea: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,8 +471,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  navBtn: {
-    padding: theme.spacing.sm,
+  navBtn: { padding: theme.spacing.sm },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   weekLabel: {
     fontSize: 17,
@@ -387,11 +495,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     alignSelf: 'flex-start',
   },
-  shoppingBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  shoppingBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   dragBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -403,57 +507,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  dragBannerText: {
-    flex: 1,
-    fontSize: 12,
-    color: theme.colors.text,
-  },
-  gridRow: {
-    flex: 1,
+  dragBannerText: { flex: 1, fontSize: 12, color: theme.colors.text },
+  loader: { flex: 1, alignSelf: 'center' },
+  // Grid
+  gridContainer: {
     flexDirection: 'row',
+    paddingBottom: theme.spacing.md,
   },
-  mealLabels: {
-    width: 68,
+  leftColumn: {
+    width: DAY_COL_WIDTH,
     paddingLeft: theme.spacing.sm,
   },
-  mealLabelHeader: {
-    height: HEADER_HEIGHT,
-  },
-  mealLabelRow: {
-    height: MEAL_ROW_HEIGHT,
+  dayLabelCell: {
+    height: CELL_HEIGHT,
     justifyContent: 'center',
-  },
-  mealLabelContent: {
-    gap: 2,
-  },
-  mealLabelText: {
-    fontSize: 10,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  mealLabelActions: {
-    flexDirection: 'row',
-    gap: 4,
     alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
   },
+  dayLabelToday: { backgroundColor: theme.colors.primary + '15' },
+  dayName: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  dayNameToday: { color: theme.colors.primary },
+  dayNumber: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginTop: 2 },
+  dayNumberToday: { color: theme.colors.primary },
+  mealHeaderRow: { flexDirection: 'row', alignItems: 'center' },
+  mealHeaderCell: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  mealHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.text,
+    textTransform: 'uppercase',
+  },
+  mealHeaderActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   addSlotBtn: {
-    marginTop: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 6,
   },
-  scrollContent: {
-    paddingRight: theme.spacing.md,
-  },
-  loader: {
-    flex: 1,
-    alignSelf: 'center',
-  },
-  // Modal
+  mealRow: { flexDirection: 'row', alignItems: 'center' },
+  slotWrapper: { paddingHorizontal: 3 },
+  // Modals (shared)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -468,11 +575,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
   },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
   modalInput: {
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -483,31 +586,39 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     backgroundColor: theme.colors.surface,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    justifyContent: 'flex-end',
-  },
-  modalCancelBtn: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-  },
-  modalCancelText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
+  modalActions: { flexDirection: 'row', gap: theme.spacing.sm, justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.md },
+  modalCancelText: { fontSize: 14, color: theme.colors.textSecondary },
   modalConfirmBtn: {
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
   },
-  modalConfirmDisabled: {
-    opacity: 0.4,
+  modalConfirmDisabled: { opacity: 0.4 },
+  modalConfirmText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  // Month picker
+  monthPickerCard: {
+    width: '85%',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
-  modalConfirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
+  yearText: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  monthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  monthBtn: {
+    width: '30%',
+    paddingVertical: theme.spacing.sm,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  monthBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.text },
 });

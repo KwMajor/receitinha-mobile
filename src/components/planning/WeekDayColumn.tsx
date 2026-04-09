@@ -5,7 +5,7 @@ import { MealSlotConfig } from '../../services/sqlite/planningService';
 import { MealSlot } from './MealSlot';
 import { Recipe } from '../../types';
 
-const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 interface DraggingSlot {
   dayIndex: number;

@@ -9,10 +9,12 @@ import {
   FlatList,
   TextInput,
   Vibration,
-  Animated,
   Alert,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Feather } from '@expo/vector-icons';
@@ -49,19 +51,18 @@ export const BarcodeScannerScreen: React.FC = () => {
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | undefined>(initialListId);
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('');
   const [showListPicker, setShowListPicker] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualName, setManualName] = useState('');
 
+  const [cameraActive, setCameraActive] = useState(true);
   const scannedRef = useRef(false);
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-  const [toastMessage, setToastMessage] = useState('');
 
   useFocusEffect(
     useCallback(() => {
       loadLists();
       scannedRef.current = false;
+      setCameraActive(true);
     }, [user])
   );
 
@@ -75,27 +76,16 @@ export const BarcodeScannerScreen: React.FC = () => {
     }
   };
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    toastOpacity.setValue(1);
-    Animated.timing(toastOpacity, {
-      toValue: 0,
-      duration: 600,
-      delay: 1500,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const onBarcodeScanned = useCallback(
     ({ data }: { data: string }) => {
       if (scannedRef.current) return;
       scannedRef.current = true;
+      setCameraActive(false);
       handleBarcode(data);
     },
     [handleBarcode]
   );
 
-  // React to error state
   useEffect(() => {
     if (error === 'not_found') {
       Alert.alert(
@@ -108,6 +98,7 @@ export const BarcodeScannerScreen: React.FC = () => {
             onPress: () => {
               reset();
               scannedRef.current = false;
+              setCameraActive(true);
             },
           },
           {
@@ -116,7 +107,6 @@ export const BarcodeScannerScreen: React.FC = () => {
               reset();
               setManualName('');
               setQuantity('');
-              setUnit('');
               setShowManualInput(true);
             },
           },
@@ -129,6 +119,7 @@ export const BarcodeScannerScreen: React.FC = () => {
           onPress: () => {
             reset();
             scannedRef.current = false;
+            setCameraActive(true);
           },
         },
       ]);
@@ -141,13 +132,9 @@ export const BarcodeScannerScreen: React.FC = () => {
       return;
     }
     const qty = parseFloat(quantity);
-    await addItem(selectedListId, name, isNaN(qty) ? undefined : qty, unit.trim() || undefined);
+    await addItem(selectedListId, name, isNaN(qty) ? undefined : qty);
     Vibration.vibrate(100);
-    showToast(`"${name}" adicionado!`);
-    reset();
-    setQuantity('');
-    setUnit('');
-    scannedRef.current = false;
+    navigation.goBack();
   };
 
   const handleConfirm = async () => {
@@ -193,11 +180,171 @@ export const BarcodeScannerScreen: React.FC = () => {
     );
   }
 
-  // ── Main render ────────────────────────────────────────────────────────────
+  // ── Pós-scan: tela de confirmação ──────────────────────────────────────────
+
+  if (!cameraActive) {
+    return (
+      <SafeAreaView style={styles.confirmScreen} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.confirmHeader}>
+          <TouchableOpacity
+            onPress={() => {
+              reset();
+              setQuantity('');
+              scannedRef.current = false;
+              setCameraActive(true);
+            }}
+            style={styles.confirmBackBtn}
+          >
+            <Feather name="arrow-left" size={22} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.confirmHeaderTitle}>Adicionar à lista</Text>
+        </View>
+
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.confirmBody}>
+
+              {/* Loading */}
+              {isLoading && (
+                <View style={styles.loadingCard}>
+                  <ActivityIndicator color={theme.colors.primary} size="large" />
+                  <Text style={styles.loadingCardText}>Buscando produto...</Text>
+                </View>
+              )}
+
+              {/* Product card no topo */}
+              {lastResult && (
+                <View style={styles.productCard}>
+                  <View style={styles.productIconWrap}>
+                    <Feather name="package" size={28} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName} numberOfLines={2}>{lastResult.name}</Text>
+                    {lastResult.brand ? (
+                      <Text style={styles.productBrand}>{lastResult.brand}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              )}
+
+              {lastResult && (
+                <>
+                  {/* Quantidade */}
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Quantidade</Text>
+                    <TextInput
+                      style={styles.fieldInput}
+                      value={quantity}
+                      onChangeText={setQuantity}
+                      placeholder="Ex: 2"
+                      keyboardType="numeric"
+                      placeholderTextColor={theme.colors.textSecondary}
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
+                    />
+                  </View>
+
+                  {/* Seletor de lista */}
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Lista de compras</Text>
+                    <TouchableOpacity
+                      style={styles.listSelector}
+                      onPress={() => setShowListPicker(true)}
+                    >
+                      <Feather name="shopping-cart" size={16} color={theme.colors.primary} />
+                      <Text style={styles.listSelectorText} numberOfLines={1}>
+                        {selectedList ? selectedList.name : 'Selecionar lista...'}
+                      </Text>
+                      <Feather name="chevron-down" size={16} color={theme.colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Botões */}
+                  <View style={styles.confirmButtons}>
+                    <TouchableOpacity
+                      style={styles.secondaryBtn}
+                      onPress={() => {
+                        reset();
+                        setQuantity('');
+                        scannedRef.current = false;
+                        setCameraActive(true);
+                      }}
+                    >
+                      <Feather name="camera" size={16} color={theme.colors.text} />
+                      <Text style={styles.secondaryBtnText}>Escanear outro</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, !selectedListId && styles.primaryBtnDisabled]}
+                      onPress={handleConfirm}
+                      disabled={!selectedListId}
+                    >
+                      <Feather name="plus" size={16} color="#fff" />
+                      <Text style={styles.primaryBtnText}>Adicionar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+
+        {/* List picker Modal */}
+        <Modal
+          visible={showListPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowListPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowListPicker(false)}
+          >
+            <View style={styles.listPickerSheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.listPickerTitle}>Selecionar lista</Text>
+              {lists.length === 0 ? (
+                <Text style={styles.noListsText}>
+                  Nenhuma lista criada. Crie uma na aba Compras.
+                </Text>
+              ) : (
+                <FlatList
+                  data={lists}
+                  keyExtractor={(l) => l.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.listPickerItem,
+                        item.id === selectedListId && styles.listPickerItemSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedListId(item.id);
+                        setShowListPicker(false);
+                      }}
+                    >
+                      <Text style={styles.listPickerItemText}>{item.name}</Text>
+                      {item.id === selectedListId && (
+                        <Feather name="check" size={18} color={theme.colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Câmera ─────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
-      {/* Camera */}
       <CameraView
         style={StyleSheet.absoluteFillObject}
         facing="back"
@@ -207,9 +354,7 @@ export const BarcodeScannerScreen: React.FC = () => {
         }}
       />
 
-      {/* Overlay with viewfinder cutout */}
       <View style={styles.overlay} pointerEvents="box-none">
-        {/* Top dark area + close button */}
         <View style={styles.topDark} pointerEvents="box-none">
           <SafeAreaView edges={['top']} pointerEvents="box-none">
             <View style={styles.topBar}>
@@ -220,7 +365,6 @@ export const BarcodeScannerScreen: React.FC = () => {
           </SafeAreaView>
         </View>
 
-        {/* Middle row: dark | viewfinder | dark */}
         <View style={styles.middleRow} pointerEvents="none">
           <View style={styles.darkSide} />
           <View style={styles.viewfinder}>
@@ -232,141 +376,12 @@ export const BarcodeScannerScreen: React.FC = () => {
           <View style={styles.darkSide} />
         </View>
 
-        {/* Bottom dark area + instruction */}
         <View style={styles.bottomDark} pointerEvents="none">
           <Text style={styles.instructionText}>
             Aponte para o código de barras do produto
           </Text>
         </View>
       </View>
-
-      {/* Loading overlay */}
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Buscando produto...</Text>
-        </View>
-      )}
-
-      {/* Confirmation sheet */}
-      {lastResult && (
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle} numberOfLines={2}>{lastResult.name}</Text>
-          {lastResult.brand ? (
-            <Text style={styles.sheetBrand}>{lastResult.brand}</Text>
-          ) : null}
-
-          <View style={styles.sheetRow}>
-            <View style={styles.sheetField}>
-              <Text style={styles.sheetLabel}>Quantidade</Text>
-              <TextInput
-                style={styles.sheetInput}
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder="—"
-                keyboardType="numeric"
-                placeholderTextColor={theme.colors.textSecondary}
-              />
-            </View>
-            <View style={styles.sheetField}>
-              <Text style={styles.sheetLabel}>Unidade</Text>
-              <TextInput
-                style={styles.sheetInput}
-                value={unit}
-                onChangeText={setUnit}
-                placeholder="—"
-                placeholderTextColor={theme.colors.textSecondary}
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.listSelector}
-            onPress={() => setShowListPicker(true)}
-          >
-            <Feather name="shopping-cart" size={16} color={theme.colors.primary} />
-            <Text style={styles.listSelectorText} numberOfLines={1}>
-              {selectedList ? selectedList.name : 'Selecionar lista...'}
-            </Text>
-            <Feather name="chevron-down" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-
-          <View style={styles.sheetButtons}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={() => {
-                reset();
-                setQuantity('');
-                setUnit('');
-                scannedRef.current = false;
-              }}
-            >
-              <Text style={styles.secondaryBtnText}>Escanear outro</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.primaryBtn, !selectedListId && styles.primaryBtnDisabled]}
-              onPress={handleConfirm}
-              disabled={!selectedListId}
-            >
-              <Text style={styles.primaryBtnText}>Adicionar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Toast */}
-      <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
-        <Feather name="check-circle" size={16} color="#fff" />
-        <Text style={styles.toastText}>{toastMessage}</Text>
-      </Animated.View>
-
-      {/* List picker Modal */}
-      <Modal
-        visible={showListPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowListPicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowListPicker(false)}
-        >
-          <View style={styles.listPickerSheet}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.listPickerTitle}>Selecionar lista</Text>
-            {lists.length === 0 ? (
-              <Text style={styles.noListsText}>
-                Nenhuma lista criada. Crie uma na aba Compras.
-              </Text>
-            ) : (
-              <FlatList
-                data={lists}
-                keyExtractor={(l) => l.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.listPickerItem,
-                      item.id === selectedListId && styles.listPickerItemSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedListId(item.id);
-                      setShowListPicker(false);
-                    }}
-                  >
-                    <Text style={styles.listPickerItemText}>{item.name}</Text>
-                    {item.id === selectedListId && (
-                      <Feather name="check" size={18} color={theme.colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* Manual input Modal */}
       <Modal
@@ -376,74 +391,68 @@ export const BarcodeScannerScreen: React.FC = () => {
         onRequestClose={() => {
           setShowManualInput(false);
           scannedRef.current = false;
+          setCameraActive(true);
         }}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => {
-            setShowManualInput(false);
-            scannedRef.current = false;
-          }}
-        >
-          <TouchableOpacity style={styles.manualBox} activeOpacity={1}>
-            <Text style={styles.manualTitle}>Adicionar manualmente</Text>
-            <TextInput
-              style={styles.manualInput}
-              placeholder="Nome do produto"
-              value={manualName}
-              onChangeText={setManualName}
-              autoFocus
-              placeholderTextColor={theme.colors.textSecondary}
-              returnKeyType="done"
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFillObject}
+              activeOpacity={1}
+              onPress={() => {
+                setShowManualInput(false);
+                scannedRef.current = false;
+                setCameraActive(true);
+              }}
             />
-            <View style={styles.sheetRow}>
-              <View style={styles.sheetField}>
-                <Text style={styles.sheetLabel}>Quantidade</Text>
+            <View style={styles.manualBox}>
+              <Text style={styles.manualTitle}>Adicionar manualmente</Text>
+              <TextInput
+                style={styles.manualInput}
+                placeholder="Nome do produto"
+                value={manualName}
+                onChangeText={setManualName}
+                autoFocus
+                placeholderTextColor={theme.colors.textSecondary}
+                returnKeyType="next"
+              />
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Quantidade</Text>
                 <TextInput
-                  style={styles.sheetInput}
+                  style={styles.fieldInput}
                   value={quantity}
                   onChangeText={setQuantity}
-                  placeholder="—"
+                  placeholder="Ex: 2"
                   keyboardType="numeric"
                   placeholderTextColor={theme.colors.textSecondary}
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss}
                 />
               </View>
-              <View style={styles.sheetField}>
-                <Text style={styles.sheetLabel}>Unidade</Text>
-                <TextInput
-                  style={styles.sheetInput}
-                  value={unit}
-                  onChangeText={setUnit}
-                  placeholder="—"
-                  placeholderTextColor={theme.colors.textSecondary}
-                  autoCapitalize="none"
-                />
+              <View style={styles.confirmButtons}>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={() => {
+                    setShowManualInput(false);
+                    setManualName('');
+                    setQuantity('');
+                    scannedRef.current = false;
+                    setCameraActive(true);
+                  }}
+                >
+                  <Text style={styles.secondaryBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.primaryBtn, !manualName.trim() && styles.primaryBtnDisabled]}
+                  onPress={handleManualAdd}
+                  disabled={!manualName.trim()}
+                >
+                  <Text style={styles.primaryBtnText}>Adicionar</Text>
+                </TouchableOpacity>
               </View>
             </View>
-            <View style={styles.sheetButtons}>
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => {
-                  setShowManualInput(false);
-                  setManualName('');
-                  setQuantity('');
-                  setUnit('');
-                  scannedRef.current = false;
-                }}
-              >
-                <Text style={styles.secondaryBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryBtn, !manualName.trim() && styles.primaryBtnDisabled]}
-                onPress={handleManualAdd}
-                disabled={!manualName.trim()}
-              >
-                <Text style={styles.primaryBtnText}>Adicionar</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -454,342 +463,206 @@ export const BarcodeScannerScreen: React.FC = () => {
 const SIDE_WIDTH = (SCREEN_WIDTH - VIEWFINDER_SIZE) / 2;
 
 const styles = StyleSheet.create({
+  // ── Câmera ──
   container: {
     flex: 1,
     backgroundColor: '#000',
   },
-
-  // ── Overlay ──
   overlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  topDark: {
-    backgroundColor: DARK,
-  },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
+  topDark: { backgroundColor: DARK },
+  topBar: { paddingHorizontal: 16, paddingVertical: 8 },
   closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  middleRow: {
-    flexDirection: 'row',
-    height: VIEWFINDER_SIZE,
-  },
-  darkSide: {
-    width: SIDE_WIDTH,
-    backgroundColor: DARK,
-  },
-  viewfinder: {
-    width: VIEWFINDER_SIZE,
-    height: VIEWFINDER_SIZE,
-  },
-  corner: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: '#fff',
-  },
-  cornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 4,
-  },
-  cornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 4,
-  },
-  cornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 4,
-  },
-  cornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 4,
-  },
+  middleRow: { flexDirection: 'row', height: VIEWFINDER_SIZE },
+  darkSide: { width: SIDE_WIDTH, backgroundColor: DARK },
+  viewfinder: { width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE },
+  corner: { position: 'absolute', width: 24, height: 24, borderColor: '#fff' },
+  cornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 4 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 4 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 4 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 4 },
   bottomDark: {
-    flex: 1,
-    backgroundColor: DARK,
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingHorizontal: 32,
+    flex: 1, backgroundColor: DARK,
+    alignItems: 'center', paddingTop: 24, paddingHorizontal: 32,
   },
   instructionText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.85)', fontSize: 14,
+    textAlign: 'center', lineHeight: 20,
   },
 
-  // ── Loading ──
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+  // ── Tela de confirmação pós-scan ──
+  confirmScreen: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  confirmHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    gap: theme.spacing.sm,
+  },
+  confirmBackBtn: { padding: 6 },
+  confirmHeaderTitle: {
+    fontSize: 17, fontWeight: '700', color: theme.colors.text,
+  },
+  confirmBody: {
+    flex: 1,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  loadingCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    padding: theme.spacing.xl,
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
   },
-  loadingText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '500',
+  loadingCardText: {
+    fontSize: 15, color: theme.colors.textSecondary,
   },
-
-  // ── Confirmation sheet ──
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.border,
-    marginBottom: 4,
-  },
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  sheetBrand: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: -8,
-  },
-  sheetRow: {
+  productCard: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
   },
-  sheetField: {
-    flex: 1,
-    gap: 4,
+  productIconWrap: {
+    width: 52, height: 52, borderRadius: 12,
+    backgroundColor: theme.colors.primary + '20',
+    alignItems: 'center', justifyContent: 'center',
   },
-  sheetLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  productInfo: { flex: 1, gap: 4 },
+  productName: {
+    fontSize: 16, fontWeight: '700', color: theme.colors.text,
+  },
+  productBrand: {
+    fontSize: 13, color: theme.colors.textSecondary,
+  },
+  field: { gap: 6 },
+  fieldLabel: {
+    fontSize: 13, fontWeight: '600',
     color: theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    textTransform: 'uppercase', letterSpacing: 0.4,
   },
-  sheetInput: {
+  fieldInput: {
+    height: 46,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md,
+    fontSize: 15, color: theme.colors.text,
+    borderWidth: 1, borderColor: theme.colors.border,
   },
   listSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 12, paddingVertical: 13,
+    gap: 8, borderWidth: 1, borderColor: theme.colors.border,
   },
   listSelectorText: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.text,
+    flex: 1, fontSize: 15, color: theme.colors.text,
   },
-  sheetButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+  confirmButtons: {
+    flexDirection: 'row', gap: 12, marginTop: 4,
   },
   secondaryBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
+    flex: 1, flexDirection: 'row', gap: 6,
+    paddingVertical: 13, borderRadius: theme.borderRadius.md,
+    borderWidth: 1, borderColor: theme.colors.border,
+    alignItems: 'center', justifyContent: 'center',
   },
   secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text,
+    fontSize: 15, fontWeight: '600', color: theme.colors.text,
   },
   primaryBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: theme.borderRadius.md,
+    flex: 1, flexDirection: 'row', gap: 6,
+    paddingVertical: 13, borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.primary,
-    alignItems: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  primaryBtnDisabled: {
-    backgroundColor: theme.colors.border,
-  },
-  primaryBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  // ── Toast ──
-  toast: {
-    position: 'absolute',
-    bottom: 120,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.82)',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  toastText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  primaryBtnDisabled: { backgroundColor: theme.colors.border },
+  primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   // ── Modals ──
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end',
+  },
+  sheetHandle: {
+    alignSelf: 'center', width: 36, height: 4,
+    borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 4,
   },
   listPickerSheet: {
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 36 : 20,
     maxHeight: '60%',
   },
   listPickerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    marginBottom: 4,
+    fontSize: 16, fontWeight: '700', color: theme.colors.text,
+    paddingHorizontal: 20, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border, marginBottom: 4,
   },
   noListsText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    padding: 24,
+    fontSize: 14, color: theme.colors.textSecondary,
+    textAlign: 'center', padding: 24,
   },
   listPickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  listPickerItemSelected: {
-    backgroundColor: theme.colors.primary + '10',
-  },
-  listPickerItemText: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.colors.text,
-  },
+  listPickerItemSelected: { backgroundColor: theme.colors.primary + '10' },
+  listPickerItemText: { flex: 1, fontSize: 15, color: theme.colors.text },
   manualBox: {
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
-    gap: 12,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, gap: 12,
   },
-  manualTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
+  manualTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
   manualInput: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: theme.colors.text,
+    borderWidth: 1, borderColor: theme.colors.border,
+  },
+
+  // ── Loading overlay (câmera) ──
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center', gap: 16,
   },
 
   // ── Permission screen ──
   permContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 16,
+    flex: 1, backgroundColor: theme.colors.background,
+    alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16,
   },
-  permTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-    textAlign: 'center',
-  },
+  permTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, textAlign: 'center' },
   permSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
+    fontSize: 14, color: theme.colors.textSecondary,
+    textAlign: 'center', lineHeight: 20,
   },
   permBtn: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    marginTop: 8,
+    backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 24, paddingVertical: 13, marginTop: 8,
   },
-  permBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  closeTextBtn: {
-    paddingVertical: 10,
-  },
-  closeTextBtnText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
+  permBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  closeTextBtn: { paddingVertical: 10 },
+  closeTextBtnText: { fontSize: 14, color: theme.colors.textSecondary },
 });

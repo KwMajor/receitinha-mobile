@@ -25,11 +25,10 @@ export interface WeekPlan {
 
 export function getCurrentWeekStart(): string {
   const now = new Date();
-  const day = now.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diff);
-  return monday.toISOString().split('T')[0];
+  const day = now.getDay(); // 0 = Sunday
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - day);
+  return sunday.toISOString().split('T')[0];
 }
 
 export function addWeeks(weekStart: string, delta: number): string {

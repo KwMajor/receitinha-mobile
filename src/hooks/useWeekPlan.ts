@@ -78,6 +78,11 @@ export const useWeekPlan = () => {
     refresh(prev);
   };
 
+  const goToWeek = (ws: string) => {
+    setWeekStart(ws);
+    refresh(ws);
+  };
+
   const setMeal = async (dayIndex: number, mealType: MealType, recipeId: string) => {
     if (!user) return;
     await setMealService(user.id, weekStart, dayIndex, mealType, recipeId);
@@ -135,6 +140,7 @@ export const useWeekPlan = () => {
     refresh,
     goToNextWeek,
     goToPreviousWeek,
+    goToWeek,
     setMeal,
     removeMeal,
     addMealSlot,

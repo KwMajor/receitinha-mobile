@@ -28,6 +28,17 @@ const CATEGORY_ORDER = [
   'Mercearia', 'Bebidas', 'Temperos', 'Outros',
 ];
 
+const CATEGORY_META: Record<string, { icon: string; color: string }> = {
+  'Hortifruti':      { icon: 'sun',         color: '#4CAF50' },
+  'Carnes e Peixes': { icon: 'scissors',    color: '#EF5350' },
+  'Laticínios':      { icon: 'droplet',     color: '#42A5F5' },
+  'Padaria':         { icon: 'coffee',      color: '#FFA726' },
+  'Mercearia':       { icon: 'package',     color: '#AB47BC' },
+  'Bebidas':         { icon: 'thermometer', color: '#26C6DA' },
+  'Temperos':        { icon: 'wind',        color: '#FF7043' },
+  'Outros':          { icon: 'grid',        color: '#78909C' },
+};
+
 interface Section {
   title: string;
   data: ShoppingItem[];
@@ -182,14 +193,14 @@ export const ShoppingListDetailScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <ActivityIndicator style={{ flex: 1 }} color={theme.colors.primary} size="large" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -220,20 +231,24 @@ export const ShoppingListDetailScreen: React.FC = () => {
 
       {/* Progress bar */}
       {items.length > 0 && (
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${Math.round((checkedCount / items.length) * 100)}%` },
-            ]}
-          />
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.round((checkedCount / items.length) * 100)}%` },
+              ]}
+            />
+          </View>
+          <Text style={styles.progressLabel}>
+            {checkedCount}/{items.length}
+          </Text>
         </View>
       )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={90}
+        behavior="padding"
       >
         {sections.length === 0 ? (
           <View style={styles.emptyState}>
@@ -249,14 +264,18 @@ export const ShoppingListDetailScreen: React.FC = () => {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             stickySectionHeadersEnabled
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionCount}>
-                  {section.data.filter((i) => !i.isChecked).length}/{section.data.length}
-                </Text>
-              </View>
-            )}
+            renderSectionHeader={({ section }) => {
+              const meta = CATEGORY_META[section.title] ?? CATEGORY_META['Outros'];
+              return (
+                <View style={[styles.sectionHeader, { borderLeftColor: meta.color }]}>
+                  <Feather name={meta.icon as any} size={14} color={meta.color} />
+                  <Text style={[styles.sectionTitle, { color: meta.color }]}>{section.title}</Text>
+                  <Text style={styles.sectionCount}>
+                    {section.data.filter((i) => !i.isChecked).length}/{section.data.length}
+                  </Text>
+                </View>
+              );
+            }}
             renderItem={({ item }) => (
               <ShoppingItemRow
                 item={item}
@@ -281,6 +300,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
           <TextInput
             style={styles.footerInput}
             placeholder="Adicionar item..."
+            placeholderTextColor={theme.colors.textSecondary}
             value={inputText}
             onChangeText={setInputText}
             returnKeyType="done"
@@ -388,16 +408,12 @@ interface RowProps {
 
 const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => (
   <View style={[rowStyles.row, item.isChecked && rowStyles.rowChecked]}>
-    <TouchableOpacity onPress={onToggle} style={rowStyles.checkbox} activeOpacity={0.7}>
-      <Feather
-        name={item.isChecked ? 'check-square' : 'square'}
-        size={22}
-        color={item.isChecked ? theme.colors.success : theme.colors.border}
-      />
+    <TouchableOpacity onPress={onToggle} style={[rowStyles.checkbox, item.isChecked && rowStyles.checkboxChecked]} activeOpacity={0.7}>
+      {item.isChecked && <Feather name="check" size={14} color="#fff" />}
     </TouchableOpacity>
 
     <View style={rowStyles.info}>
-      <Text style={[rowStyles.name, item.isChecked && rowStyles.nameChecked]}>
+      <Text style={[rowStyles.name, item.isChecked && rowStyles.nameChecked]} numberOfLines={1}>
         {item.name}
       </Text>
       {(item.quantity != null || item.unit) && (
@@ -408,8 +424,8 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => (
       )}
     </View>
 
-    <TouchableOpacity onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-      <Feather name="x" size={16} color={theme.colors.textSecondary} />
+    <TouchableOpacity onPress={onRemove} style={rowStyles.removeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <Feather name="x" size={15} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   </View>
 );
@@ -419,18 +435,38 @@ const rowStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.background,
     gap: theme.spacing.sm,
   },
-  rowChecked: { opacity: 0.5 },
-  checkbox: { padding: 2 },
+  rowChecked: { backgroundColor: '#FAFAFA' },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.success,
+  },
   info: { flex: 1 },
-  name: { fontSize: 15, color: theme.colors.text },
-  nameChecked: { textDecorationLine: 'line-through', color: theme.colors.textSecondary },
-  qty: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
+  name: { fontSize: 15, fontWeight: '500', color: theme.colors.text },
+  nameChecked: { textDecorationLine: 'line-through', color: theme.colors.textSecondary, fontWeight: '400' },
+  qty: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 // ── Screen styles ─────────────────────────────────────────────────────────────
@@ -467,33 +503,54 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.success + '30',
   },
   successBannerText: { fontSize: 13, color: theme.colors.success, fontWeight: '500', flex: 1 },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    gap: 10,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
   progressBar: {
-    height: 3,
+    flex: 1,
+    height: 6,
     backgroundColor: theme.colors.border,
+    borderRadius: 3,
   },
   progressFill: {
-    height: 3,
+    height: 6,
     backgroundColor: theme.colors.success,
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    minWidth: 32,
+    textAlign: 'right',
   },
   listContent: { paddingBottom: 80 },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 7,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: 9,
+    backgroundColor: '#F7F8FA',
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+    borderLeftWidth: 3,
   },
   sectionTitle: {
-    fontSize: 13,
+    flex: 1,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
-  sectionCount: { fontSize: 12, color: theme.colors.textSecondary },
+  sectionCount: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
   emptyState: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: theme.spacing.xl, gap: theme.spacing.md,
@@ -504,28 +561,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     backgroundColor: theme.colors.background,
     gap: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 6,
   },
   footerInput: {
     flex: 1,
+    height: 46,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.round,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
     fontSize: 15,
     color: theme.colors.text,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   addItemBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.borderRadius.md,
+    width: 46,
+    height: 46,
+    borderRadius: theme.borderRadius.round,
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
   },
   // Modal
   modalOverlay: {
