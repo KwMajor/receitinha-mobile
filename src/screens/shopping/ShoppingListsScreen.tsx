@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
@@ -174,16 +175,16 @@ export const ShoppingListsScreen: React.FC = () => {
     </Swipeable>
   );
 
+  const addBtn = (
+    <TouchableOpacity style={styles.addBtn} onPress={openCreateModal} accessibilityLabel="Nova lista" accessibilityRole="button">
+      <Feather name="plus" size={18} color="#fff" />
+      <Text style={styles.addBtnText}>Nova lista</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Listas de Compras</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={openCreateModal}>
-          <Feather name="plus" size={20} color="#fff" />
-          <Text style={styles.addBtnText}>Nova lista</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScreenHeader title="Compras" right={addBtn} />
 
       {isLoading ? (
         <ActivityIndicator style={styles.loader} color={theme.colors.primary} size="large" />
@@ -254,18 +255,6 @@ export const ShoppingListsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  title: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

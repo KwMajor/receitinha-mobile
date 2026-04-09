@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,6 +18,7 @@ import { CommunityRecipeCard } from '../../components/recipe/CommunityRecipeCard
 import { getFeed } from '../../services/api/communityService';
 import { useCommunityStore } from '../../store/communityStore';
 import { PublicRecipe } from '../../types';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const CommunityFeedScreen = () => {
   const navigation = useNavigation<any>();
@@ -79,34 +80,34 @@ export const CommunityFeedScreen = () => {
   };
 
   // ── Filtro local por query e/ou categoria ───────────────────────────────
-  const displayedFeed: PublicRecipe[] = feed.filter((r) => {
+  const displayedFeed: PublicRecipe[] = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const matchesQuery =
-      !q ||
-      r.title.toLowerCase().includes(q) ||
-      r.authorName.toLowerCase().includes(q);
-    const matchesCategory =
-      !selectedCategory ||
-      r.category.toLowerCase() === selectedCategory.toLowerCase();
-    return matchesQuery && matchesCategory;
-  });
-
-  // ── Rodapé da lista ──────────────────────────────────────────────────────
-  const ListFooter = () => {
-    if (!nextCursor) return null;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-      </View>
-    );
-  };
+    return feed.filter((r) => {
+      const matchesQuery =
+        !q ||
+        r.title.toLowerCase().includes(q) ||
+        r.authorName.toLowerCase().includes(q);
+      const matchesCategory =
+        !selectedCategory ||
+        r.category.toLowerCase() === selectedCategory.toLowerCase();
+      return matchesQuery && matchesCategory;
+    });
+  }, [feed, query, selectedCategory]);
 
   // ── Estado vazio ─────────────────────────────────────────────────────────
   const hasActiveFilter = query.trim().length > 0 || selectedCategory !== null;
 
-  const ListEmpty = () => {
-    if (isLoading) return null;
-    return (
+  const feedListFooter = useMemo(
+    () => (
+      <View style={styles.footer}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    ),
+    [],
+  );
+
+  const feedListEmpty = useMemo(
+    () => (
       <View style={styles.emptyContainer}>
         <Feather name="globe" size={64} color={theme.colors.border} />
         <Text style={styles.emptyTitle}>
@@ -118,42 +119,46 @@ export const CommunityFeedScreen = () => {
             : 'Seja o primeiro a compartilhar uma receita!'}
         </Text>
       </View>
-    );
-  };
+    ),
+    [hasActiveFilter],
+  );
+
+  const headerRight = (
+    <View style={styles.headerActions}>
+      {selectedCategory && (
+        <TouchableOpacity
+          style={styles.filterBadge}
+          onPress={() => setSelectedCategory(null)}
+          accessibilityLabel={`Remover filtro ${selectedCategory}`}
+          accessibilityRole="button"
+        >
+          <Text style={styles.filterBadgeText} numberOfLines={1}>
+            {selectedCategory}
+          </Text>
+          <Feather name="x" size={12} color={theme.colors.primary} />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={styles.iconBtn}
+        onPress={() => {
+          setShowSearch((prev) => !prev);
+          if (showSearch) setQuery('');
+        }}
+        accessibilityLabel={showSearch ? 'Fechar busca' : 'Abrir busca'}
+        accessibilityRole="button"
+      >
+        <Feather
+          name={showSearch ? 'x' : 'search'}
+          size={22}
+          color={theme.colors.text}
+        />
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Comunidade</Text>
-        <View style={styles.headerActions}>
-          {/* Indicador de filtro de categoria ativo */}
-          {selectedCategory && (
-            <TouchableOpacity
-              style={styles.filterBadge}
-              onPress={() => setSelectedCategory(null)}
-            >
-              <Text style={styles.filterBadgeText} numberOfLines={1}>
-                {selectedCategory}
-              </Text>
-              <Feather name="x" size={12} color={theme.colors.primary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => {
-              setShowSearch((prev) => !prev);
-              if (showSearch) setQuery('');
-            }}
-          >
-            <Feather
-              name={showSearch ? 'x' : 'search'}
-              size={22}
-              color={theme.colors.text}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader title="Comunidade" right={headerRight} />
 
       {/* ── SearchBar ── */}
       {showSearch && (
@@ -241,8 +246,8 @@ export const CommunityFeedScreen = () => {
           contentContainerStyle={styles.listContent}
           onEndReached={fetchNextPage}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={<ListFooter />}
-          ListEmptyComponent={<ListEmpty />}
+          ListFooterComponent={nextCursor ? feedListFooter : null}
+          ListEmptyComponent={isLoading ? null : feedListEmpty}
           refreshing={refreshing}
           onRefresh={handleRefresh}
           showsVerticalScrollIndicator={false}
@@ -254,20 +259,6 @@ export const CommunityFeedScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',

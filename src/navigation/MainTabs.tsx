@@ -39,7 +39,7 @@ const RecipeStackGroup = () => (
 
 const FavoritesStackGroup = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="FavoritesList" component={FavoritesScreen} options={{ headerShown: true, title: 'Favoritos e Coleções' }} />
+    <Stack.Screen name="FavoritesList" component={FavoritesScreen} />
     <Stack.Screen name="CollectionDetail" component={CollectionDetailScreen} options={{ headerShown: true }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
@@ -73,8 +73,8 @@ const SocialStackGroup = () => (
 );
 
 const ProfileStackGroup = () => (
-  <Stack.Navigator>
-    <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'Perfil' }} />
+  <Stack.Navigator screenOptions={{ headerShown: true }}>
+    <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Minhas Categorias' }} />
     <Stack.Screen name="CookingHistory" component={CookingHistoryScreen} options={{ title: 'Histórico de Preparo' }} />
     <Stack.Screen name="Converter" component={ConverterScreen} options={{ title: 'Conversor de Medidas' }} />

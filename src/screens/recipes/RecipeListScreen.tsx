@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Modal, ScrollView, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
@@ -8,6 +9,7 @@ import { useRecipes } from '../../hooks/useRecipes';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { getCategories } from '../../services/sqlite/categoryService';
 import { useAuthStore } from '../../store/authStore';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const RecipeListScreen = () => {
   const navigation = useNavigation<any>();
@@ -47,22 +49,26 @@ export const RecipeListScreen = () => {
     setFilterModalVisible(false);
   };
 
-  const EmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Feather name="book-open" size={64} color={theme.colors.border} />
-      <Text style={styles.emptyText}>Nenhuma receita encontrada.</Text>
-      <Text style={styles.emptySubText}>Tente buscar por outros termos ou adicionar uma nova receita!</Text>
-    </View>
+  const EmptyState = useMemo(
+    () => (
+      <View style={styles.emptyContainer}>
+        <Feather name="book-open" size={64} color={theme.colors.border} />
+        <Text style={styles.emptyText}>Nenhuma receita encontrada.</Text>
+        <Text style={styles.emptySubText}>Tente buscar por outros termos ou adicionar uma nova receita!</Text>
+      </View>
+    ),
+    [],
+  );
+
+  const addButton = (
+    <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('CreateRecipe')} accessibilityLabel="Nova receita" accessibilityRole="button">
+      <Feather name="plus" size={22} color="#fff" />
+    </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Minhas Receitas</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('CreateRecipe')}>
-          <Feather name="plus" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader title="Minhas Receitas" right={addButton} />
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
@@ -95,7 +101,7 @@ export const RecipeListScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <RecipeCard recipe={item} onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })} />}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={EmptyState}
           showsVerticalScrollIndicator={false}
           onRefresh={refresh}
           refreshing={isLoading}
@@ -143,14 +149,12 @@ export const RecipeListScreen = () => {
         </TouchableOpacity>
       </Modal>
 
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.lg, backgroundColor: theme.colors.surface },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: theme.colors.text },
   addBtn: { backgroundColor: theme.colors.primary, padding: theme.spacing.sm, borderRadius: theme.borderRadius.round },
   searchContainer: { flexDirection: 'row', padding: theme.spacing.md, gap: theme.spacing.sm },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, paddingHorizontal: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border },

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { getRecipeById, deleteRecipe } from '../../services/sqlite/recipeService';
@@ -18,6 +19,7 @@ export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { recipeId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,28 +139,28 @@ export const RecipeDetailScreen = () => {
              </View>
           )}
           
-          <View style={styles.headerActions}>
-             <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+          <View style={[styles.headerActions, { top: insets.top + 8 }]}>
+             <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} accessibilityLabel="Voltar" accessibilityRole="button">
                <Feather name="arrow-left" size={24} color={theme.colors.text} />
              </TouchableOpacity>
              <View style={styles.headerRight}>
                <View style={styles.headerBtn}>
                  <FavoriteButton recipeId={recipeId} />
                </View>
-               <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCollectionModal(true)}>
+               <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCollectionModal(true)} accessibilityLabel="Adicionar à coleção" accessibilityRole="button">
                  <Feather name="folder-plus" size={24} color={theme.colors.text} />
                </TouchableOpacity>
-               <TouchableOpacity style={styles.headerBtn} onPress={handlePublishToggle}>
+               <TouchableOpacity style={styles.headerBtn} onPress={handlePublishToggle} accessibilityLabel={recipe.is_public === 1 ? 'Tornar receita privada' : 'Publicar receita'} accessibilityRole="button">
                  <Feather
                    name="globe"
                    size={24}
                    color={recipe.is_public === 1 ? theme.colors.success : theme.colors.text}
                  />
                </TouchableOpacity>
-               <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('EditRecipe', { id: recipeId })}>
+               <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('EditRecipe', { id: recipeId })} accessibilityLabel="Editar receita" accessibilityRole="button">
                  <Feather name="edit-2" size={24} color={theme.colors.primary} />
                </TouchableOpacity>
-               <TouchableOpacity style={styles.headerBtn} onPress={confirmDelete}>
+               <TouchableOpacity style={styles.headerBtn} onPress={confirmDelete} accessibilityLabel="Excluir receita" accessibilityRole="button">
                  <Feather name="trash-2" size={24} color={theme.colors.error} />
                </TouchableOpacity>
              </View>
@@ -210,16 +212,20 @@ export const RecipeDetailScreen = () => {
             />
           </View>
 
-          <View style={styles.tabsContainer}>
-             <TouchableOpacity 
+          <View style={styles.tabsContainer} accessibilityRole="tablist">
+             <TouchableOpacity
                style={[styles.tab, activeTab === 'ingredients' && styles.activeTab]}
                onPress={() => setActiveTab('ingredients')}
+               accessibilityRole="tab"
+               accessibilityState={{ selected: activeTab === 'ingredients' }}
              >
                <Text style={[styles.tabText, activeTab === 'ingredients' && styles.activeTabText]}>Ingredientes</Text>
              </TouchableOpacity>
-             <TouchableOpacity 
+             <TouchableOpacity
                style={[styles.tab, activeTab === 'steps' && styles.activeTab]}
                onPress={() => setActiveTab('steps')}
+               accessibilityRole="tab"
+               accessibilityState={{ selected: activeTab === 'steps' }}
              >
                <Text style={[styles.tabText, activeTab === 'steps' && styles.activeTabText]}>Modo de Preparo</Text>
              </TouchableOpacity>
@@ -292,7 +298,7 @@ const styles = StyleSheet.create({
   imageContainer: { width: '100%', height: 300, position: 'relative' },
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
   placeholderImage: { backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center' },
-  headerActions: { position: 'absolute', top: 50, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  headerActions: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   headerRight: { flexDirection: 'row', gap: 12 },
   headerBtn: { width: 40, height: 40, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2 },
   content: { padding: theme.spacing.lg, marginTop: -24, backgroundColor: theme.colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },

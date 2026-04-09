@@ -11,7 +11,7 @@ import { theme } from '../../constants/theme';
 import { ShoppingItem } from '../../types';
 import {
   getListById, getItems, toggleItem, removeItem,
-  clearChecked, addItem,
+  clearChecked, addItem, deleteList,
 } from '../../services/sqlite/shoppingService';
 
 const UNITS = ['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'];
@@ -126,14 +126,49 @@ export const ShoppingListDetailScreen: React.FC = () => {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  const handleToggle = async (itemId: string) => {
-    // Optimistic update
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === itemId ? { ...it, isChecked: !it.isChecked } : it
-      )
+  const handleDeleteList = () => {
+    Alert.alert(
+      'Excluir lista',
+      `Deseja excluir "${listName}"? Esta ação não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteList(listId);
+            navigation.goBack();
+          },
+        },
+      ]
     );
+  };
+
+  const handleToggle = async (itemId: string) => {
+    const updated = items.map((it) =>
+      it.id === itemId ? { ...it, isChecked: !it.isChecked } : it
+    );
+    setItems(updated);
     await toggleItem(itemId);
+
+    const allChecked = updated.length > 0 && updated.every((it) => it.isChecked);
+    if (allChecked) {
+      Alert.alert(
+        'Lista concluída! 🎉',
+        'Todos os itens foram marcados. Deseja excluir esta lista?',
+        [
+          { text: 'Manter lista', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              await deleteList(listId);
+              navigation.goBack();
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleRemoveItem = (itemId: string) => {
@@ -181,11 +216,6 @@ export const ShoppingListDetailScreen: React.FC = () => {
     setItems(updated);
   };
 
-  const handleExport = () => {
-    // Placeholder — será implementado no Sprint 3 (RF22)
-    Alert.alert('Em breve', 'A exportação de listas estará disponível no próximo sprint.');
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const sections = buildSections(items);
@@ -207,15 +237,20 @@ export const ShoppingListDetailScreen: React.FC = () => {
           <Feather name="arrow-left" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{listName}</Text>
-        <TouchableOpacity onPress={handleExport} style={styles.iconBtn}>
-          <Feather name="share" size={20} color={theme.colors.text} />
-        </TouchableOpacity>
         <TouchableOpacity
           onPress={handleClearChecked}
           style={[styles.iconBtn, checkedCount === 0 && styles.iconBtnDisabled]}
           disabled={checkedCount === 0}
+          accessibilityLabel="Limpar itens marcados"
         >
           <Feather name="check-square" size={20} color={checkedCount > 0 ? theme.colors.text : theme.colors.border} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleDeleteList}
+          style={styles.iconBtn}
+          accessibilityLabel="Excluir lista"
+        >
+          <Feather name="trash-2" size={20} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
 
@@ -351,7 +386,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
               <TextInput
                 style={[styles.modalInput, styles.modalInputQty]}
                 value={modalQty}
-                onChangeText={setModalQty}
+                onChangeText={(v) => setModalQty(v.replace(/[^0-9.,]/g, ''))}
                 placeholder="Ex: 2"
                 placeholderTextColor={theme.colors.textSecondary}
                 keyboardType="decimal-pad"

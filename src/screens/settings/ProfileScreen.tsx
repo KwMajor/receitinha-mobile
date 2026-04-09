@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { signOut, updateUserName, updateUserEmail } from '../../services/firebase/auth';
@@ -7,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../services/sqlite/recipeService';
 import { countHistory } from '../../services/sqlite/cookingHistoryService';
 import { theme } from '../../constants/theme';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -108,9 +110,17 @@ export const ProfileScreen = () => {
     </>
   );
 
+  const editBtn = (
+    <TouchableOpacity style={styles.editProfileBtn} onPress={openEditModal} accessibilityLabel="Editar perfil" accessibilityRole="button">
+      <Feather name="edit-2" size={16} color={theme.colors.primary} />
+    </TouchableOpacity>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScreenHeader title="Perfil" right={editBtn} />
+      <ScrollView style={styles.container}>
+      <View style={styles.heroCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {user?.name ? getInitials(user.name) : 'Us'}
@@ -118,10 +128,6 @@ export const ProfileScreen = () => {
         </View>
         <Text style={styles.name}>{user?.name || 'Usuário'}</Text>
         <Text style={styles.email}>{user?.email}</Text>
-        <TouchableOpacity style={styles.editProfileBtn} onPress={openEditModal}>
-          <Feather name="edit-2" size={14} color={theme.colors.primary} />
-          <Text style={styles.editProfileText}>Editar perfil</Text>
-        </TouchableOpacity>
         
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -212,15 +218,17 @@ export const ProfileScreen = () => {
         </TouchableOpacity>
       </Modal>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: theme.colors.background },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
+  heroCard: {
     alignItems: 'center',
     padding: theme.spacing.xl,
     backgroundColor: theme.colors.surface,
@@ -319,15 +327,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   editProfileBtn: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: 'center',
-    marginTop: theme.spacing.sm,
-    gap: theme.spacing.xs,
-  },
-  editProfileText: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: '500',
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,

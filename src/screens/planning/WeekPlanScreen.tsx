@@ -182,7 +182,7 @@ export const WeekPlanScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.navBtn} onPress={goToPreviousWeek}>
+        <TouchableOpacity style={styles.navBtn} onPress={goToPreviousWeek} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Feather name="chevron-left" size={22} color={theme.colors.text} />
         </TouchableOpacity>
 
@@ -199,7 +199,7 @@ export const WeekPlanScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.navBtn} onPress={goToNextWeek}>
+        <TouchableOpacity style={styles.navBtn} onPress={goToNextWeek} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Feather name="chevron-right" size={22} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
@@ -466,20 +466,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+    minHeight: 56,
   },
-  navBtn: { padding: theme.spacing.sm },
+  navBtn: {},
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   weekLabel: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: 'bold',
     color: theme.colors.text,
     textTransform: 'capitalize',
   },

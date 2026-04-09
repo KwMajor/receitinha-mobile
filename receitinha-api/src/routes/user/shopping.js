@@ -196,11 +196,19 @@ router.post('/generate', async (req, res) => {
       [req.user.uid, weekStart]
     );
 
-    const [day, month] = weekStart.slice(5).split('-');
+    const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const start = new Date(weekStart + 'T12:00:00Z');
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 6);
+    const startDay = String(start.getUTCDate()).padStart(2, '0');
+    const endDay   = String(end.getUTCDate()).padStart(2, '0');
+    const endMonth = MONTHS[end.getUTCMonth()];
+    const listName = `${startDay}–${endDay} ${endMonth}`;
+
     const listId = randomUUID();
     await pool.query(
       'INSERT INTO user_shopping_lists (id, user_id, name, is_active) VALUES ($1,$2,$3,FALSE)',
-      [listId, req.user.uid, `Semana ${day}/${month}`]
+      [listId, req.user.uid, listName]
     );
 
     if (planRows.length > 0) {

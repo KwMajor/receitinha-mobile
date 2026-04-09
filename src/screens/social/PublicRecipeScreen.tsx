@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -232,6 +232,14 @@ export const PublicRecipeScreen = () => {
     );
   };
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // ── Avaliação submetida ────────────────────────────────────────────────────
   const handleRatingSubmitted = (saved: Rating) => {
     setShowModal(false);
@@ -260,7 +268,8 @@ export const PublicRecipeScreen = () => {
 
     // Toast
     setToast(true);
-    setTimeout(() => setToast(false), 3000);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(false), 3000);
   };
 
   // ── Header da FlatList (todo o conteúdo da receita + seção de avaliações) ──
@@ -278,10 +287,20 @@ export const PublicRecipeScreen = () => {
             </View>
           )}
           <SafeAreaView edges={['top']} style={styles.headerOverlay}>
-            <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={() => navigation.goBack()}
+              accessibilityLabel="Voltar"
+              accessibilityRole="button"
+            >
               <Feather name="arrow-left" size={24} color={theme.colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerBtn} onPress={handleFlag}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleFlag}
+              accessibilityLabel="Denunciar receita"
+              accessibilityRole="button"
+            >
               <Feather name="flag" size={22} color={theme.colors.error} />
             </TouchableOpacity>
           </SafeAreaView>
@@ -327,12 +346,14 @@ export const PublicRecipeScreen = () => {
           </View>
 
           {/* ── Tabs ingredientes / preparo ── */}
-          <View style={styles.tabsContainer}>
+          <View style={styles.tabsContainer} accessibilityRole="tablist">
             {(['ingredients', 'steps'] as const).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[styles.tab, activeTab === tab && styles.activeTab]}
                 onPress={() => setActiveTab(tab)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === tab }}
               >
                 <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
                   {tab === 'ingredients' ? 'Ingredientes' : 'Preparo'}
@@ -430,14 +451,14 @@ export const PublicRecipeScreen = () => {
   }, [recipe, activeTab, saving, userRating, ratings.length]);
 
   // ── Rodapé da FlatList ─────────────────────────────────────────────────────
-  const ListFooter = () => {
+  const ListFooter = useMemo(() => {
     if (!ratingsCursor && !ratingsLoading) return <View style={{ height: 120 }} />;
     return (
       <View style={styles.listFooter}>
         {ratingsLoading && <ActivityIndicator size="small" color={theme.colors.primary} />}
       </View>
     );
-  };
+  }, [ratingsCursor, ratingsLoading]);
 
   if (loading) {
     return (
@@ -466,7 +487,7 @@ export const PublicRecipeScreen = () => {
           </View>
         )}
         ListHeaderComponent={<ListHeader />}
-        ListFooterComponent={<ListFooter />}
+        ListFooterComponent={ListFooter}
         onEndReached={fetchNextRatings}
         onEndReachedThreshold={0.4}
         refreshing={refreshing}

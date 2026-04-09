@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
@@ -7,6 +8,7 @@ import { getFavorites, getCollections, createCollection, deleteCollection } from
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { theme } from '../../constants/theme';
 import { Recipe, Collection } from '../../types';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const FavoritesScreen = () => {
   const { user } = useAuthStore();
@@ -56,10 +58,14 @@ export const FavoritesScreen = () => {
     }
   };
 
-  const confirmDeleteCollection = (id: string) => {
-    Alert.alert('Excluir Coleção', 'Tem certeza que deseja excluir esta coleção? As receitas salvas nela não serão apagadas.', [
+  const confirmDeleteCollection = (item: Collection) => {
+    const count = item.recipeIds?.length ?? 0;
+    const message = count > 0
+      ? `Esta coleção contém ${count} ${count === 1 ? 'receita salva' : 'receitas salvas'}. Ao excluir, as receitas não serão apagadas, mas serão removidas da coleção. Deseja continuar?`
+      : 'Tem certeza que deseja excluir esta coleção?';
+    Alert.alert('Excluir Coleção', message, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => handleDeleteCollection(id) }
+      { text: 'Excluir', style: 'destructive', onPress: () => handleDeleteCollection(item.id) }
     ]);
   };
 
@@ -80,7 +86,7 @@ export const FavoritesScreen = () => {
     <TouchableOpacity 
       style={styles.collectionCard} 
       onPress={() => navigation.navigate('CollectionDetail', { collectionId: item.id, collectionName: item.name })}
-      onLongPress={() => confirmDeleteCollection(item.id)}
+      onLongPress={() => confirmDeleteCollection(item)}
     >
       <View style={styles.collectionIcon}>
         <Feather name="folder" size={32} color={theme.colors.primary} />
@@ -94,7 +100,8 @@ export const FavoritesScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader title="Salvos" />
       <View style={styles.tabsContainer}>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'favorites' && styles.activeTab]}
@@ -170,14 +177,12 @@ export const FavoritesScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { padding: theme.spacing.lg, paddingTop: theme.spacing.xl + 20, backgroundColor: theme.colors.surface },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: theme.colors.text },
   tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: theme.colors.border },
   tab: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center' },
   activeTab: { borderBottomWidth: 2, borderColor: theme.colors.primary },
