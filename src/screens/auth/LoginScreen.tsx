@@ -9,38 +9,72 @@ import { signIn } from '../../services/firebase/auth';
 import { theme } from '../../constants/theme';
 
 const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
+  email: z.string()
+    .min(1, 'E-mail é obrigatório')
+    .transform((v) => v.trim())
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'E-mail inválido')
+    .refine((v) => v.length <= 254, 'E-mail muito longo'),
+  password: z.string()
+    .min(1, 'Senha é obrigatória')
+    .max(128, 'Senha muito longa'),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 30;
+
 export const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const navigation = useNavigation<any>();
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
   });
 
+  const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
+  const lockSecondsLeft = isLocked ? Math.ceil((lockedUntil! - Date.now()) / 1000) : 0;
+
+  // Mensagem genérica para user-not-found e wrong-password — evita user enumeration
   const getFirebaseErrorMessage = (error: any) => {
     switch (error.code) {
-      case 'auth/user-not-found': return 'Nenhuma conta encontrada com este e-mail. Verifique e tente novamente.';
-      case 'auth/wrong-password': return 'Senha incorreta. Verifique sua senha e tente novamente.';
-      case 'auth/invalid-credential': return 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.';
-      case 'auth/too-many-requests': return 'Muitas tentativas seguidas. Aguarde alguns minutos antes de tentar novamente.';
-      case 'auth/network-request-failed': return 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
-      default: return 'Não foi possível fazer o login. Tente novamente.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.';
+      case 'auth/too-many-requests':
+        return 'Muitas tentativas seguidas. Aguarde alguns minutos antes de tentar novamente.';
+      case 'auth/network-request-failed':
+        return 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
+      default:
+        return 'Não foi possível fazer o login. Tente novamente.';
     }
   };
 
   const onSubmit = async (data: LoginForm) => {
+    if (isLocked) return;
     try {
       setLoading(true);
       await signIn(data.email, data.password);
+      setAttempts(0);
+      setLockedUntil(null);
     } catch (error: any) {
-      Alert.alert('Falha no login', getFirebaseErrorMessage(error));
+      const next = attempts + 1;
+      setAttempts(next);
+      if (next >= MAX_ATTEMPTS) {
+        setLockedUntil(Date.now() + LOCKOUT_SECONDS * 1000);
+        setAttempts(0);
+        Alert.alert(
+          'Conta temporariamente bloqueada',
+          `Muitas tentativas incorretas. Tente novamente em ${LOCKOUT_SECONDS} segundos.`,
+        );
+      } else {
+        Alert.alert('Falha no login', getFirebaseErrorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
@@ -62,10 +96,11 @@ export const LoginScreen = () => {
             <TextInput
               style={styles.input}
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
               value={value}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               placeholder="seu@email.com"
               placeholderTextColor="#aaa"
               returnKeyType="done"
@@ -105,7 +140,11 @@ export const LoginScreen = () => {
         <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)} disabled={loading}>
+      {isLocked && (
+        <Text style={styles.lockMessage}>Muitas tentativas. Aguarde {lockSecondsLeft}s para tentar novamente.</Text>
+      )}
+
+      <TouchableOpacity style={[styles.button, isLocked && styles.buttonDisabled]} onPress={handleSubmit(onSubmit)} disabled={loading || isLocked}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
       </TouchableOpacity>
 
@@ -130,7 +169,9 @@ const styles = StyleSheet.create({
   error: { color: theme.colors.error, fontSize: 12, marginTop: 4 },
   forgotPassword: { color: theme.colors.primary, textAlign: 'right', marginBottom: theme.spacing.lg },
   button: { backgroundColor: theme.colors.primary, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, alignItems: 'center' },
+  buttonDisabled: { backgroundColor: theme.colors.border },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  lockMessage: { color: theme.colors.error, fontSize: 13, textAlign: 'center', marginBottom: theme.spacing.sm },
   registerLink: { marginTop: theme.spacing.xl, alignItems: 'center' },
   registerText: { color: theme.colors.textSecondary },
   registerTextBold: { color: theme.colors.primary, fontWeight: 'bold' }

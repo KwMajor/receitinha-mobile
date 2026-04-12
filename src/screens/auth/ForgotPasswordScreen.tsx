@@ -8,7 +8,11 @@ import { resetPassword } from '../../services/firebase/auth';
 import { theme } from '../../constants/theme';
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('E-mail inválido'),
+  email: z.string()
+    .min(1, 'E-mail é obrigatório')
+    .transform((v) => v.trim())
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'E-mail inválido')
+    .refine((v) => v.length <= 254, 'E-mail muito longo'),
 });
 
 type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
@@ -19,18 +23,21 @@ export const ForgotPasswordScreen = () => {
 
   const { control, handleSubmit, formState: { errors } } = useForm<ForgotPasswordForm>({
     resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
   });
 
   const onSubmit = async (data: ForgotPasswordForm) => {
     try {
       setLoading(true);
-      await resetPassword(data.email);
-      Alert.alert('E-mail enviado!', `Enviamos as instruções de recuperação para ${data.email}. Verifique sua caixa de entrada (e também a pasta de spam).`);
+      await resetPassword(data.email).catch((error: any) => {
+        // Silencia user-not-found para evitar user enumeration
+        if (error.code !== 'auth/user-not-found') throw error;
+      });
+      // Sempre exibe mensagem genérica — não revela se o e-mail existe
+      Alert.alert('E-mail enviado!', 'Se houver uma conta com este endereço, você receberá as instruções em breve. Verifique sua caixa de entrada e pasta de spam.');
       navigation.goBack();
     } catch (error: any) {
-      const errorMessage = error.code === 'auth/user-not-found'
-        ? 'Não encontramos nenhuma conta com este e-mail. Verifique o endereço informado.'
-        : error.code === 'auth/network-request-failed'
+      const errorMessage = error.code === 'auth/network-request-failed'
         ? 'Sem conexão com a internet. Verifique sua rede e tente novamente.'
         : 'Não foi possível enviar o e-mail de recuperação. Tente novamente.';
       Alert.alert('Erro ao enviar e-mail', errorMessage);
@@ -52,10 +59,11 @@ export const ForgotPasswordScreen = () => {
             <TextInput
               style={styles.input}
               onBlur={onBlur}
-              onChangeText={onChange}
+              onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
               value={value}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               placeholder="seu@email.com"
               returnKeyType="done"
             />

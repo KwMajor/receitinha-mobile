@@ -4,29 +4,90 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigation } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { signUp } from '../../services/firebase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
 
 const registerSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
-  confirmPassword: z.string()
+  name: z.string()
+    .min(1, 'Nome é obrigatório')
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 2, 'Nome deve ter pelo menos 2 caracteres')
+    .refine((v) => v.length <= 100, 'Nome muito longo')
+    .refine(
+      (v) => /^[\p{L}\p{M}]+([ ][\p{L}\p{M}]+)*$/u.test(v),
+      'Nome deve conter apenas letras'
+    ),
+  email: z.string()
+    .min(1, 'E-mail é obrigatório')
+    .transform((v) => v.trim())
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'E-mail inválido')
+    .refine((v) => v.length <= 254, 'E-mail muito longo'),
+  password: z.string()
+    .min(1, 'Senha é obrigatória')
+    .min(8, 'A senha deve ter pelo menos 8 caracteres')
+    .max(128, 'Senha muito longa')
+    .refine((v) => /[A-Z]/.test(v), 'A senha deve conter pelo menos uma letra maiúscula')
+    .refine((v) => /[a-z]/.test(v), 'A senha deve conter pelo menos uma letra minúscula')
+    .refine((v) => /[0-9]/.test(v), 'A senha deve conter pelo menos um número')
+    .refine((v) => /[^A-Za-z0-9]/.test(v), 'A senha deve conter pelo menos um caractere especial'),
+  confirmPassword: z.string().min(1, 'Confirmação de senha é obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword'],
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+const PASSWORD_RULES = [
+  { label: 'Mínimo 8 caracteres',      test: (v: string) => v.length >= 8 },
+  { label: 'Uma letra maiúscula',       test: (v: string) => /[A-Z]/.test(v) },
+  { label: 'Uma letra minúscula',       test: (v: string) => /[a-z]/.test(v) },
+  { label: 'Um número',                 test: (v: string) => /[0-9]/.test(v) },
+  { label: 'Um caractere especial',     test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+];
+
+function PasswordStrength({ value }: { value: string }) {
+  if (!value) return null;
+  const passed = PASSWORD_RULES.filter((r) => r.test(value)).length;
+  const strength = passed <= 2 ? 'Fraca' : passed <= 4 ? 'Média' : 'Forte';
+  const color = passed <= 2 ? theme.colors.error : passed <= 4 ? '#F59E0B' : theme.colors.success;
+  return (
+    <View style={strengthStyles.container}>
+      <View style={strengthStyles.bars}>
+        {PASSWORD_RULES.map((_, i) => (
+          <View
+            key={i}
+            style={[strengthStyles.bar, { backgroundColor: i < passed ? color : theme.colors.border }]}
+          />
+        ))}
+      </View>
+      <Text style={[strengthStyles.label, { color }]}>{strength}</Text>
+      <View style={strengthStyles.rules}>
+        {PASSWORD_RULES.map((r) => {
+          const ok = r.test(value);
+          return (
+            <View key={r.label} style={strengthStyles.ruleRow}>
+              <Feather name={ok ? 'check' : 'x'} size={11} color={ok ? theme.colors.success : theme.colors.textSecondary} />
+              <Text style={[strengthStyles.ruleText, ok && strengthStyles.ruleTextOk]}>{r.label}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
+  const [passwordValue, setPasswordValue] = useState('');
   const { setUser } = useAuthStore();
   const navigation = useNavigation<any>();
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   });
 
   const getFirebaseErrorMessage = (error: any) => {
@@ -66,7 +127,15 @@ export const RegisterScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nome Completo</Text>
-            <TextInput style={styles.input} onBlur={onBlur} onChangeText={onChange} value={value} placeholder="João da Silva" returnKeyType="done" />
+            <TextInput
+              style={styles.input}
+              onBlur={onBlur}
+              onChangeText={(t) => onChange(t.replace(/[^\p{L}\p{M} ]/gu, ''))}
+              value={value}
+              placeholder="João da Silva"
+              autoCapitalize="words"
+              returnKeyType="done"
+            />
             {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
           </View>
         )}
@@ -78,7 +147,17 @@ export const RegisterScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <Text style={styles.label}>E-mail</Text>
-            <TextInput style={styles.input} onBlur={onBlur} onChangeText={onChange} value={value} keyboardType="email-address" autoCapitalize="none" placeholder="seu@email.com" returnKeyType="done" />
+            <TextInput
+              style={styles.input}
+              onBlur={onBlur}
+              onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
+              value={value}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="seu@email.com"
+              returnKeyType="done"
+            />
             {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
           </View>
         )}
@@ -90,7 +169,16 @@ export const RegisterScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Senha</Text>
-            <TextInput style={styles.input} onBlur={onBlur} onChangeText={onChange} value={value} secureTextEntry placeholder="******" returnKeyType="done" />
+            <TextInput
+              style={styles.input}
+              onBlur={onBlur}
+              onChangeText={(t) => { onChange(t); setPasswordValue(t); }}
+              value={value}
+              secureTextEntry
+              placeholder="******"
+              returnKeyType="done"
+            />
+            <PasswordStrength value={passwordValue} />
             {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
           </View>
         )}
@@ -118,6 +206,17 @@ export const RegisterScreen = () => {
     </ScrollView>
   );
 };
+
+const strengthStyles = StyleSheet.create({
+  container: { marginTop: theme.spacing.sm, gap: 6 },
+  bars: { flexDirection: 'row', gap: 4 },
+  bar: { flex: 1, height: 4, borderRadius: 2 },
+  label: { fontSize: 12, fontWeight: '700' },
+  rules: { gap: 3 },
+  ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  ruleText: { fontSize: 12, color: theme.colors.textSecondary },
+  ruleTextOk: { color: theme.colors.success },
+});
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: theme.spacing.lg, backgroundColor: theme.colors.background, justifyContent: 'center' },
