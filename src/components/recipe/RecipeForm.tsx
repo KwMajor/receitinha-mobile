@@ -1,5 +1,5 @@
-import React, { useState, useLayoutEffect, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList } from 'react-native';
+import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -71,6 +71,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
+  const scrollRef = useRef<ScrollView>(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -138,7 +139,16 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+    <ScrollView
+      ref={scrollRef}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* SEÇÃO 1 — Foto */}
       <View style={styles.section}>
         <Controller
@@ -261,13 +271,17 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
             )} />
           </View>
         ))}
-        <TouchableOpacity style={styles.addButton} onPress={() => appendStep({ instruction: '', timerMinutes: '' })}>
+        <TouchableOpacity style={styles.addButton} onPress={() => {
+          appendStep({ instruction: '', timerMinutes: '' });
+          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+        }}>
           <Feather name="plus" size={20} color={theme.colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Passo</Text>
         </TouchableOpacity>
       </View>
 
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
