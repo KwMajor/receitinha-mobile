@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -98,6 +98,16 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
   const scrollRef = useRef<ScrollView>(null);
+  const stepFocused = useRef(false);
+
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      if (stepFocused.current) {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -174,6 +184,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       ref={scrollRef}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
     >
       {/* SEÇÃO 1 — Foto */}
       <View style={styles.section}>
@@ -193,7 +204,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
         <Controller control={control} name="title" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Título da Receita *</Text>
-            <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder="Ex: Bolo de Cenoura" returnKeyType="done" />
+            <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder="Ex: Bolo de Cenoura" placeholderTextColor={colors.textSecondary} returnKeyType="done" />
             {errors.title && <Text style={styles.error}>{errors.title.message}</Text>}
           </View>
         )} />
@@ -201,14 +212,14 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
         <Controller control={control} name="description" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Descrição</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={value} onChangeText={onChange} placeholder="Uma breve descrição..." multiline />
+            <TextInput style={[styles.input, styles.textArea]} value={value} onChangeText={onChange} placeholder="Uma breve descrição..." placeholderTextColor={colors.textSecondary} multiline />
           </View>
         )} />
 
         <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Porções *</Text>
-            <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" returnKeyType="done" />
+            <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" placeholderTextColor={colors.textSecondary} returnKeyType="done" />
             {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
           </View>
         )} />
@@ -292,6 +303,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
                   onChangeTimer={onChangeT}
                   onRemove={() => removeStep(index)}
                   timerError={errors.steps?.[index]?.timerMinutes?.message}
+                  onFocus={() => { stepFocused.current = true; }}
                 />
               )} />
             )} />

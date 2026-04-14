@@ -12,13 +12,13 @@ interface Props {
   onPress: () => void;
 }
 
-function StarRatingInline({ average, count, borderColor }: { average: number; count: number; borderColor: string }) {
+function StarRatingInline({ average, count, emptyColor, textColor }: { average: number; count: number; emptyColor: string; textColor: string }) {
   return (
     <View style={starStyles.row}>
       {[1, 2, 3, 4, 5].map((s) => (
-        <Feather key={s} name="star" size={12} color={s <= Math.round(average) ? '#FFA500' : borderColor} />
+        <Feather key={s} name="star" size={12} color={s <= Math.round(average) ? '#FFA500' : emptyColor} />
       ))}
-      <Text style={starStyles.label}>{average.toFixed(1)} ({count})</Text>
+      <Text style={[starStyles.label, { color: textColor }]}>{average.toFixed(1)} ({count})</Text>
     </View>
   );
 }
@@ -105,7 +105,7 @@ export const CommunityRecipeCard = ({ recipe, onPress }: Props) => {
           <Feather name="user" size={13} color={colors.textSecondary} />
           <Text style={styles.authorText} numberOfLines={1}>{recipe.authorName}</Text>
         </View>
-        <StarRatingInline average={recipe.averageRating} count={recipe.ratingCount} borderColor={colors.border} />
+        <StarRatingInline average={recipe.averageRating} count={recipe.ratingCount} emptyColor={colors.textSecondary} textColor={colors.textSecondary} />
         <View style={styles.footer}>
           <View style={styles.metaItem}>
             <Feather name="clock" size={13} color={colors.textSecondary} />

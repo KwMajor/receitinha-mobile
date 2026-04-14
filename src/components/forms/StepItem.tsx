@@ -13,6 +13,7 @@ interface StepItemProps {
   onRemove: () => void;
   timerError?: string;
   drag?: () => void;
+  onFocus?: () => void;
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
@@ -88,7 +89,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 });
 
 export const StepItem = ({
-  order, instruction, timerMinutes, onChangeInstruction, onChangeTimer, onRemove, timerError, drag
+  order, instruction, timerMinutes, onChangeInstruction, onChangeTimer, onRemove, timerError, drag, onFocus
 }: StepItemProps) => {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -111,6 +112,7 @@ export const StepItem = ({
           placeholderTextColor={colors.textSecondary}
           value={instruction}
           onChangeText={onChangeInstruction}
+          onFocus={onFocus}
         />
 
         <View style={styles.timerContainer}>

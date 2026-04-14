@@ -226,6 +226,7 @@ export const ShoppingListsScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Nome da lista"
+              placeholderTextColor={colors.textSecondary}
               value={inputValue}
               onChangeText={setInputValue}
               autoFocus
@@ -353,7 +354,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   modalBox: {
-    width: '85%', backgroundColor: '#fff',
+    width: '85%', backgroundColor: colors.card,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg, gap: theme.spacing.md,
   },

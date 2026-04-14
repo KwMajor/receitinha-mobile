@@ -60,7 +60,8 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.receitinha"
+      "package": "com.anonymous.receitinha",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "extra": {
       "eas": {

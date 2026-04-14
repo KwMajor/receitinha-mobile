@@ -303,7 +303,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   placeholderImage: { backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
   headerActions: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   headerRight: { flexDirection: 'row', gap: 12 },
-  headerBtn: { width: 40, height: 40, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2 },
+  headerBtn: { width: 40, height: 40, backgroundColor: colors.card + 'ED', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 2 },
   content: { padding: theme.spacing.lg, marginTop: -24, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.sm },
   badge: { alignSelf: 'flex-start', backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.round },

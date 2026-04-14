@@ -552,12 +552,16 @@ const getStyles = (colors: any) => StyleSheet.create({
   headerBtn: {
     width: 40,
     height: 40,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.card + 'ED',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 2,
     marginTop: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
 
   // ── Conteúdo ──
