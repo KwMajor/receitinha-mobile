@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useWeekPlan } from '../../hooks/useWeekPlan';
 import { MealSlot } from '../../components/planning/MealSlot';
 import { RecipePickerModal } from './RecipePickerModal';
@@ -42,6 +43,8 @@ interface DraggingSlot extends SelectedSlot {
 export const WeekPlanScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const {
     weekPlan,
     mealSlots,
@@ -183,7 +186,7 @@ export const WeekPlanScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.navBtn} onPress={goToPreviousWeek} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Feather name="chevron-left" size={22} color={theme.colors.text} />
+          <Feather name="chevron-left" size={22} color={colors.text} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
@@ -195,12 +198,12 @@ export const WeekPlanScreen: React.FC = () => {
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="calendar" size={16} color={theme.colors.primary} />
+            <Feather name="calendar" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.navBtn} onPress={goToNextWeek} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Feather name="chevron-right" size={22} color={theme.colors.text} />
+          <Feather name="chevron-right" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -236,19 +239,19 @@ export const WeekPlanScreen: React.FC = () => {
       {/* Drag mode banner */}
       {draggingSlot && (
         <View style={styles.dragBanner}>
-          <Feather name="move" size={14} color={theme.colors.primary} />
+          <Feather name="move" size={14} color={colors.primary} />
           <Text style={styles.dragBannerText}>
             Toque em um slot para mover "{draggingSlot.recipe.title}"
           </Text>
           <TouchableOpacity onPress={() => setDraggingSlot(null)}>
-            <Feather name="x" size={16} color={theme.colors.textSecondary} />
+            <Feather name="x" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Grid */}
       {isLoading ? (
-        <ActivityIndicator style={styles.loader} color={theme.colors.primary} size="large" />
+        <ActivityIndicator style={styles.loader} color={colors.primary} size="large" />
       ) : (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.gridContainer}>
@@ -292,7 +295,7 @@ export const WeekPlanScreen: React.FC = () => {
                           <Feather
                             name="chevron-left"
                             size={12}
-                            color={idx === 0 ? theme.colors.border : theme.colors.textSecondary}
+                            color={idx === 0 ? colors.border : colors.textSecondary}
                           />
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -305,8 +308,8 @@ export const WeekPlanScreen: React.FC = () => {
                             size={12}
                             color={
                               idx === mealSlots.length - 1
-                                ? theme.colors.border
-                                : theme.colors.textSecondary
+                                ? colors.border
+                                : colors.textSecondary
                             }
                           />
                         </TouchableOpacity>
@@ -315,7 +318,7 @@ export const WeekPlanScreen: React.FC = () => {
                             onPress={() => handleRemoveExtraSlot(slot.mealType, slot.label)}
                             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                           >
-                            <Feather name="x" size={11} color={theme.colors.textSecondary} />
+                            <Feather name="x" size={11} color={colors.textSecondary} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -327,7 +330,7 @@ export const WeekPlanScreen: React.FC = () => {
                     style={styles.addSlotBtn}
                     onPress={() => setAddSlotModalVisible(true)}
                   >
-                    <Feather name="plus" size={14} color={theme.colors.primary} />
+                    <Feather name="plus" size={14} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
 
@@ -385,7 +388,7 @@ export const WeekPlanScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Ex: Lanche da tarde"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={newSlotLabel}
               onChangeText={setNewSlotLabel}
               autoFocus
@@ -432,14 +435,14 @@ export const WeekPlanScreen: React.FC = () => {
                 onPress={() => setPickerYear((y) => y - 1)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Feather name="chevron-left" size={22} color={theme.colors.text} />
+                <Feather name="chevron-left" size={22} color={colors.text} />
               </TouchableOpacity>
               <Text style={styles.yearText}>{pickerYear}</Text>
               <TouchableOpacity
                 onPress={() => setPickerYear((y) => y + 1)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Feather name="chevron-right" size={22} color={theme.colors.text} />
+                <Feather name="chevron-right" size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.monthGrid}>
@@ -460,17 +463,17 @@ export const WeekPlanScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     minHeight: 56,
   },
   navBtn: {},
@@ -482,13 +485,13 @@ const styles = StyleSheet.create({
   weekLabel: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textTransform: 'capitalize',
   },
   shoppingBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.md,
     margin: theme.spacing.md,
     marginBottom: theme.spacing.sm,
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
   dragBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: colors.primary + '15',
     borderRadius: theme.borderRadius.md,
     marginHorizontal: theme.spacing.md,
     marginBottom: theme.spacing.sm,
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  dragBannerText: { flex: 1, fontSize: 12, color: theme.colors.text },
+  dragBannerText: { flex: 1, fontSize: 12, color: colors.text },
   loader: { flex: 1, alignSelf: 'center' },
   // Grid
   gridContainer: {
@@ -526,16 +529,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: theme.borderRadius.md,
   },
-  dayLabelToday: { backgroundColor: theme.colors.primary + '15' },
+  dayLabelToday: { backgroundColor: colors.primary + '15' },
   dayName: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
-  dayNameToday: { color: theme.colors.primary },
-  dayNumber: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginTop: 2 },
-  dayNumberToday: { color: theme.colors.primary },
+  dayNameToday: { color: colors.primary },
+  dayNumber: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: 2 },
+  dayNumberToday: { color: colors.primary },
   mealHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   mealHeaderCell: {
     justifyContent: 'center',
@@ -546,7 +549,7 @@ const styles = StyleSheet.create({
   mealHeaderText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     textTransform: 'uppercase',
   },
   mealHeaderActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
@@ -555,7 +558,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 6,
@@ -572,29 +575,29 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
   },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   modalInput: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     fontSize: 15,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   modalActions: { flexDirection: 'row', gap: theme.spacing.sm, justifyContent: 'flex-end' },
   modalCancelBtn: { paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.md },
-  modalCancelText: { fontSize: 14, color: theme.colors.textSecondary },
+  modalCancelText: { fontSize: 14, color: colors.textSecondary },
   modalConfirmBtn: {
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.md,
   },
   modalConfirmDisabled: { opacity: 0.4 },
@@ -602,7 +605,7 @@ const styles = StyleSheet.create({
   // Month picker
   monthPickerCard: {
     width: '85%',
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
@@ -612,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  yearText: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  yearText: { fontSize: 18, fontWeight: '700', color: colors.text },
   monthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   monthBtn: {
     width: '30%',
@@ -620,7 +623,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
-  monthBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.text },
+  monthBtnText: { fontSize: 14, fontWeight: '600', color: colors.text },
 });

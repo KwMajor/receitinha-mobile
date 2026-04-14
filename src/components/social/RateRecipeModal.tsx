@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Rating } from '../../types';
 import { submitRating } from '../../services/api/communityService';
 import { StarRating } from './StarRating';
@@ -30,7 +31,131 @@ interface Props {
   onSubmitted: (rating: Rating) => void;
 }
 
-function UserAvatar({ name }: { name: string }) {
+const getStyles = (colors: any) => StyleSheet.create({
+  backdrop: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  kvWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: theme.spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? 36 : theme.spacing.lg,
+    gap: theme.spacing.lg,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  starsContainer: {
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+  },
+  starsHint: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    minHeight: 20,
+  },
+  inputWrapper: {
+    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  input: {
+    fontSize: 15,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    minHeight: 90,
+    maxHeight: 160,
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  charCount: {
+    alignSelf: 'flex-end',
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  charCountWarn: {
+    color: colors.error,
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  submitBtn: {
+    flex: 2,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitBtnDisabled: {
+    opacity: 0.5,
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+});
+
+function UserAvatar({ name, colors }: { name: string; colors: any }) {
+  const styles = getStyles(colors);
   const initials = name
     .split(' ')
     .slice(0, 2)
@@ -51,11 +176,12 @@ export const RateRecipeModal = ({
   onSubmitted,
 }: Props) => {
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [stars, setStars] = useState(existingRating?.stars ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sincroniza com avaliação existente quando o modal abre
   useEffect(() => {
     if (visible) {
       setStars(existingRating?.stars ?? 0);
@@ -90,7 +216,6 @@ export const RateRecipeModal = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      {/* Backdrop */}
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>
@@ -101,23 +226,19 @@ export const RateRecipeModal = ({
         pointerEvents="box-none"
       >
         <View style={styles.sheet}>
-          {/* Handle */}
           <View style={styles.handle} />
 
-          {/* Título */}
           <Text style={styles.title}>
             {isEditing ? 'Editar avaliação' : 'Avaliar receita'}
           </Text>
 
-          {/* Avatar + nome do usuário */}
           {user && (
             <View style={styles.userRow}>
-              <UserAvatar name={user.name || 'Usuário'} />
+              <UserAvatar name={user.name || 'Usuário'} colors={colors} />
               <Text style={styles.userName}>{user.name || 'Usuário'}</Text>
             </View>
           )}
 
-          {/* Estrelas interativas */}
           <View style={styles.starsContainer}>
             <StarRating value={stars} onChange={setStars} size="lg" />
             <Text style={styles.starsHint}>
@@ -127,12 +248,11 @@ export const RateRecipeModal = ({
             </Text>
           </View>
 
-          {/* Comentário */}
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
               placeholder="Comentário opcional…"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={comment}
               onChangeText={(t) => setComment(t.slice(0, MAX_CHARS))}
               multiline
@@ -144,7 +264,6 @@ export const RateRecipeModal = ({
             </Text>
           </View>
 
-          {/* Botões */}
           <View style={styles.buttons}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={isSubmitting}>
               <Text style={styles.cancelText}>Cancelar</Text>
@@ -169,126 +288,3 @@ export const RateRecipeModal = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  kvWrapper: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: theme.spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 36 : theme.spacing.lg,
-    gap: theme.spacing.lg,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.border,
-    alignSelf: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    textAlign: 'center',
-  },
-  starsContainer: {
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-  },
-  starsHint: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    minHeight: 20,
-  },
-  inputWrapper: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  input: {
-    fontSize: 15,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
-    minHeight: 90,
-    maxHeight: 160,
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  charCount: {
-    alignSelf: 'flex-end',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-  charCountWarn: {
-    color: theme.colors.error,
-  },
-  buttons: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  submitBtn: {
-    flex: 2,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitBtnDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-});

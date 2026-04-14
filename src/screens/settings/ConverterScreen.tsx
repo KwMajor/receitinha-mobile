@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   ALL_UNITS,
   KNOWN_INGREDIENTS,
@@ -21,6 +22,229 @@ import {
   formatResult,
 } from '../../utils/measureConverter';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
+    gap: theme.spacing.md,
+  },
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: -4,
+  },
+  convRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    flexWrap: 'nowrap',
+  },
+  qtyInput: {
+    width: 64,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 10,
+    fontSize: 16,
+    textAlign: 'center',
+    backgroundColor: colors.background,
+    color: colors.text,
+  },
+  picker: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+    gap: 4,
+    minWidth: 0,
+  },
+  pickerText: {
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  arrowWrap: {
+    paddingHorizontal: 2,
+  },
+  resultBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '12',
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  resultLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  resultValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  resultUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  resultApprox: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  resultWarning: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginLeft: 6,
+    flex: 1,
+  },
+  ingredientWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
+  },
+  ingredientInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    padding: 0,
+  },
+  suggestionBox: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    overflow: 'hidden',
+    marginTop: -theme.spacing.xs,
+  },
+  suggestionItem: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  accordionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  accordionBody: {
+    marginTop: theme.spacing.sm,
+    gap: 2,
+  },
+  refRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  refLabel: {
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  refDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: colors.border,
+    marginHorizontal: theme.spacing.sm,
+  },
+  refValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.primary,
+    width: 80,
+    textAlign: 'right',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '55%',
+    paddingBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
+  modalItemActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  modalItemTextActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+});
+
 // ── Unit Picker ───────────────────────────────────────────────────────────
 
 interface UnitPickerProps {
@@ -30,6 +254,8 @@ interface UnitPickerProps {
 }
 
 const UnitPicker = ({ value, options, onChange }: UnitPickerProps) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [open, setOpen] = useState(false);
   const label = ALL_UNITS[value]?.label ?? value;
 
@@ -37,7 +263,7 @@ const UnitPicker = ({ value, options, onChange }: UnitPickerProps) => {
     <>
       <TouchableOpacity style={styles.picker} onPress={() => setOpen(true)}>
         <Text style={styles.pickerText} numberOfLines={1}>{label}</Text>
-        <Feather name="chevron-down" size={14} color={theme.colors.textSecondary} />
+        <Feather name="chevron-down" size={14} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -55,7 +281,7 @@ const UnitPicker = ({ value, options, onChange }: UnitPickerProps) => {
                   <Text style={[styles.modalItemText, item === value && styles.modalItemTextActive]}>
                     {ALL_UNITS[item]?.label ?? item}
                   </Text>
-                  {item === value && <Feather name="check" size={16} color={theme.colors.primary} />}
+                  {item === value && <Feather name="check" size={16} color={colors.primary} />}
                 </TouchableOpacity>
               )}
             />
@@ -79,10 +305,13 @@ const ResultRow = ({
   approximate?: boolean;
   warning?: string;
 }) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   if (warning) {
     return (
       <View style={styles.resultBox}>
-        <Feather name="alert-circle" size={14} color={theme.colors.secondary} />
+        <Feather name="alert-circle" size={14} color={colors.textSecondary} />
         <Text style={styles.resultWarning}>{warning}</Text>
       </View>
     );
@@ -125,6 +354,9 @@ const ConvSection = ({
   to,
   setTo,
 }: ConvSectionProps) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const result = useMemo(() => {
     const n = parseFloat(qty.replace(',', '.'));
     if (!n || isNaN(n)) return null;
@@ -142,11 +374,11 @@ const ConvSection = ({
           onChangeText={v => setQty(v.replace(/[^0-9.,]/g, ''))}
           keyboardType="decimal-pad"
           placeholder="0"
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
         />
         <UnitPicker value={from} options={unitOptions} onChange={setFrom} />
         <View style={styles.arrowWrap}>
-          <Feather name="arrow-right" size={18} color={theme.colors.textSecondary} />
+          <Feather name="arrow-right" size={18} color={colors.textSecondary} />
         </View>
         <UnitPicker value={to} options={unitOptions} onChange={setTo} />
       </View>
@@ -159,6 +391,8 @@ const ConvSection = ({
 // ── Contextual Section ────────────────────────────────────────────────────
 
 const ContextualSection = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [qty, setQty] = useState('1');
   const [from, setFrom] = useState('xícara');
   const [to, setTo] = useState('g');
@@ -208,29 +442,28 @@ const ContextualSection = () => {
           onChangeText={v => setQty(v.replace(/[^0-9.,]/g, ''))}
           keyboardType="decimal-pad"
           placeholder="0"
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
         />
         <UnitPicker value={from} options={ALL_CONV_KEYS} onChange={setFrom} />
         <View style={styles.arrowWrap}>
-          <Feather name="arrow-right" size={18} color={theme.colors.textSecondary} />
+          <Feather name="arrow-right" size={18} color={colors.textSecondary} />
         </View>
         <UnitPicker value={to} options={ALL_CONV_KEYS} onChange={setTo} />
       </View>
 
-      {/* Ingredient input with autocomplete */}
       <View style={styles.ingredientWrapper}>
-        <Feather name="search" size={14} color={theme.colors.textSecondary} style={{ marginRight: 6 }} />
+        <Feather name="search" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
         <TextInput
           style={styles.ingredientInput}
           value={ingredient}
           onChangeText={handleIngredientChange}
           placeholder="Ingrediente (opcional)"
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
         />
         {ingredient.length > 0 && (
           <TouchableOpacity onPress={() => { setIngredient(''); setSuggestions([]); }}>
-            <Feather name="x" size={14} color={theme.colors.textSecondary} />
+            <Feather name="x" size={14} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -262,16 +495,18 @@ const ContextualSection = () => {
 // ── Quick Reference Accordion ─────────────────────────────────────────────
 
 const QuickRefAccordion = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [open, setOpen] = useState(false);
 
   return (
     <View style={styles.section}>
       <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpen(v => !v)}>
         <View style={styles.accordionHeaderLeft}>
-          <Feather name="book-open" size={16} color={theme.colors.primary} />
+          <Feather name="book-open" size={16} color={colors.primary} />
           <Text style={styles.accordionTitle}>Tabela de referência rápida</Text>
         </View>
-        <Feather name={open ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textSecondary} />
+        <Feather name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
       </TouchableOpacity>
 
       {open && (
@@ -292,6 +527,9 @@ const QuickRefAccordion = () => {
 // ── Screen ────────────────────────────────────────────────────────────────
 
 export const ConverterScreen = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [volQty, setVolQty] = useState('1');
   const [volFrom, setVolFrom] = useState('xícara');
   const [volTo, setVolTo] = useState('ml');
@@ -334,240 +572,3 @@ export const ConverterScreen = () => {
     </ScrollView>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.xxl,
-    gap: theme.spacing.md,
-  },
-
-  // Section
-  section: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: -4,
-  },
-
-  // Conv row
-  convRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    flexWrap: 'nowrap',
-  },
-  qtyInput: {
-    width: 64,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
-    fontSize: 16,
-    textAlign: 'center',
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-  },
-  picker: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.background,
-    gap: 4,
-    minWidth: 0,
-  },
-  pickerText: {
-    fontSize: 13,
-    color: theme.colors.text,
-    flex: 1,
-  },
-  arrowWrap: {
-    paddingHorizontal: 2,
-  },
-
-  // Result
-  resultBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary + '12',
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    flexWrap: 'wrap',
-    gap: 2,
-  },
-  resultLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  resultValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  resultUnit: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  resultApprox: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontStyle: 'italic',
-  },
-  resultWarning: {
-    fontSize: 13,
-    color: theme.colors.secondary,
-    marginLeft: 6,
-    flex: 1,
-  },
-
-  // Ingredient
-  ingredientWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 8,
-    backgroundColor: theme.colors.background,
-  },
-  ingredientInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.text,
-    padding: 0,
-  },
-  suggestionBox: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    overflow: 'hidden',
-    marginTop: -theme.spacing.xs,
-  },
-  suggestionItem: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: theme.colors.text,
-  },
-
-  // Accordion
-  accordionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  accordionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  accordionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  accordionBody: {
-    marginTop: theme.spacing.sm,
-    gap: 2,
-  },
-  refRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  refLabel: {
-    fontSize: 13,
-    color: theme.colors.text,
-    flex: 1,
-  },
-  refDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: theme.colors.border,
-    marginHorizontal: theme.spacing.sm,
-  },
-  refValue: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    width: 80,
-    textAlign: 'right',
-  },
-
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '55%',
-    paddingBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    textAlign: 'center',
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surface,
-  },
-  modalItemActive: {
-    backgroundColor: theme.colors.primary + '10',
-  },
-  modalItemText: {
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  modalItemTextActive: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-});

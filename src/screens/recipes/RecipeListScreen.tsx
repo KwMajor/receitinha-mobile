@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRecipes } from '../../hooks/useRecipes';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
@@ -14,6 +15,8 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 export const RecipeListScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const { colors, fontSizes } = useTheme();
+  const styles = getStyles(colors);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
   const [categoryList, setCategoryList] = useState<string[]>([]);
@@ -52,7 +55,7 @@ export const RecipeListScreen = () => {
   const EmptyState = useMemo(
     () => (
       <View style={styles.emptyContainer}>
-        <Feather name="book-open" size={64} color={theme.colors.border} />
+        <Feather name="book-open" size={64} color={colors.border} />
         <Text style={styles.emptyText}>Nenhuma receita encontrada.</Text>
         <Text style={styles.emptySubText}>Tente buscar por outros termos ou adicionar uma nova receita!</Text>
       </View>
@@ -71,30 +74,31 @@ export const RecipeListScreen = () => {
       <ScreenHeader title="Minhas Receitas" right={addButton} />
 
       <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Feather name="search" size={20} color={theme.colors.textSecondary} style={styles.searchIcon} />
+        <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Buscar receitas, ingredientes..."
+            placeholderTextColor={colors.textSecondary}
             value={localSearch}
             onChangeText={setLocalSearch}
             returnKeyType="done"
           />
           {localSearch ? (
             <TouchableOpacity onPress={() => setLocalSearch('')}>
-              <Feather name="x-circle" size={20} color={theme.colors.textSecondary} />
+              <Feather name="x-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
-          <Feather name="filter" size={20} color={filters.categories?.length ? theme.colors.primary : theme.colors.textSecondary} />
+        <TouchableOpacity style={[styles.filterBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => setFilterModalVisible(true)}>
+          <Feather name="filter" size={20} color={filters.categories?.length ? colors.primary : colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {error ? (
         <View style={styles.center}><Text style={styles.errorText}>{error}</Text></View>
       ) : isLoading && recipes.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <FlatList
           data={recipes}
@@ -111,35 +115,35 @@ export const RecipeListScreen = () => {
       {/* MODAL DE FILTROS */}
       <Modal visible={filterModalVisible} animationType="slide" transparent onRequestClose={() => setFilterModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
-          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={() => {}}>
+          <TouchableOpacity style={[styles.modalContent, { backgroundColor: colors.background }]} activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filtros</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Filtros</Text>
               <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <Feather name="x" size={24} color={theme.colors.text} />
+                <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.filterSectionTitle}>Categorias</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Categorias</Text>
               <View style={styles.chipsContainer}>
                 {categoryList.map(cat => {
                   const isSelected = filters.categories?.includes(cat);
                   return (
                     <TouchableOpacity
                       key={cat}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.border }, isSelected && styles.chipSelected]}
                       onPress={() => toggleCategory(cat)}
                     >
-                      <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{cat}</Text>
+                      <Text style={[styles.chipText, { color: colors.text }, isSelected && styles.chipTextSelected]}>{cat}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </ScrollView>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
-                <Text style={styles.clearBtnText}>Limpar</Text>
+            <View style={[styles.modalFooter, { borderColor: colors.border }]}>
+              <TouchableOpacity style={[styles.clearBtn, { backgroundColor: colors.surface }]} onPress={clearFilters}>
+                <Text style={[styles.clearBtnText, { color: colors.text }]}>Limpar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterModalVisible(false)}>
                 <Text style={styles.applyBtnText}>Aplicar Filtros</Text>
@@ -153,35 +157,35 @@ export const RecipeListScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  addBtn: { backgroundColor: theme.colors.primary, padding: theme.spacing.sm, borderRadius: theme.borderRadius.round },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  addBtn: { backgroundColor: colors.primary, padding: theme.spacing.sm, borderRadius: theme.borderRadius.round },
   searchContainer: { flexDirection: 'row', padding: theme.spacing.md, gap: theme.spacing.sm },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, paddingHorizontal: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border },
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: theme.borderRadius.md, paddingHorizontal: theme.spacing.md, borderWidth: 1, borderColor: colors.border },
   searchIcon: { marginRight: theme.spacing.sm },
-  searchInput: { flex: 1, height: 44, color: theme.colors.text },
-  filterBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: theme.colors.border },
+  searchInput: { flex: 1, height: 44, color: colors.text },
+  filterBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.border },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: theme.colors.error },
+  errorText: { color: colors.error },
   listContent: { padding: theme.spacing.md, paddingBottom: 100 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60, padding: theme.spacing.lg },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: theme.colors.text, marginTop: theme.spacing.md },
-  emptySubText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', marginTop: theme.spacing.xs },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: theme.spacing.md },
+  emptySubText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: theme.spacing.xs },
   
   // Modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: theme.borderRadius.lg, borderTopRightRadius: theme.borderRadius.lg, padding: theme.spacing.lg, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.lg },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.text },
-  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: theme.spacing.sm, color: theme.colors.text },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: theme.spacing.sm, color: colors.text },
   chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, marginBottom: theme.spacing.lg },
-  chip: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: theme.borderRadius.round, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
-  chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-  chipText: { color: theme.colors.text },
+  chip: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: theme.borderRadius.round, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: 'bold' },
-  modalFooter: { flexDirection: 'row', gap: theme.spacing.md, paddingTop: theme.spacing.md, borderTopWidth: 1, borderColor: theme.colors.border },
-  clearBtn: { flex: 1, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.surface },
-  clearBtnText: { color: theme.colors.text, fontWeight: 'bold' },
-  applyBtn: { flex: 2, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.primary },
+  modalFooter: { flexDirection: 'row', gap: theme.spacing.md, paddingTop: theme.spacing.md, borderTopWidth: 1, borderColor: colors.border },
+  clearBtn: { flex: 1, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: colors.surface },
+  clearBtnText: { color: colors.text, fontWeight: 'bold' },
+  applyBtn: { flex: 2, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: colors.primary },
   applyBtnText: { color: '#fff', fontWeight: 'bold' }
 });

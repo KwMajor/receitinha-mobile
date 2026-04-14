@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
-import { theme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 import { createStackNavigator } from '@react-navigation/stack';
 import { RecipeListScreen } from '../screens/recipes/RecipeListScreen';
@@ -16,6 +16,7 @@ import { ProfileScreen } from '../screens/settings/ProfileScreen';
 import { CookingHistoryScreen } from '../screens/settings/CookingHistoryScreen';
 import { ConverterScreen } from '../screens/settings/ConverterScreen';
 import { BackupScreen } from '../screens/settings/BackupScreen';
+import { AppearanceScreen } from '../screens/settings/AppearanceScreen';
 import { WeekPlanScreen } from '../screens/planning/WeekPlanScreen';
 import { ShoppingListsScreen } from '../screens/shopping/ShoppingListsScreen';
 import { ShoppingListDetailScreen } from '../screens/shopping/ShoppingListDetailScreen';
@@ -80,6 +81,7 @@ const ProfileStackGroup = () => (
     <Stack.Screen name="CookingHistory" component={CookingHistoryScreen} options={{ title: 'Histórico de Preparo' }} />
     <Stack.Screen name="Converter" component={ConverterScreen} options={{ title: 'Conversor de Medidas' }} />
     <Stack.Screen name="Backup" component={BackupScreen} options={{ title: 'Backup na nuvem' }} />
+    <Stack.Screen name="Appearance" component={AppearanceScreen} options={{ title: 'Aparência' }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
     <Stack.Screen name="CookingMode" component={CookingScreen} options={{ presentation: 'modal' }} />
@@ -89,15 +91,17 @@ const ProfileStackGroup = () => (
 // ── Tab Navigator ──────────────────────────────────────────────────────────────
 
 export const MainTabs = () => {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          borderTopColor: theme.colors.border,
-          backgroundColor: theme.colors.background,
+          borderTopColor: colors.border,
+          backgroundColor: colors.background,
         },
       }}
     >

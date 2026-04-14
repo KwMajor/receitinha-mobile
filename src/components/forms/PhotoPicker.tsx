@@ -3,13 +3,55 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-na
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface PhotoPickerProps {
   imageUri: string | null;
   onChange: (uri: string) => void;
 }
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
+    height: 200,
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.md,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+  },
+  placeholderContainer: {
+    alignItems: 'center',
+  },
+  placeholderText: {
+    marginTop: theme.spacing.sm,
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: theme.spacing.md,
+    right: theme.spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.round,
+  }
+});
+
 export const PhotoPicker = ({ imageUri, onChange }: PhotoPickerProps) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const handlePick = () => {
     Alert.alert('Selecionar Foto', 'Escolha a origem da foto', [
       { text: 'Câmera', onPress: openCamera },
@@ -56,7 +98,7 @@ export const PhotoPicker = ({ imageUri, onChange }: PhotoPickerProps) => {
         <Image source={{ uri: imageUri }} style={styles.image} />
       ) : (
         <View style={styles.placeholderContainer}>
-          <Feather name="camera" size={32} color={theme.colors.textSecondary} />
+          <Feather name="camera" size={32} color={colors.textSecondary} />
           <Text style={styles.placeholderText}>Adicionar Foto</Text>
         </View>
       )}
@@ -68,41 +110,3 @@ export const PhotoPicker = ({ imageUri, onChange }: PhotoPickerProps) => {
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    height: 200,
-    width: '100%',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: theme.colors.border,
-  },
-  placeholderContainer: {
-    alignItems: 'center',
-  },
-  placeholderText: {
-    marginTop: theme.spacing.sm,
-    color: theme.colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  editBadge: {
-    position: 'absolute',
-    bottom: theme.spacing.md,
-    right: theme.spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.round,
-  }
-});

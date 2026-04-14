@@ -7,18 +7,52 @@ import { useAuthStore } from '../../store/authStore';
 import { getFavorites, getCollections, createCollection, deleteCollection } from '../../services/sqlite/favoriteService';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Recipe, Collection } from '../../types';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.border },
+  tab: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center' },
+  activeTab: { borderBottomWidth: 2, borderColor: colors.primary },
+  tabText: { fontSize: 16, color: colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: colors.primary, fontWeight: 'bold' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContent: { padding: theme.spacing.md, paddingBottom: 100 },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
+  emptyText: { fontSize: 16, color: colors.textSecondary, marginTop: theme.spacing.md },
+
+  collectionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: colors.border },
+  collectionIcon: { width: 56, height: 56, backgroundColor: colors.surface, borderRadius: theme.borderRadius.md, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.md },
+  collectionInfo: { flex: 1 },
+  collectionName: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  collectionCount: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+
+  fabBtn: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md, borderRadius: theme.borderRadius.round, elevation: 4 },
+  fabText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: theme.spacing.sm },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: theme.spacing.lg },
+  modalContent: { backgroundColor: colors.background, borderRadius: theme.borderRadius.md, padding: theme.spacing.lg },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: theme.spacing.lg, color: colors.text, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, fontSize: 16, marginBottom: theme.spacing.lg, color: colors.text },
+  modalActions: { flexDirection: 'row', gap: theme.spacing.md },
+  modalBtn: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: colors.surface },
+  modalBtnPrimary: { backgroundColor: colors.primary },
+  modalBtnTextCancel: { color: colors.text, fontWeight: 'bold' },
+  modalBtnTextPrimary: { color: '#fff', fontWeight: 'bold' },
+});
 
 export const FavoritesScreen = () => {
   const { user } = useAuthStore();
   const navigation = useNavigation<any>();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [activeTab, setActiveTab] = useState<'favorites' | 'collections'>('favorites');
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para modal de nova coleção
   const [modalVisible, setModalVisible] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
@@ -83,19 +117,19 @@ export const FavoritesScreen = () => {
   );
 
   const renderCollection = ({ item }: { item: Collection }) => (
-    <TouchableOpacity 
-      style={styles.collectionCard} 
+    <TouchableOpacity
+      style={styles.collectionCard}
       onPress={() => navigation.navigate('CollectionDetail', { collectionId: item.id, collectionName: item.name })}
       onLongPress={() => confirmDeleteCollection(item)}
     >
       <View style={styles.collectionIcon}>
-        <Feather name="folder" size={32} color={theme.colors.primary} />
+        <Feather name="folder" size={32} color={colors.primary} />
       </View>
       <View style={styles.collectionInfo}>
         <Text style={styles.collectionName}>{item.name}</Text>
         <Text style={styles.collectionCount}>{item.recipeIds?.length || 0} receitas</Text>
       </View>
-      <Feather name="chevron-right" size={24} color={theme.colors.textSecondary} />
+      <Feather name="chevron-right" size={24} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -103,13 +137,13 @@ export const FavoritesScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScreenHeader title="Salvos" />
       <View style={styles.tabsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'favorites' && styles.activeTab]}
           onPress={() => setActiveTab('favorites')}
         >
           <Text style={[styles.tabText, activeTab === 'favorites' && styles.activeTabText]}>Favoritos</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'collections' && styles.activeTab]}
           onPress={() => setActiveTab('collections')}
         >
@@ -118,7 +152,7 @@ export const FavoritesScreen = () => {
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : activeTab === 'favorites' ? (
         <FlatList
           data={favorites}
@@ -127,7 +161,7 @@ export const FavoritesScreen = () => {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Feather name="heart" size={64} color={theme.colors.border} />
+              <Feather name="heart" size={64} color={colors.border} />
               <Text style={styles.emptyText}>Sem favoritos ainda.</Text>
             </View>
           }
@@ -141,7 +175,7 @@ export const FavoritesScreen = () => {
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Feather name="folder" size={64} color={theme.colors.border} />
+                <Feather name="folder" size={64} color={colors.border} />
                 <Text style={styles.emptyText}>Nenhuma coleção criada.</Text>
               </View>
             }
@@ -153,7 +187,6 @@ export const FavoritesScreen = () => {
         </View>
       )}
 
-      {/* MODAL NOVA COLEÇÃO */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -161,6 +194,7 @@ export const FavoritesScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Nome da coleção"
+              placeholderTextColor={colors.textSecondary}
               value={newCollectionName}
               onChangeText={setNewCollectionName}
               autoFocus
@@ -180,35 +214,3 @@ export const FavoritesScreen = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: theme.colors.border },
-  tab: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 2, borderColor: theme.colors.primary },
-  tabText: { fontSize: 16, color: theme.colors.textSecondary, fontWeight: '500' },
-  activeTabText: { color: theme.colors.primary, fontWeight: 'bold' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { padding: theme.spacing.md, paddingBottom: 100 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
-  emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: theme.spacing.md },
-  
-  collectionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: theme.spacing.md, borderRadius: theme.borderRadius.md, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border },
-  collectionIcon: { width: 56, height: 56, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.md },
-  collectionInfo: { flex: 1 },
-  collectionName: { fontSize: 18, fontWeight: 'bold', color: theme.colors.text },
-  collectionCount: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
-  
-  fabBtn: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md, borderRadius: theme.borderRadius.round, elevation: 4 },
-  fabText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: theme.spacing.sm },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: theme.spacing.lg },
-  modalContent: { backgroundColor: '#fff', borderRadius: theme.borderRadius.md, padding: theme.spacing.lg },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: theme.spacing.lg, color: theme.colors.text, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, fontSize: 16, marginBottom: theme.spacing.lg },
-  modalActions: { flexDirection: 'row', gap: theme.spacing.md },
-  modalBtn: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.surface },
-  modalBtnPrimary: { backgroundColor: theme.colors.primary },
-  modalBtnTextCancel: { color: theme.colors.text, fontWeight: 'bold' },
-  modalBtnTextPrimary: { color: '#fff', fontWeight: 'bold' }
-});

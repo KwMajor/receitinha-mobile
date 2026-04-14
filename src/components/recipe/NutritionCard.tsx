@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { NutritionInfo } from '../../services/nutritionService';
 
 interface Props {
@@ -11,9 +12,10 @@ interface Props {
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
-const SkeletonBox: React.FC<{ width?: number | string; height?: number }> = ({
+const SkeletonBox: React.FC<{ width?: number | string; height?: number; colors: any }> = ({
   width = '100%',
   height = 20,
+  colors,
 }) => {
   const pulse = useRef(new Animated.Value(0.4)).current;
 
@@ -31,19 +33,12 @@ const SkeletonBox: React.FC<{ width?: number | string; height?: number }> = ({
   return (
     <Animated.View
       style={[
-        skeletonStyles.box,
+        { backgroundColor: colors.border, borderRadius: theme.borderRadius.sm },
         { width: width as any, height, opacity: pulse },
       ]}
     />
   );
 };
-
-const skeletonStyles = StyleSheet.create({
-  box: {
-    backgroundColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-  },
-});
 
 // ── Macro card ────────────────────────────────────────────────────────────────
 
@@ -53,21 +48,13 @@ interface MacroCardProps {
   value: string;
   unit: string;
   color: string;
+  colors: any;
 }
 
-const MacroCard: React.FC<MacroCardProps> = ({ icon, label, value, unit, color }) => (
-  <View style={[macroStyles.card, { borderTopColor: color }]}>
-    <Feather name={icon} size={16} color={color} />
-    <Text style={macroStyles.value}>{value}</Text>
-    <Text style={macroStyles.unit}>{unit}</Text>
-    <Text style={macroStyles.label}>{label}</Text>
-  </View>
-);
-
-const macroStyles = StyleSheet.create({
+const getMacroStyles = (colors: any) => StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: 12,
     alignItems: 'center',
@@ -77,118 +64,39 @@ const macroStyles = StyleSheet.create({
   value: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginTop: 4,
   },
   unit: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: -2,
   },
   label: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 2,
   },
 });
 
-// ── Main component ────────────────────────────────────────────────────────────
-
-export const NutritionCard: React.FC<Props> = ({ nutrition, isLoading }) => {
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <SkeletonBox width={160} height={16} />
-          <SkeletonBox width={64} height={12} />
-        </View>
-        <View style={styles.grid}>
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={[macroStyles.card, { borderTopColor: theme.colors.border }]}>
-              <SkeletonBox width={24} height={16} />
-              <SkeletonBox width={40} height={20} />
-              <SkeletonBox width={20} height={12} />
-              <SkeletonBox width={56} height={12} />
-            </View>
-          ))}
-        </View>
-        <SkeletonBox width={100} height={12} />
-      </View>
-    );
-  }
-
-  if (!nutrition) return null;
-
-  const fmt = (n: number) => {
-    if (n < 10) return n.toFixed(1);
-    return Math.round(n).toString();
-  };
-
+const MacroCard: React.FC<MacroCardProps> = ({ icon, label, value, unit, color, colors }) => {
+  const macroStyles = getMacroStyles(colors);
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
-        <Text style={styles.perServing}>por porção</Text>
-      </View>
-
-      {/* 2×2 macro grid */}
-      <View style={styles.grid}>
-        <MacroCard
-          icon="zap"
-          label="Calorias"
-          value={fmt(nutrition.kcal)}
-          unit="kcal"
-          color="#FF6C37"
-        />
-        <MacroCard
-          icon="trending-up"
-          label="Proteínas"
-          value={fmt(nutrition.protein)}
-          unit="g"
-          color="#4A90E2"
-        />
-        <MacroCard
-          icon="layers"
-          label="Carboidratos"
-          value={fmt(nutrition.carbs)}
-          unit="g"
-          color="#F5A623"
-        />
-        <MacroCard
-          icon="droplet"
-          label="Gorduras"
-          value={fmt(nutrition.fat)}
-          unit="g"
-          color="#7ED321"
-        />
-      </View>
-
-      {/* Fiber row */}
-      <View style={styles.fiberRow}>
-        <Text style={styles.fiberLabel}>Fibras</Text>
-        <Text style={styles.fiberValue}>{fmt(nutrition.fiber)} g</Text>
-      </View>
-
-      {/* Coverage warning */}
-      {nutrition.coveredCount < nutrition.totalCount && (
-        <View style={styles.warningRow}>
-          <Feather name="info" size={12} color={theme.colors.textSecondary} />
-          <Text style={styles.warningText}>
-            Baseado em {nutrition.coveredCount} de {nutrition.totalCount} ingredientes identificados
-          </Text>
-        </View>
-      )}
+    <View style={[macroStyles.card, { borderTopColor: color }]}>
+      <Feather name={icon} size={16} color={color} />
+      <Text style={macroStyles.value}>{value}</Text>
+      <Text style={macroStyles.unit}>{unit}</Text>
+      <Text style={macroStyles.label}>{label}</Text>
     </View>
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     gap: 12,
   },
@@ -200,11 +108,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
   },
   perServing: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   grid: {
     flexDirection: 'row',
@@ -219,12 +127,12 @@ const styles = StyleSheet.create({
   },
   fiberLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   fiberValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
   },
   warningRow: {
     flexDirection: 'row',
@@ -233,7 +141,72 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     flex: 1,
   },
 });
+
+export const NutritionCard: React.FC<Props> = ({ nutrition, isLoading }) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const macroStyles = getMacroStyles(colors);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <SkeletonBox width={160} height={16} colors={colors} />
+          <SkeletonBox width={64} height={12} colors={colors} />
+        </View>
+        <View style={styles.grid}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={[macroStyles.card, { borderTopColor: colors.border }]}>
+              <SkeletonBox width={24} height={16} colors={colors} />
+              <SkeletonBox width={40} height={20} colors={colors} />
+              <SkeletonBox width={20} height={12} colors={colors} />
+              <SkeletonBox width={56} height={12} colors={colors} />
+            </View>
+          ))}
+        </View>
+        <SkeletonBox width={100} height={12} colors={colors} />
+      </View>
+    );
+  }
+
+  if (!nutrition) return null;
+
+  const fmt = (n: number) => {
+    if (n < 10) return n.toFixed(1);
+    return Math.round(n).toString();
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerRow}>
+        <Text style={styles.sectionTitle}>Informações Nutricionais</Text>
+        <Text style={styles.perServing}>por porção</Text>
+      </View>
+
+      <View style={styles.grid}>
+        <MacroCard icon="zap" label="Calorias" value={fmt(nutrition.kcal)} unit="kcal" color="#FF6C37" colors={colors} />
+        <MacroCard icon="trending-up" label="Proteínas" value={fmt(nutrition.protein)} unit="g" color="#4A90E2" colors={colors} />
+        <MacroCard icon="layers" label="Carboidratos" value={fmt(nutrition.carbs)} unit="g" color="#F5A623" colors={colors} />
+        <MacroCard icon="droplet" label="Gorduras" value={fmt(nutrition.fat)} unit="g" color="#7ED321" colors={colors} />
+      </View>
+
+      <View style={styles.fiberRow}>
+        <Text style={styles.fiberLabel}>Fibras</Text>
+        <Text style={styles.fiberValue}>{fmt(nutrition.fiber)} g</Text>
+      </View>
+
+      {nutrition.coveredCount < nutrition.totalCount && (
+        <View style={styles.warningRow}>
+          <Feather name="info" size={12} color={colors.textSecondary} />
+          <Text style={styles.warningText}>
+            Baseado em {nutrition.coveredCount} de {nutrition.totalCount} ingredientes identificados
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};

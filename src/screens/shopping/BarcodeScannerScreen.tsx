@@ -26,6 +26,7 @@ import {
 } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useBarcode } from '../../hooks/useBarcode';
 import { getLists, addItem } from '../../services/sqlite/shoppingService';
 import { ShoppingList } from '../../types';
@@ -44,6 +45,8 @@ export const BarcodeScannerScreen: React.FC = () => {
   const route = useRoute<RouteProp<RouteParams, 'BarcodeScanner'>>();
   const { listId: initialListId } = route.params ?? {};
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [permission, requestPermission] = useCameraPermissions();
   const { isLoading, lastResult, error, handleBarcode, reset } = useBarcode();
@@ -157,7 +160,7 @@ export const BarcodeScannerScreen: React.FC = () => {
   if (!permission) {
     return (
       <SafeAreaView style={styles.permContainer}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
       </SafeAreaView>
     );
   }
@@ -165,7 +168,7 @@ export const BarcodeScannerScreen: React.FC = () => {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.permContainer}>
-        <Feather name="camera-off" size={48} color={theme.colors.textSecondary} />
+        <Feather name="camera-off" size={48} color={colors.textSecondary} />
         <Text style={styles.permTitle}>Câmera necessária</Text>
         <Text style={styles.permSubtitle}>
           Permita o acesso à câmera para escanear códigos de barras.
@@ -196,7 +199,7 @@ export const BarcodeScannerScreen: React.FC = () => {
             }}
             style={styles.confirmBackBtn}
           >
-            <Feather name="arrow-left" size={22} color={theme.colors.text} />
+            <Feather name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.confirmHeaderTitle}>Adicionar à lista</Text>
         </View>
@@ -211,7 +214,7 @@ export const BarcodeScannerScreen: React.FC = () => {
               {/* Loading */}
               {isLoading && (
                 <View style={styles.loadingCard}>
-                  <ActivityIndicator color={theme.colors.primary} size="large" />
+                  <ActivityIndicator color={colors.primary} size="large" />
                   <Text style={styles.loadingCardText}>Buscando produto...</Text>
                 </View>
               )}
@@ -220,7 +223,7 @@ export const BarcodeScannerScreen: React.FC = () => {
               {lastResult && (
                 <View style={styles.productCard}>
                   <View style={styles.productIconWrap}>
-                    <Feather name="package" size={28} color={theme.colors.primary} />
+                    <Feather name="package" size={28} color={colors.primary} />
                   </View>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>{lastResult.name}</Text>
@@ -242,7 +245,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                       onChangeText={setQuantity}
                       placeholder="Ex: 2"
                       keyboardType="numeric"
-                      placeholderTextColor={theme.colors.textSecondary}
+                      placeholderTextColor={colors.textSecondary}
                       returnKeyType="done"
                       onSubmitEditing={Keyboard.dismiss}
                     />
@@ -255,11 +258,11 @@ export const BarcodeScannerScreen: React.FC = () => {
                       style={styles.listSelector}
                       onPress={() => setShowListPicker(true)}
                     >
-                      <Feather name="shopping-cart" size={16} color={theme.colors.primary} />
+                      <Feather name="shopping-cart" size={16} color={colors.primary} />
                       <Text style={styles.listSelectorText} numberOfLines={1}>
                         {selectedList ? selectedList.name : 'Selecionar lista...'}
                       </Text>
-                      <Feather name="chevron-down" size={16} color={theme.colors.textSecondary} />
+                      <Feather name="chevron-down" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
 
@@ -274,7 +277,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                         setCameraActive(true);
                       }}
                     >
-                      <Feather name="camera" size={16} color={theme.colors.text} />
+                      <Feather name="camera" size={16} color={colors.text} />
                       <Text style={styles.secondaryBtnText}>Escanear outro</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -328,7 +331,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                     >
                       <Text style={styles.listPickerItemText}>{item.name}</Text>
                       {item.id === selectedListId && (
-                        <Feather name="check" size={18} color={theme.colors.primary} />
+                        <Feather name="check" size={18} color={colors.primary} />
                       )}
                     </TouchableOpacity>
                   )}
@@ -413,7 +416,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                 value={manualName}
                 onChangeText={setManualName}
                 autoFocus
-                placeholderTextColor={theme.colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 returnKeyType="next"
               />
               <View style={styles.field}>
@@ -424,7 +427,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                   onChangeText={setQuantity}
                   placeholder="Ex: 2"
                   keyboardType="numeric"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                   returnKeyType="done"
                   onSubmitEditing={Keyboard.dismiss}
                 />
@@ -462,7 +465,7 @@ export const BarcodeScannerScreen: React.FC = () => {
 
 const SIDE_WIDTH = (SCREEN_WIDTH - VIEWFINDER_SIZE) / 2;
 
-const styles = StyleSheet.create({
+function getStyles(colors: any) { return StyleSheet.create({
   // ── Câmera ──
   container: {
     flex: 1,
@@ -498,7 +501,7 @@ const styles = StyleSheet.create({
   // ── Tela de confirmação pós-scan ──
   confirmScreen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   confirmHeader: {
     flexDirection: 'row',
@@ -506,12 +509,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     gap: theme.spacing.sm,
   },
   confirmBackBtn: { padding: 6 },
   confirmHeaderTitle: {
-    fontSize: 17, fontWeight: '700', color: theme.colors.text,
+    fontSize: 17, fontWeight: '700', color: colors.text,
   },
   confirmBody: {
     flex: 1,
@@ -523,57 +526,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: theme.spacing.xl,
     gap: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
   },
   loadingCardText: {
-    fontSize: 15, color: theme.colors.textSecondary,
+    fontSize: 15, color: colors.textSecondary,
   },
   productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: colors.primary + '10',
     borderRadius: 16,
     padding: theme.spacing.md,
     gap: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
+    borderColor: colors.primary + '30',
   },
   productIconWrap: {
     width: 52, height: 52, borderRadius: 12,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: colors.primary + '20',
     alignItems: 'center', justifyContent: 'center',
   },
   productInfo: { flex: 1, gap: 4 },
   productName: {
-    fontSize: 16, fontWeight: '700', color: theme.colors.text,
+    fontSize: 16, fontWeight: '700', color: colors.text,
   },
   productBrand: {
-    fontSize: 13, color: theme.colors.textSecondary,
+    fontSize: 13, color: colors.textSecondary,
   },
   field: { gap: 6 },
   fieldLabel: {
     fontSize: 13, fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase', letterSpacing: 0.4,
   },
   fieldInput: {
     height: 46,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.md,
-    fontSize: 15, color: theme.colors.text,
-    borderWidth: 1, borderColor: theme.colors.border,
+    fontSize: 15, color: colors.text,
+    borderWidth: 1, borderColor: colors.border,
   },
   listSelector: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: 12, paddingVertical: 13,
-    gap: 8, borderWidth: 1, borderColor: theme.colors.border,
+    gap: 8, borderWidth: 1, borderColor: colors.border,
   },
   listSelectorText: {
-    flex: 1, fontSize: 15, color: theme.colors.text,
+    flex: 1, fontSize: 15, color: colors.text,
   },
   confirmButtons: {
     flexDirection: 'row', gap: 12, marginTop: 4,
@@ -581,19 +584,19 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     flex: 1, flexDirection: 'row', gap: 6,
     paddingVertical: 13, borderRadius: theme.borderRadius.md,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
   secondaryBtnText: {
-    fontSize: 15, fontWeight: '600', color: theme.colors.text,
+    fontSize: 15, fontWeight: '600', color: colors.text,
   },
   primaryBtn: {
     flex: 1, flexDirection: 'row', gap: 6,
     paddingVertical: 13, borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
-  primaryBtnDisabled: { backgroundColor: theme.colors.border },
+  primaryBtnDisabled: { backgroundColor: colors.border },
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   // ── Modals ──
@@ -602,43 +605,43 @@ const styles = StyleSheet.create({
   },
   sheetHandle: {
     alignSelf: 'center', width: 36, height: 4,
-    borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 4,
+    borderRadius: 2, backgroundColor: colors.border, marginBottom: 4,
   },
   listPickerSheet: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 36 : 20,
     maxHeight: '60%',
   },
   listPickerTitle: {
-    fontSize: 16, fontWeight: '700', color: theme.colors.text,
+    fontSize: 16, fontWeight: '700', color: colors.text,
     paddingHorizontal: 20, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.border, marginBottom: 4,
+    borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 4,
   },
   noListsText: {
-    fontSize: 14, color: theme.colors.textSecondary,
+    fontSize: 14, color: colors.textSecondary,
     textAlign: 'center', padding: 24,
   },
   listPickerItem: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  listPickerItemSelected: { backgroundColor: theme.colors.primary + '10' },
-  listPickerItemText: { flex: 1, fontSize: 15, color: theme.colors.text },
+  listPickerItemSelected: { backgroundColor: colors.primary + '10' },
+  listPickerItemText: { flex: 1, fontSize: 15, color: colors.text },
   manualBox: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, gap: 12,
   },
-  manualTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+  manualTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
   manualInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: theme.colors.text,
-    borderWidth: 1, borderColor: theme.colors.border,
+    fontSize: 15, color: colors.text,
+    borderWidth: 1, borderColor: colors.border,
   },
 
   // ── Loading overlay (câmera) ──
@@ -650,19 +653,19 @@ const styles = StyleSheet.create({
 
   // ── Permission screen ──
   permContainer: {
-    flex: 1, backgroundColor: theme.colors.background,
+    flex: 1, backgroundColor: colors.background,
     alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16,
   },
-  permTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, textAlign: 'center' },
+  permTitle: { fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'center' },
   permSubtitle: {
-    fontSize: 14, color: theme.colors.textSecondary,
+    fontSize: 14, color: colors.textSecondary,
     textAlign: 'center', lineHeight: 20,
   },
   permBtn: {
-    backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.primary, borderRadius: theme.borderRadius.md,
     paddingHorizontal: 24, paddingVertical: 13, marginTop: 8,
   },
   permBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   closeTextBtn: { paddingVertical: 10 },
-  closeTextBtnText: { fontSize: 14, color: theme.colors.textSecondary },
-});
+  closeTextBtnText: { fontSize: 14, color: colors.textSecondary },
+}); }

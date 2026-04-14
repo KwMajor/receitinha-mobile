@@ -3,17 +3,39 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOp
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getCollectionRecipes, removeFromCollection, deleteCollection, addToCollection } from '../../services/sqlite/favoriteService';
 import { getRecipes } from '../../services/sqlite/recipeService';
 import { useAuthStore } from '../../store/authStore';
 import { Recipe } from '../../types';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  list: { padding: theme.spacing.md, paddingBottom: 100 },
+  recipeContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.md },
+  removeBtn: { padding: theme.spacing.sm, marginLeft: theme.spacing.xs },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { marginTop: theme.spacing.md, fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
+  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md, borderRadius: theme.borderRadius.round, elevation: 4 },
+  fabText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: theme.spacing.sm },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.lg, borderBottomWidth: 1, borderColor: colors.border },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  emptyModal: { alignItems: 'center', padding: theme.spacing.xl },
+  recipeOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: theme.spacing.md, borderBottomWidth: 1, borderColor: colors.border },
+  recipeOptionText: { fontSize: 16, color: colors.text, flex: 1, marginRight: theme.spacing.sm },
+});
+
 export const CollectionDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { collectionId, collectionName } = route.params;
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +48,7 @@ export const CollectionDetailScreen = () => {
       title: collectionName,
       headerRight: () => (
         <TouchableOpacity onPress={confirmDeleteCollection} style={{ marginRight: 15 }}>
-          <Feather name="trash-2" size={20} color={theme.colors.error} />
+          <Feather name="trash-2" size={20} color={colors.error} />
         </TouchableOpacity>
       )
     });
@@ -106,16 +128,10 @@ export const CollectionDetailScreen = () => {
   const renderItem = ({ item }: { item: Recipe }) => (
     <View style={styles.recipeContainer}>
       <View style={{ flex: 1 }}>
-        <RecipeCard
-          recipe={item}
-          onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
-        />
+        <RecipeCard recipe={item} onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })} />
       </View>
-      <TouchableOpacity
-        style={styles.removeBtn}
-        onPress={() => handleRemoveRecipe(item.id, item.title)}
-      >
-        <Feather name="x-circle" size={24} color={theme.colors.error} />
+      <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveRecipe(item.id, item.title)}>
+        <Feather name="x-circle" size={24} color={colors.error} />
       </TouchableOpacity>
     </View>
   );
@@ -123,7 +139,7 @@ export const CollectionDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -132,7 +148,7 @@ export const CollectionDetailScreen = () => {
     <View style={styles.container}>
       {recipes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Feather name="folder" size={48} color={theme.colors.textSecondary} />
+          <Feather name="folder" size={48} color={colors.textSecondary} />
           <Text style={styles.emptyText}>Coleção vazia</Text>
         </View>
       ) : (
@@ -156,15 +172,15 @@ export const CollectionDetailScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Adicionar Receita</Text>
               <TouchableOpacity onPress={() => setAddModalVisible(false)}>
-                <Feather name="x" size={24} color={theme.colors.text} />
+                <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             {loadingAll ? (
-              <ActivityIndicator style={{ marginTop: 40 }} color={theme.colors.primary} />
+              <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
             ) : allRecipes.length === 0 ? (
               <View style={styles.emptyModal}>
-                <Feather name="check-circle" size={48} color={theme.colors.textSecondary} />
+                <Feather name="check-circle" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>Todas as receitas já estão na coleção</Text>
               </View>
             ) : (
@@ -173,12 +189,9 @@ export const CollectionDetailScreen = () => {
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={{ padding: theme.spacing.md }}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.recipeOption}
-                    onPress={() => handleAddRecipe(item)}
-                  >
+                  <TouchableOpacity style={styles.recipeOption} onPress={() => handleAddRecipe(item)}>
                     <Text style={styles.recipeOptionText}>{item.title}</Text>
-                    <Feather name="plus-circle" size={22} color={theme.colors.primary} />
+                    <Feather name="plus-circle" size={22} color={colors.primary} />
                   </TouchableOpacity>
                 )}
               />
@@ -189,22 +202,3 @@ export const CollectionDetailScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background },
-  list: { padding: theme.spacing.md, paddingBottom: 100 },
-  recipeContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.md },
-  removeBtn: { padding: theme.spacing.sm, marginLeft: theme.spacing.xs },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { marginTop: theme.spacing.md, fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center' },
-  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md, borderRadius: theme.borderRadius.round, elevation: 4 },
-  fabText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: theme.spacing.sm },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: theme.colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.lg, borderBottomWidth: 1, borderColor: theme.colors.border },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: theme.colors.text },
-  emptyModal: { alignItems: 'center', padding: theme.spacing.xl },
-  recipeOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: theme.spacing.md, borderBottomWidth: 1, borderColor: theme.colors.border },
-  recipeOptionText: { fontSize: 16, color: theme.colors.text, flex: 1, marginRight: theme.spacing.sm },
-});

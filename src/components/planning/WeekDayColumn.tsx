@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { MealSlotConfig } from '../../services/sqlite/planningService';
 import { MealSlot } from './MealSlot';
 import { Recipe } from '../../types';
@@ -24,6 +25,40 @@ interface Props {
   onRemove: (mealType: string) => void;
 }
 
+const getStyles = (colors: any) => StyleSheet.create({
+  column: {
+    width: 120,
+    paddingHorizontal: 4,
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 4,
+    borderRadius: theme.borderRadius.md,
+  },
+  headerToday: {
+    backgroundColor: colors.primary + '15',
+  },
+  dayName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  dayNameToday: {
+    color: colors.primary,
+  },
+  dayNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 2,
+  },
+  dayNumberToday: {
+    color: colors.primary,
+  },
+});
+
 export const WeekDayColumn: React.FC<Props> = ({
   dayIndex,
   date,
@@ -34,6 +69,8 @@ export const WeekDayColumn: React.FC<Props> = ({
   onSlotLongPress,
   onRemove,
 }) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const isToday = (() => {
     const today = new Date();
     return (
@@ -76,36 +113,3 @@ export const WeekDayColumn: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  column: {
-    width: 120,
-    paddingHorizontal: 4,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 4,
-    borderRadius: theme.borderRadius.md,
-  },
-  headerToday: {
-    backgroundColor: theme.colors.primary + '15',
-  },
-  dayName: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  dayNameToday: {
-    color: theme.colors.primary,
-  },
-  dayNumber: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginTop: 2,
-  },
-  dayNumberToday: {
-    color: theme.colors.primary,
-  },
-});

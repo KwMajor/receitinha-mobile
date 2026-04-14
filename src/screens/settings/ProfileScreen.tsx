@@ -9,11 +9,188 @@ import { getRecipes } from '../../services/sqlite/recipeService';
 import { countHistory } from '../../services/sqlite/cookingHistoryService';
 import { getLastBackupTimestamp } from '../../services/firebase/backupService';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  heroCard: {
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  name: {
+    fontSize: 20, fontWeight: "bold",
+    marginBottom: theme.spacing.xs,
+    color: colors.text,
+  },
+  email: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: theme.spacing.lg,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    paddingTop: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: colors.border,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  section: {
+    marginTop: theme.spacing.xl,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  logoutSection: {
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.md,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemText: {
+    fontSize: 16,
+    marginLeft: theme.spacing.md,
+    color: colors.text,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: 44,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+  },
+  logoutText: {
+    fontSize: 16,
+    color: colors.error,
+    marginLeft: theme.spacing.md,
+    fontWeight: '500',
+  },
+  badge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.error,
+    marginLeft: theme.spacing.sm,
+  },
+  editProfileBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: theme.spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    fontSize: 16,
+    marginBottom: theme.spacing.md,
+    color: colors.text,
+    backgroundColor: colors.surface,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.sm,
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [recipeCount, setRecipeCount] = useState(0);
   const [cookCount, setCookCount] = useState(0);
   const [backupOutdated, setBackupOutdated] = useState(false);
@@ -106,11 +283,11 @@ export const ProfileScreen = () => {
     <>
       <TouchableOpacity style={styles.menuItem} onPress={onPress}>
         <View style={styles.menuItemLeft}>
-          <Feather name={icon} size={20} color={theme.colors.textSecondary} />
+          <Feather name={icon} size={20} color={colors.textSecondary} />
           <Text style={styles.menuItemText}>{title}</Text>
           {badge && <View style={styles.badge} />}
         </View>
-        <Feather name="chevron-right" size={20} color={theme.colors.border} />
+        <Feather name="chevron-right" size={20} color={colors.border} />
       </TouchableOpacity>
       {showDivider && <View style={styles.divider} />}
     </>
@@ -118,7 +295,7 @@ export const ProfileScreen = () => {
 
   const editBtn = (
     <TouchableOpacity style={styles.editProfileBtn} onPress={openEditModal} accessibilityLabel="Editar perfil" accessibilityRole="button">
-      <Feather name="edit-2" size={16} color={theme.colors.primary} />
+      <Feather name="edit-2" size={16} color={colors.primary} />
     </TouchableOpacity>
   );
 
@@ -179,13 +356,18 @@ export const ProfileScreen = () => {
           title="Backup na nuvem"
           onPress={() => navigation.navigate('Backup')}
           badge={backupOutdated}
+        />
+        <MenuItem
+          icon="moon"
+          title="Aparência"
+          onPress={() => navigation.navigate('Appearance')}
           showDivider={false}
         />
       </View>
 
       <View style={[styles.section, styles.logoutSection]}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <Feather name="log-out" size={20} color={theme.colors.error} />
+          <Feather name="log-out" size={20} color={colors.error} />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
       </View>
@@ -196,7 +378,7 @@ export const ProfileScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Editar Perfil</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Feather name="x" size={24} color={theme.colors.text} />
+                <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -234,173 +416,3 @@ export const ProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  heroCard: {
-    alignItems: 'center',
-    padding: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  name: {
-    fontSize: 20, fontWeight: "bold",
-    marginBottom: theme.spacing.xs,
-  },
-  email: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.lg,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    paddingTop: theme.spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: theme.colors.border,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-  section: {
-    marginTop: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  logoutSection: {
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuItemText: {
-    fontSize: 16,
-    marginLeft: theme.spacing.md,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginLeft: 44, // Align with text
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.md,
-  },
-  logoutText: {
-    fontSize: 16,
-    color: theme.colors.error,
-    marginLeft: theme.spacing.md,
-    fontWeight: '500',
-  },
-  badge: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.error,
-    marginLeft: theme.spacing.sm,
-  },
-  editProfileBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: theme.spacing.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: 16,
-    marginBottom: theme.spacing.md,
-    color: theme.colors.text,
-  },
-  saveBtn: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    marginTop: theme.spacing.sm,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

@@ -21,6 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useTimer } from '../../hooks/useTimer';
 import { addToHistory, getRecipeStats } from '../../services/sqlite/cookingHistoryService';
 import { useAuthStore } from '../../store/authStore';
@@ -42,6 +43,8 @@ export const CookingScreen = () => {
   const navigation = useNavigation<any>();
   const { recipe } = route.params as { recipe: Recipe };
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const steps = recipe.steps || [];
@@ -290,7 +293,7 @@ export const CookingScreen = () => {
               <Switch
                 value={saveToHistory}
                 onValueChange={setSaveToHistory}
-                trackColor={{ false: '#555', true: theme.colors.primary }}
+                trackColor={{ false: '#555', true: colors.primary }}
                 thumbColor="#fff"
               />
             </View>
@@ -336,13 +339,13 @@ export const CookingScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
   },
   containerFlash: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
   },
   header: {
     padding: 20,

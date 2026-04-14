@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   ALL_UNITS,
   KNOWN_INGREDIENTS,
@@ -28,14 +29,238 @@ const ALL_CONV_KEYS = [...VOLUME_KEYS, ...WEIGHT_KEYS];
 
 interface Props {
   visible: boolean;
-  /** Unidade atual do ingrediente no formulário */
   initialUnit?: string;
-  /** Nome do ingrediente atual (pré-preenche o campo de ingrediente) */
   ingredientName?: string;
   onClose: () => void;
-  /** Chamado quando o usuário toca "Usar este valor" */
   onUse: (quantity: string, unit: string) => void;
 }
+
+const getStyles = (colors: any) => StyleSheet.create({
+  backdrop: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  kvWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: theme.spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? 36 : theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  convRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  qtyInput: {
+    width: 68,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 10,
+    fontSize: 17,
+    textAlign: 'center',
+    color: colors.text,
+    backgroundColor: colors.surface,
+  },
+  picker: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    gap: 4,
+    minWidth: 0,
+  },
+  pickerText: {
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  arrow: {
+    paddingHorizontal: 2,
+  },
+  ingredientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 9,
+    backgroundColor: colors.surface,
+    gap: 6,
+  },
+  ingredientInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    padding: 0,
+  },
+  suggestionBox: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    overflow: 'hidden',
+    marginTop: -theme.spacing.sm,
+  },
+  suggestionItem: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  resultBox: {
+    backgroundColor: colors.primary + '12',
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    alignItems: 'center',
+  },
+  resultText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  resultUnit: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  approxNote: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.border,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+  },
+  warningText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  useBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.primary,
+  },
+  useBtnDisabled: {
+    opacity: 0.45,
+  },
+  useText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '50%',
+    paddingBottom: 24,
+  },
+  pickerSheetTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
+  pickerItemActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  pickerItemText: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  pickerItemTextActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+});
 
 // ── Mini UnitPicker inline ─────────────────────────────────────────────────
 
@@ -48,6 +273,8 @@ function InlineUnitPicker({
   options: string[];
   onChange: (v: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [open, setOpen] = useState(false);
 
   return (
@@ -56,7 +283,7 @@ function InlineUnitPicker({
         <Text style={styles.pickerText} numberOfLines={1}>
           {ALL_UNITS[value]?.label ?? value}
         </Text>
-        <Feather name="chevron-down" size={12} color={theme.colors.textSecondary} />
+        <Feather name="chevron-down" size={12} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -79,7 +306,7 @@ function InlineUnitPicker({
                     {ALL_UNITS[item]?.label ?? item}
                   </Text>
                   {item === value && (
-                    <Feather name="check" size={14} color={theme.colors.primary} />
+                    <Feather name="check" size={14} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               )}
@@ -100,7 +327,9 @@ export const QuickConverterModal = ({
   onClose,
   onUse,
 }: Props) => {
-  // Detect the unit group of the incoming unit to pre-select reasonable defaults
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const initGroup = initialUnit ? ALL_UNITS[initialUnit]?.group : undefined;
   const defaultFrom = initialUnit && ALL_UNITS[initialUnit] ? initialUnit : 'xícara';
   const defaultTo = initGroup === 'weight' ? 'g' : initGroup === 'volume' ? 'ml' : 'g';
@@ -111,7 +340,6 @@ export const QuickConverterModal = ({
   const [ingredient, setIngredient] = useState(ingredientName);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  // Reset state when modal opens
   React.useEffect(() => {
     if (visible) {
       setQty('1');
@@ -155,10 +383,6 @@ export const QuickConverterModal = ({
     onUse(formatResult(result), to);
   };
 
-  // Determine which units to show based on the from unit group
-  const fromOptions = ALL_CONV_KEYS;
-  const toOptions = ALL_CONV_KEYS;
-
   return (
     <Modal
       visible={visible}
@@ -177,21 +401,18 @@ export const QuickConverterModal = ({
         pointerEvents="box-none"
       >
         <View style={styles.sheet}>
-          {/* Handle */}
           <View style={styles.handle} />
 
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Feather name="repeat" size={16} color={theme.colors.primary} />
+              <Feather name="repeat" size={16} color={colors.primary} />
               <Text style={styles.title}>Conversor rápido</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={20} color={theme.colors.textSecondary} />
+              <Feather name="x" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Conversion row */}
           <View style={styles.convRow}>
             <TextInput
               style={styles.qtyInput}
@@ -199,30 +420,29 @@ export const QuickConverterModal = ({
               onChangeText={v => setQty(v.replace(/[^0-9.,]/g, ''))}
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               selectTextOnFocus
             />
-            <InlineUnitPicker value={from} options={fromOptions} onChange={setFrom} />
+            <InlineUnitPicker value={from} options={ALL_CONV_KEYS} onChange={setFrom} />
             <View style={styles.arrow}>
-              <Feather name="arrow-right" size={16} color={theme.colors.textSecondary} />
+              <Feather name="arrow-right" size={16} color={colors.textSecondary} />
             </View>
-            <InlineUnitPicker value={to} options={toOptions} onChange={setTo} />
+            <InlineUnitPicker value={to} options={ALL_CONV_KEYS} onChange={setTo} />
           </View>
 
-          {/* Ingredient (only shown for cross-group or always) */}
           <View style={styles.ingredientRow}>
-            <Feather name="search" size={13} color={theme.colors.textSecondary} />
+            <Feather name="search" size={13} color={colors.textSecondary} />
             <TextInput
               style={styles.ingredientInput}
               value={ingredient}
               onChangeText={handleIngredientChange}
               placeholder="Ingrediente (para volume↔peso)"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               autoCapitalize="none"
             />
             {ingredient.length > 0 && (
               <TouchableOpacity onPress={() => { setIngredient(''); setSuggestions([]); }}>
-                <Feather name="x" size={13} color={theme.colors.textSecondary} />
+                <Feather name="x" size={13} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -241,10 +461,9 @@ export const QuickConverterModal = ({
             </View>
           )}
 
-          {/* Result */}
           {warning ? (
             <View style={styles.warningBox}>
-              <Feather name="alert-circle" size={13} color={theme.colors.secondary} />
+              <Feather name="alert-circle" size={13} color={colors.textSecondary} />
               <Text style={styles.warningText}>{warning}</Text>
             </View>
           ) : result !== null ? (
@@ -259,7 +478,6 @@ export const QuickConverterModal = ({
             </View>
           ) : null}
 
-          {/* Action buttons */}
           <View style={styles.buttons}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>Cancelar</Text>
@@ -278,244 +496,3 @@ export const QuickConverterModal = ({
     </Modal>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  kvWrapper: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: theme.spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 36 : theme.spacing.lg,
-    gap: theme.spacing.md,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.border,
-    alignSelf: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-
-  // Conv row
-  convRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  qtyInput: {
-    width: 68,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
-    fontSize: 17,
-    textAlign: 'center',
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
-  },
-  picker: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.surface,
-    gap: 4,
-    minWidth: 0,
-  },
-  pickerText: {
-    fontSize: 13,
-    color: theme.colors.text,
-    flex: 1,
-  },
-  arrow: {
-    paddingHorizontal: 2,
-  },
-
-  // Ingredient
-  ingredientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 9,
-    backgroundColor: theme.colors.surface,
-    gap: 6,
-  },
-  ingredientInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.text,
-    padding: 0,
-  },
-  suggestionBox: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    overflow: 'hidden',
-    marginTop: -theme.spacing.sm,
-  },
-  suggestionItem: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: theme.colors.text,
-  },
-
-  // Result
-  resultBox: {
-    backgroundColor: theme.colors.primary + '12',
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    alignItems: 'center',
-  },
-  resultText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  resultUnit: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  approxNote: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-
-  // Warning
-  warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: theme.colors.secondary + '18',
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-  },
-  warningText: {
-    fontSize: 13,
-    color: theme.colors.secondary,
-  },
-
-  // Buttons
-  buttons: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  useBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
-  },
-  useBtnDisabled: {
-    opacity: 0.45,
-  },
-  useText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-
-  // Inner picker modal
-  pickerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  pickerSheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '50%',
-    paddingBottom: 24,
-  },
-  pickerSheetTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    textAlign: 'center',
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  pickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surface,
-  },
-  pickerItemActive: {
-    backgroundColor: theme.colors.primary + '10',
-  },
-  pickerItemText: {
-    fontSize: 15,
-    color: theme.colors.text,
-  },
-  pickerItemTextActive: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-});

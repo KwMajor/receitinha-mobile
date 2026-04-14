@@ -1,26 +1,13 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Modal } from 'react-native';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface LoadingOverlayProps {
   visible?: boolean;
 }
 
-export const LoadingOverlay = ({ visible = false }: LoadingOverlayProps) => {
-  if (!visible) return null;
-
-  return (
-    <Modal transparent animationType="fade" visible={visible}>
-      <View style={styles.overlay}>
-        <View style={styles.spinnerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -29,7 +16,7 @@ const styles = StyleSheet.create({
   },
   spinnerContainer: {
     padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -38,3 +25,20 @@ const styles = StyleSheet.create({
     elevation: 5,
   }
 });
+
+export const LoadingOverlay = ({ visible = false }: LoadingOverlayProps) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent animationType="fade" visible={visible}>
+      <View style={styles.overlay}>
+        <View style={styles.spinnerContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    </Modal>
+  );
+};

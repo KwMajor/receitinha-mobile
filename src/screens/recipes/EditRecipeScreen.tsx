@@ -4,12 +4,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import RecipeForm from '../../components/recipe/RecipeForm';
 import { updateRecipe, getRecipeById, CreateRecipeInput } from '../../services/sqlite/recipeService';
 import { useAuthStore } from '../../store/authStore';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function EditRecipeScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const user = useAuthStore(state => state.user);
+  const { colors } = useTheme();
   
   const [initialData, setInitialData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +82,7 @@ export default function EditRecipeScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

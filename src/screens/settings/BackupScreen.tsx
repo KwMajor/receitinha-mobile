@@ -17,6 +17,7 @@ import {
   getLastBackupTimestamp,
 } from '../../services/firebase/backupService';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -53,12 +54,12 @@ function friendlyError(code?: string): string {
   return `Falha no backup (${code}). Verifique o console para detalhes.`;
 }
 
-function statusColor(ts: number | null): string {
-  if (!ts) return theme.colors.error;
+function statusColor(ts: number | null, colors: any): string {
+  if (!ts) return colors.error;
   const diff = Date.now() - ts;
-  if (diff < ONE_DAY_MS) return theme.colors.success;
-  if (diff < SEVEN_DAYS_MS) return '#F5A623'; // amarelo
-  return theme.colors.error;
+  if (diff < ONE_DAY_MS) return colors.success;
+  if (diff < SEVEN_DAYS_MS) return '#F5A623';
+  return colors.error;
 }
 
 function statusLabel(ts: number | null): string {
@@ -69,10 +70,159 @@ function statusLabel(ts: number | null): string {
   return 'Desatualizado';
 }
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
+    gap: theme.spacing.md,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: theme.spacing.md,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: theme.spacing.sm,
+  },
+  statusLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  infoValue: {
+    fontWeight: '500',
+    color: colors.text,
+  },
+  feedbackBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  feedbackText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.sm,
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  secondaryBtnText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  syncItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  syncLabel: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  note: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    fontStyle: 'italic',
+  },
+  privacyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: theme.spacing.md,
+  },
+  privacyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  privacyLinkText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.error,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginTop: theme.spacing.sm,
+  },
+  deleteBtnText: {
+    color: colors.error,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
 // ── Componente ─────────────────────────────────────────────────────────────────
 
 export const BackupScreen = () => {
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [lastBackup, setLastBackup] = useState<number | null>(null);
   const [loadingTimestamp, setLoadingTimestamp] = useState(true);
@@ -108,8 +258,6 @@ export const BackupScreen = () => {
 
   useEffect(() => { loadTimestamp(); }, [loadTimestamp]);
 
-  // ── Ações ──────────────────────────────────────────────────────────────────
-
   const handleBackup = async () => {
     if (!user?.id) return;
     setBackingUp(true);
@@ -122,8 +270,7 @@ export const BackupScreen = () => {
           true
         );
       } else {
-        const msg = friendlyError(result.error);
-        showFeedback(msg, false);
+        showFeedback(friendlyError(result.error), false);
       }
     } catch (e: any) {
       showFeedback(friendlyError(e?.code ?? e?.message), false);
@@ -152,7 +299,6 @@ export const BackupScreen = () => {
                 parts.push(`${result.skipped} já existia${result.skipped !== 1 ? 'm' : ''}`);
               if (result.errors > 0)
                 parts.push(`${result.errors} com erro`);
-
               showFeedback(
                 parts.length ? parts.join(', ') + '.' : 'Nenhum dado novo encontrado no backup.',
                 result.errors === 0
@@ -212,9 +358,7 @@ export const BackupScreen = () => {
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
-  const color = statusColor(lastBackup);
+  const color = statusColor(lastBackup, colors);
   const isWorking = backingUp || restoring || deleting;
 
   return (
@@ -223,7 +367,6 @@ export const BackupScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Status */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Status do backup</Text>
 
@@ -233,7 +376,7 @@ export const BackupScreen = () => {
         </View>
 
         <View style={styles.infoRow}>
-          <Feather name="clock" size={16} color={theme.colors.textSecondary} />
+          <Feather name="clock" size={16} color={colors.textSecondary} />
           <Text style={styles.infoText}>
             Último backup:{' '}
             {loadingTimestamp ? (
@@ -245,21 +388,19 @@ export const BackupScreen = () => {
         </View>
       </View>
 
-      {/* Feedback inline */}
       {feedback && (
         <View style={[styles.feedbackBar, { backgroundColor: feedback.ok ? '#E8F5E9' : '#FFEBEE' }]}>
           <Feather
             name={feedback.ok ? 'check-circle' : 'alert-circle'}
             size={16}
-            color={feedback.ok ? theme.colors.success : theme.colors.error}
+            color={feedback.ok ? colors.success : colors.error}
           />
-          <Text style={[styles.feedbackText, { color: feedback.ok ? theme.colors.success : theme.colors.error }]}>
+          <Text style={[styles.feedbackText, { color: feedback.ok ? colors.success : colors.error }]}>
             {feedback.message}
           </Text>
         </View>
       )}
 
-      {/* Ações */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Ações</Text>
 
@@ -284,10 +425,10 @@ export const BackupScreen = () => {
           disabled={isWorking}
         >
           {restoring ? (
-            <ActivityIndicator color={theme.colors.primary} size="small" />
+            <ActivityIndicator color={colors.primary} size="small" />
           ) : (
             <>
-              <Feather name="download-cloud" size={18} color={theme.colors.primary} />
+              <Feather name="download-cloud" size={18} color={colors.primary} />
               <Text style={styles.secondaryBtnText}>Restaurar dados da nuvem</Text>
             </>
           )}
@@ -299,17 +440,16 @@ export const BackupScreen = () => {
           disabled={isWorking}
         >
           {deleting ? (
-            <ActivityIndicator color={theme.colors.error} size="small" />
+            <ActivityIndicator color={colors.error} size="small" />
           ) : (
             <>
-              <Feather name="trash-2" size={18} color={theme.colors.error} />
+              <Feather name="trash-2" size={18} color={colors.error} />
               <Text style={styles.deleteBtnText}>Apagar backup da nuvem</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* O que é sincronizado */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>O que é sincronizado</Text>
 
@@ -320,7 +460,7 @@ export const BackupScreen = () => {
           { icon: 'calendar' as const,      label: 'Planos semanais (últimas 4 semanas)' },
         ].map(({ icon, label }) => (
           <View key={label} style={styles.syncItem}>
-            <Feather name={icon} size={16} color={theme.colors.primary} />
+            <Feather name={icon} size={16} color={colors.primary} />
             <Text style={styles.syncLabel}>{label}</Text>
           </View>
         ))}
@@ -330,166 +470,16 @@ export const BackupScreen = () => {
         </Text>
       </View>
 
-      {/* Privacidade */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Privacidade</Text>
         <Text style={styles.privacyText}>
           Seus dados são armazenados com segurança no Firebase Firestore, vinculados exclusivamente à sua conta. Apenas você tem acesso.
         </Text>
         <TouchableOpacity style={styles.privacyLink} disabled>
-          <Feather name="external-link" size={14} color={theme.colors.primary} />
+          <Feather name="external-link" size={14} color={colors.primary} />
           <Text style={styles.privacyLinkText}>Política de Privacidade</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 };
-
-// ── Estilos ────────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.xxl,
-    gap: theme.spacing.md,
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: theme.spacing.md,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: theme.spacing.sm,
-  },
-  statusLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  infoText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  infoValue: {
-    fontWeight: '500',
-    color: theme.colors.text,
-  },
-  feedbackBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-  },
-  feedbackText: {
-    fontSize: 14,
-    flex: 1,
-  },
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.sm,
-  },
-  primaryBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-  },
-  secondaryBtnText: {
-    color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  syncItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-  },
-  syncLabel: {
-    fontSize: 15,
-    color: theme.colors.text,
-  },
-  note: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
-    fontStyle: 'italic',
-  },
-  privacyText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: theme.spacing.md,
-  },
-  privacyLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  privacyLinkText: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: '500',
-  },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    borderWidth: 1.5,
-    borderColor: theme.colors.error,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing.sm,
-  },
-  deleteBtnText: {
-    color: theme.colors.error,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

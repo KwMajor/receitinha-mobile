@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { formatTime, formatQuantity, formatUnit } from '../../utils/formatters';
 import { PublicRecipe, Rating } from '../../types';
 import {
@@ -31,6 +32,8 @@ import { StarRating } from '../../components/social/StarRating';
 
 // ─── Toast inline ─────────────────────────────────────────────────────────────
 function Toast({ message, visible }: { message: string; visible: boolean }) {
+  const { colors } = useTheme();
+  const toastStyles = getToastStyles(colors);
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (visible) {
@@ -48,13 +51,13 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
     </Animated.View>
   );
 }
-const toastStyles = StyleSheet.create({
+const getToastStyles = (colors: any) => StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 110,
     left: 24,
     right: 24,
-    backgroundColor: theme.colors.success,
+    backgroundColor: colors.success,
     borderRadius: theme.borderRadius.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,6 +71,8 @@ const toastStyles = StyleSheet.create({
 
 // ─── Avatar com iniciais ───────────────────────────────────────────────────────
 function AuthorAvatar({ name }: { name: string }) {
+  const { colors } = useTheme();
+  const avatarStyles = getAvatarStyles(colors);
   const initials = name
     .split(' ')
     .slice(0, 2)
@@ -79,12 +84,12 @@ function AuthorAvatar({ name }: { name: string }) {
     </View>
   );
 }
-const avatarStyles = StyleSheet.create({
+const getAvatarStyles = (colors: any) => StyleSheet.create({
   circle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -95,6 +100,8 @@ const avatarStyles = StyleSheet.create({
 export const PublicRecipeScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { recipeId, recipe: preloaded } = route.params as {
     recipeId: string;
     recipe?: PublicRecipe;
@@ -283,7 +290,7 @@ export const PublicRecipeScreen = () => {
             <Image source={{ uri: recipe.photoUrl }} style={styles.image} />
           ) : (
             <View style={[styles.image, styles.imagePlaceholder]}>
-              <Feather name="image" size={48} color={theme.colors.textSecondary} />
+              <Feather name="image" size={48} color={colors.textSecondary} />
             </View>
           )}
           <SafeAreaView edges={['top']} style={styles.headerOverlay}>
@@ -293,7 +300,7 @@ export const PublicRecipeScreen = () => {
               accessibilityLabel="Voltar"
               accessibilityRole="button"
             >
-              <Feather name="arrow-left" size={24} color={theme.colors.text} />
+              <Feather name="arrow-left" size={24} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerBtn}
@@ -301,7 +308,7 @@ export const PublicRecipeScreen = () => {
               accessibilityLabel="Denunciar receita"
               accessibilityRole="button"
             >
-              <Feather name="flag" size={22} color={theme.colors.error} />
+              <Feather name="flag" size={22} color={colors.error} />
             </TouchableOpacity>
           </SafeAreaView>
         </View>
@@ -327,7 +334,7 @@ export const PublicRecipeScreen = () => {
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <Feather name="clock" size={18} color={theme.colors.primary} />
+              <Feather name="clock" size={18} color={colors.primary} />
               <View>
                 <Text style={styles.metaLabel}>Tempo</Text>
                 <Text style={styles.metaValue}>{formatTime(recipe.prepTime)}</Text>
@@ -335,7 +342,7 @@ export const PublicRecipeScreen = () => {
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
-              <Feather name="users" size={18} color={theme.colors.primary} />
+              <Feather name="users" size={18} color={colors.primary} />
               <View>
                 <Text style={styles.metaLabel}>Porções</Text>
                 <Text style={styles.metaValue}>
@@ -385,7 +392,7 @@ export const PublicRecipeScreen = () => {
                     <Text style={styles.stepText}>{step.instruction}</Text>
                     {step.timer_minutes ? (
                       <View style={styles.timerBadge}>
-                        <Feather name="clock" size={12} color={theme.colors.textSecondary} />
+                        <Feather name="clock" size={12} color={colors.textSecondary} />
                         <Text style={styles.timerText}>{step.timer_minutes} min</Text>
                       </View>
                     ) : null}
@@ -432,7 +439,7 @@ export const PublicRecipeScreen = () => {
                 <>
                   <StarRating value={userRating.stars} readonly size="sm" />
                   <Text style={[styles.rateBtnText, styles.rateBtnEditingText]}>Sua avaliação · Editar</Text>
-                  <Feather name="edit-2" size={14} color={theme.colors.primary} />
+                  <Feather name="edit-2" size={14} color={colors.primary} />
                 </>
               ) : (
                 <>
@@ -455,7 +462,7 @@ export const PublicRecipeScreen = () => {
     if (!ratingsCursor && !ratingsLoading) return <View style={{ height: 120 }} />;
     return (
       <View style={styles.listFooter}>
-        {ratingsLoading && <ActivityIndicator size="small" color={theme.colors.primary} />}
+        {ratingsLoading && <ActivityIndicator size="small" color={colors.primary} />}
       </View>
     );
   }, [ratingsCursor, ratingsLoading]);
@@ -463,7 +470,7 @@ export const PublicRecipeScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -521,15 +528,15 @@ export const PublicRecipeScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // ── Imagem ──
   imageContainer: { width: '100%', height: 280, position: 'relative' },
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
   imagePlaceholder: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -557,7 +564,7 @@ const styles = StyleSheet.create({
   content: {
     padding: theme.spacing.lg,
     marginTop: -20,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -565,63 +572,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
   authorInfo: { flex: 1 },
-  authorLabel: { fontSize: 12, color: theme.colors.textSecondary },
-  authorName: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text },
+  authorLabel: { fontSize: 12, color: colors.textSecondary },
+  authorName: { fontSize: 16, fontWeight: 'bold', color: colors.text },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.round,
     marginBottom: theme.spacing.sm,
   },
-  badgeText: { color: theme.colors.textSecondary, fontWeight: 'bold', fontSize: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.sm },
-  description: { fontSize: 15, color: theme.colors.textSecondary, lineHeight: 22, marginBottom: theme.spacing.md },
+  badgeText: { color: colors.textSecondary, fontWeight: 'bold', fontSize: 12 },
+  title: { fontSize: 26, fontWeight: 'bold', color: colors.text, marginBottom: theme.spacing.sm },
+  description: { fontSize: 15, color: colors.textSecondary, lineHeight: 22, marginBottom: theme.spacing.md },
   metaRow: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
   },
   metaItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, justifyContent: 'center' },
-  metaDivider: { width: 1, backgroundColor: theme.colors.border },
-  metaLabel: { fontSize: 11, color: theme.colors.textSecondary },
-  metaValue: { fontSize: 15, fontWeight: 'bold', color: theme.colors.text },
+  metaDivider: { width: 1, backgroundColor: colors.border },
+  metaLabel: { fontSize: 11, color: colors.textSecondary },
+  metaValue: { fontSize: 15, fontWeight: 'bold', color: colors.text },
 
   // ── Tabs ──
-  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: theme.colors.border, marginBottom: theme.spacing.lg },
+  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.border, marginBottom: theme.spacing.lg },
   tab: { flex: 1, paddingVertical: theme.spacing.md, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 2, borderColor: theme.colors.primary },
-  tabText: { fontSize: 15, color: theme.colors.textSecondary, fontWeight: '500' },
-  activeTabText: { color: theme.colors.primary, fontWeight: 'bold' },
+  activeTab: { borderBottomWidth: 2, borderColor: colors.primary },
+  tabText: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: colors.primary, fontWeight: 'bold' },
   tabContent: { paddingBottom: theme.spacing.lg },
 
   // ── Ingredientes / Passos ──
   ingredientRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: theme.spacing.sm },
-  bullet: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.primary, marginRight: theme.spacing.sm },
-  ingredientText: { fontSize: 15, color: theme.colors.text, flex: 1, lineHeight: 22 },
+  bullet: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginRight: theme.spacing.sm },
+  ingredientText: { fontSize: 15, color: colors.text, flex: 1, lineHeight: 22 },
   bold: { fontWeight: 'bold' },
   stepRow: { flexDirection: 'row', marginBottom: theme.spacing.lg },
-  stepBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.md, marginTop: 2 },
+  stepBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.md, marginTop: 2 },
   stepNum: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   stepContent: { flex: 1 },
-  stepText: { fontSize: 15, color: theme.colors.text, lineHeight: 22 },
-  timerBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: theme.colors.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: theme.spacing.sm, gap: 4 },
-  timerText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
+  stepText: { fontSize: 15, color: colors.text, lineHeight: 22 },
+  timerBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: theme.spacing.sm, gap: 4 },
+  timerText: { fontSize: 12, color: colors.textSecondary, fontWeight: '500' },
 
   // ── Botão Salvar ──
   saveRecipeBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm,
-    backgroundColor: theme.colors.success, padding: theme.spacing.md,
+    backgroundColor: colors.success, padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md, marginTop: theme.spacing.lg,
   },
   saveRecipeBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
@@ -629,32 +636,32 @@ const styles = StyleSheet.create({
 
   // ── Seção de avaliações ──
   ratingsSection: { marginTop: theme.spacing.xl, gap: theme.spacing.md },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.text },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   noRatings: {
-    backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.surface, borderRadius: theme.borderRadius.md,
     padding: theme.spacing.lg, alignItems: 'center',
   },
-  noRatingsText: { color: theme.colors.textSecondary, fontSize: 14 },
+  noRatingsText: { color: colors.textSecondary, fontSize: 14 },
   rateBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: theme.spacing.sm, backgroundColor: theme.colors.primary,
+    gap: theme.spacing.sm, backgroundColor: colors.primary,
     padding: theme.spacing.md, borderRadius: theme.borderRadius.md,
   },
   rateBtnEditing: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
   },
   rateBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  rateBtnEditingText: { color: theme.colors.primary },
-  ratingsDivider: { height: 1, backgroundColor: theme.colors.border, marginTop: theme.spacing.md },
+  rateBtnEditingText: { color: colors.primary },
+  ratingsDivider: { height: 1, backgroundColor: colors.border, marginTop: theme.spacing.md },
   ratingCardWrapper: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm },
 
   // ── Footer / FAB ──
   listFooter: { paddingVertical: theme.spacing.lg, alignItems: 'center' },
   fabContainer: { position: 'absolute', bottom: theme.spacing.lg, left: theme.spacing.lg, right: theme.spacing.lg },
   fabBtn: {
-    backgroundColor: theme.colors.primary, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.round, elevation: 4, gap: theme.spacing.sm,
   },

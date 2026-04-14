@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { ShoppingItem, ShoppingList } from '../../types';
 import {
   getListById, getItems, toggleItem, removeItem,
@@ -73,6 +74,8 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RouteParams, 'ShoppingListDetail'>>();
   const { listId, fromPlan } = route.params;
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [listName, setListName] = useState('');
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -243,7 +246,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <ActivityIndicator style={{ flex: 1 }} color={theme.colors.primary} size="large" />
+        <ActivityIndicator style={{ flex: 1 }} color={colors.primary} size="large" />
       </SafeAreaView>
     );
   }
@@ -253,7 +256,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={22} color={theme.colors.text} />
+          <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{listName}</Text>
         <TouchableOpacity
@@ -262,7 +265,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
           disabled={checkedCount === 0}
           accessibilityLabel="Limpar itens marcados"
         >
-          <Feather name="check-square" size={20} color={checkedCount > 0 ? theme.colors.text : theme.colors.border} />
+          <Feather name="check-square" size={20} color={checkedCount > 0 ? colors.text : colors.border} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setExportModalVisible(true)}
@@ -271,9 +274,9 @@ export const ShoppingListDetailScreen: React.FC = () => {
           accessibilityLabel="Exportar lista"
         >
           {exporting ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Feather name="share-2" size={20} color={theme.colors.text} />
+            <Feather name="share-2" size={20} color={colors.text} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -281,14 +284,14 @@ export const ShoppingListDetailScreen: React.FC = () => {
           style={styles.iconBtn}
           accessibilityLabel="Excluir lista"
         >
-          <Feather name="trash-2" size={20} color={theme.colors.error} />
+          <Feather name="trash-2" size={20} color={colors.error} />
         </TouchableOpacity>
       </View>
 
       {/* fromPlan success banner */}
       {showBanner && (
         <Animated.View style={[styles.successBanner, { opacity: bannerOpacity }]}>
-          <Feather name="check-circle" size={16} color={theme.colors.success} />
+          <Feather name="check-circle" size={16} color={colors.success} />
           <Text style={styles.successBannerText}>
             Lista gerada com sucesso a partir do planejamento!
           </Text>
@@ -318,7 +321,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
       >
         {sections.length === 0 ? (
           <View style={styles.emptyState}>
-            <Feather name="inbox" size={48} color={theme.colors.border} />
+            <Feather name="inbox" size={48} color={colors.border} />
             <Text style={styles.emptyTitle}>Lista vazia</Text>
             <Text style={styles.emptySubtitle}>
               Adicione itens usando o campo abaixo.
@@ -366,7 +369,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
           <TextInput
             style={styles.footerInput}
             placeholder="Adicionar item..."
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={inputText}
             onChangeText={setInputText}
             returnKeyType="done"
@@ -393,7 +396,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             activeOpacity={1}
             onPress={() => setAddModalVisible(false)}
           />
@@ -407,7 +410,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 value={modalName}
                 onChangeText={setModalName}
                 placeholder="Ex: Leite"
-                placeholderTextColor={theme.colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 autoFocus
               />
             </View>
@@ -419,7 +422,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 value={modalQty}
                 onChangeText={(v) => setModalQty(v.replace(/[^0-9.,]/g, ''))}
                 placeholder="Ex: 2"
-                placeholderTextColor={theme.colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -485,7 +488,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 <Text style={styles.exportOptionLabel}>Exportar como PDF</Text>
                 <Text style={styles.exportOptionSub}>Salvar ou compartilhar arquivo PDF</Text>
               </View>
-              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+              <Feather name="chevron-right" size={18} color={colors.border} />
             </TouchableOpacity>
 
             <View style={styles.exportDivider} />
@@ -498,7 +501,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 <Text style={styles.exportOptionLabel}>Compartilhar como texto</Text>
                 <Text style={styles.exportOptionSub}>E-mail, notas, SMS e outros</Text>
               </View>
-              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+              <Feather name="chevron-right" size={18} color={colors.border} />
             </TouchableOpacity>
 
             <View style={styles.exportDivider} />
@@ -511,7 +514,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 <Text style={styles.exportOptionLabel}>Enviar para WhatsApp</Text>
                 <Text style={styles.exportOptionSub}>Lista compacta sem itens marcados</Text>
               </View>
-              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+              <Feather name="chevron-right" size={18} color={colors.border} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -536,7 +539,10 @@ interface RowProps {
   onRemove: () => void;
 }
 
-const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => (
+const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => {
+  const { colors } = useTheme();
+  const rowStyles = getRowStyles(colors);
+  return (
   <View style={[rowStyles.row, item.isChecked && rowStyles.rowChecked]}>
     <TouchableOpacity onPress={onToggle} style={[rowStyles.checkbox, item.isChecked && rowStyles.checkboxChecked]} activeOpacity={0.7}>
       {item.isChecked && <Feather name="check" size={14} color="#fff" />}
@@ -555,45 +561,46 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => (
     </View>
 
     <TouchableOpacity onPress={onRemove} style={rowStyles.removeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-      <Feather name="x" size={15} color={theme.colors.textSecondary} />
+      <Feather name="x" size={15} color={colors.textSecondary} />
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
-const rowStyles = StyleSheet.create({
+const getRowStyles = (colors: any) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
     gap: theme.spacing.sm,
   },
-  rowChecked: { backgroundColor: '#FAFAFA' },
+  rowChecked: { backgroundColor: colors.surface },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.success,
-    borderColor: theme.colors.success,
+    backgroundColor: colors.success,
+    borderColor: colors.success,
   },
   info: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '500', color: theme.colors.text },
-  nameChecked: { textDecorationLine: 'line-through', color: theme.colors.textSecondary, fontWeight: '400' },
-  qty: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  name: { fontSize: 15, fontWeight: '500', color: colors.text },
+  nameChecked: { textDecorationLine: 'line-through', color: colors.textSecondary, fontWeight: '400' },
+  qty: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   removeBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -601,15 +608,15 @@ const rowStyles = StyleSheet.create({
 
 // ── Screen styles ─────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     gap: 4,
   },
   backBtn: { padding: theme.spacing.sm },
@@ -617,7 +624,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginLeft: theme.spacing.xs,
   },
   iconBtn: { padding: theme.spacing.sm },
@@ -625,39 +632,39 @@ const styles = StyleSheet.create({
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.success + '15',
+    backgroundColor: colors.success + '15',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.success + '30',
+    borderBottomColor: colors.success + '30',
   },
-  successBannerText: { fontSize: 13, color: theme.colors.success, fontWeight: '500', flex: 1 },
+  successBannerText: { fontSize: 13, color: colors.success, fontWeight: '500', flex: 1 },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 6,
     gap: 10,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     borderRadius: 3,
   },
   progressFill: {
     height: 6,
-    backgroundColor: theme.colors.success,
+    backgroundColor: colors.success,
     borderRadius: 3,
   },
   progressLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     minWidth: 32,
     textAlign: 'right',
   },
@@ -668,9 +675,9 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 9,
-    backgroundColor: '#F7F8FA',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     borderLeftWidth: 3,
   },
   sectionTitle: {
@@ -680,13 +687,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  sectionCount: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
+  sectionCount: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
   emptyState: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: theme.spacing.xl, gap: theme.spacing.md,
   },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
-  emptySubtitle: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
+  emptySubtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -694,8 +701,8 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 10,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
     gap: theme.spacing.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
@@ -706,22 +713,22 @@ const styles = StyleSheet.create({
   footerInput: {
     flex: 1,
     height: 46,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.round,
     paddingHorizontal: theme.spacing.md,
     fontSize: 15,
-    color: theme.colors.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   addItemBtn: {
     width: 46,
     height: 46,
     borderRadius: theme.borderRadius.round,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 4,
@@ -734,7 +741,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: theme.spacing.lg,
@@ -744,7 +751,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
   },
   modalField: {
     gap: 6,
@@ -752,17 +759,17 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     fontSize: 15,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   modalInputQty: {
     width: 120,
@@ -776,20 +783,20 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   unitChipSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '15',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '15',
   },
   unitChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   unitChipTextSelected: {
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   modalActions: {
     flexDirection: 'row',
@@ -803,12 +810,12 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   modalConfirmBtn: {
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.md,
   },
   modalConfirmDisabled: { opacity: 0.4 },
@@ -824,7 +831,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -835,7 +842,7 @@ const styles = StyleSheet.create({
   },
   // Export action sheet
   exportSheet: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
@@ -851,14 +858,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     alignSelf: 'center',
     marginBottom: 16,
   },
   exportTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
@@ -883,27 +890,27 @@ const styles = StyleSheet.create({
   exportOptionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
   },
   exportOptionSub: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   exportDivider: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     marginHorizontal: 4,
   },
   exportCancel: {
     marginTop: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
   },
   exportCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

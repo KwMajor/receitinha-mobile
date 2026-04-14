@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { CATEGORIES } from '../../constants/categories';
 import { CommunityRecipeCard } from '../../components/recipe/CommunityRecipeCard';
 import { getFeed } from '../../services/api/communityService';
@@ -22,6 +23,8 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const CommunityFeedScreen = () => {
   const navigation = useNavigation<any>();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { feed, nextCursor, isLoading, error, setFeed, appendFeed, setLoading, setError, setCursor } =
     useCommunityStore();
 
@@ -100,7 +103,7 @@ export const CommunityFeedScreen = () => {
   const feedListFooter = useMemo(
     () => (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     ),
     [],
@@ -109,7 +112,7 @@ export const CommunityFeedScreen = () => {
   const feedListEmpty = useMemo(
     () => (
       <View style={styles.emptyContainer}>
-        <Feather name="globe" size={64} color={theme.colors.border} />
+        <Feather name="globe" size={64} color={colors.border} />
         <Text style={styles.emptyTitle}>
           {hasActiveFilter ? 'Nenhuma receita encontrada' : 'A comunidade está vazia'}
         </Text>
@@ -135,7 +138,7 @@ export const CommunityFeedScreen = () => {
           <Text style={styles.filterBadgeText} numberOfLines={1}>
             {selectedCategory}
           </Text>
-          <Feather name="x" size={12} color={theme.colors.primary} />
+          <Feather name="x" size={12} color={colors.primary} />
         </TouchableOpacity>
       )}
       <TouchableOpacity
@@ -150,7 +153,7 @@ export const CommunityFeedScreen = () => {
         <Feather
           name={showSearch ? 'x' : 'search'}
           size={22}
-          color={theme.colors.text}
+          color={colors.text}
         />
       </TouchableOpacity>
     </View>
@@ -163,11 +166,11 @@ export const CommunityFeedScreen = () => {
       {/* ── SearchBar ── */}
       {showSearch && (
         <View style={styles.searchBar}>
-          <Feather name="search" size={16} color={theme.colors.textSecondary} />
+          <Feather name="search" size={16} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nome de receita…"
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={query}
             onChangeText={setQuery}
             autoFocus
@@ -175,7 +178,7 @@ export const CommunityFeedScreen = () => {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')}>
-              <Feather name="x" size={16} color={theme.colors.textSecondary} />
+              <Feather name="x" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -215,7 +218,7 @@ export const CommunityFeedScreen = () => {
       {/* ── Erro ── */}
       {error && !isLoading && (
         <View style={styles.errorBanner}>
-          <Feather name="alert-circle" size={16} color={theme.colors.error} />
+          <Feather name="alert-circle" size={16} color={colors.error} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={loadInitial}>
             <Text style={styles.retryText}>Tentar novamente</Text>
@@ -226,7 +229,7 @@ export const CommunityFeedScreen = () => {
       {/* ── Loading inicial ── */}
       {isLoading && feed.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -257,8 +260,8 @@ export const CommunityFeedScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.primary + '18',
+    backgroundColor: colors.primary + '18',
     borderRadius: theme.borderRadius.round,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
@@ -276,7 +279,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
     flexShrink: 1,
   },
@@ -286,14 +289,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   // ── Chips de categoria ──────────────────────────────────────────────────
   chipsScroll: {
     flexGrow: 0,
     flexShrink: 0,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   chipsContainer: {
     paddingHorizontal: theme.spacing.lg,
@@ -306,17 +309,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.round,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   chipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   chipTextActive: {
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginHorizontal: theme.spacing.lg,
     marginVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.round,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
@@ -337,7 +340,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.text,
+    color: colors.text,
     padding: 0,
   },
   listContent: {
@@ -359,12 +362,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: theme.spacing.xl,
   },
@@ -379,6 +382,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     flexWrap: 'wrap',
   },
-  errorText: { flex: 1, fontSize: 13, color: theme.colors.error },
-  retryText: { fontSize: 13, color: theme.colors.primary, fontWeight: 'bold' },
+  errorText: { flex: 1, fontSize: 13, color: colors.error },
+  retryText: { fontSize: 13, color: colors.primary, fontWeight: 'bold' },
 });

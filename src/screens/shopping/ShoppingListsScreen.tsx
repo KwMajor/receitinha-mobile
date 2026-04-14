@@ -10,6 +10,7 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { ShoppingList } from '../../types';
 import {
   getLists, createList, renameList, duplicateList,
@@ -19,6 +20,8 @@ import {
 export const ShoppingListsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -142,7 +145,7 @@ export const ShoppingListsScreen: React.FC = () => {
         activeOpacity={0.8}
       >
         <View style={styles.listIcon}>
-          <Feather name="shopping-cart" size={20} color={theme.colors.primary} />
+          <Feather name="shopping-cart" size={20} color={colors.primary} />
         </View>
         <View style={styles.listInfo}>
           <View style={styles.listNameRow}>
@@ -170,7 +173,7 @@ export const ShoppingListsScreen: React.FC = () => {
             </View>
           )}
         </View>
-        <Feather name="chevron-right" size={18} color={theme.colors.textSecondary} />
+        <Feather name="chevron-right" size={18} color={colors.textSecondary} />
       </TouchableOpacity>
     </Swipeable>
   );
@@ -187,7 +190,7 @@ export const ShoppingListsScreen: React.FC = () => {
       <ScreenHeader title="Compras" right={addBtn} />
 
       {isLoading ? (
-        <ActivityIndicator style={styles.loader} color={theme.colors.primary} size="large" />
+        <ActivityIndicator style={styles.loader} color={colors.primary} size="large" />
       ) : (
         <FlatList
           data={lists}
@@ -196,7 +199,7 @@ export const ShoppingListsScreen: React.FC = () => {
           contentContainerStyle={lists.length === 0 ? styles.emptyContainer : { paddingBottom: 32 }}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Feather name="shopping-cart" size={48} color={theme.colors.border} />
+              <Feather name="shopping-cart" size={48} color={colors.border} />
               <Text style={styles.emptyTitle}>Nenhuma lista ainda</Text>
               <Text style={styles.emptySubtitle}>
                 Crie uma lista manualmente ou gere uma a partir do planejamento semanal.
@@ -253,17 +256,17 @@ export const ShoppingListsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 9,
     paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.round,
     gap: 6,
-    shadowColor: theme.colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
@@ -274,7 +277,7 @@ const styles = StyleSheet.create({
   listCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     marginHorizontal: theme.spacing.md,
     marginTop: theme.spacing.sm,
     borderRadius: 14,
@@ -290,29 +293,29 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 12,
-    backgroundColor: theme.colors.primary + '18',
+    backgroundColor: colors.primary + '18',
     alignItems: 'center',
     justifyContent: 'center',
   },
   listInfo: { flex: 1, gap: 6 },
   listNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  listName: { fontSize: 15, fontWeight: '700', color: theme.colors.text, flexShrink: 1 },
+  listName: { fontSize: 15, fontWeight: '700', color: colors.text, flexShrink: 1 },
   activeBadge: {
-    backgroundColor: theme.colors.success + '20',
+    backgroundColor: colors.success + '20',
     borderRadius: theme.borderRadius.round,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  activeBadgeText: { fontSize: 11, color: theme.colors.success, fontWeight: '700' },
-  listMeta: { fontSize: 12, color: theme.colors.textSecondary },
+  activeBadgeText: { fontSize: 11, color: colors.success, fontWeight: '700' },
+  listMeta: { fontSize: 12, color: colors.textSecondary },
   cardProgressTrack: {
     height: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     borderRadius: 2,
   },
   cardProgressFill: {
     height: 4,
-    backgroundColor: theme.colors.success,
+    backgroundColor: colors.success,
     borderRadius: 2,
   },
   renameAction: {
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.md,
   },
   deleteAction: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
@@ -340,9 +343,9 @@ const styles = StyleSheet.create({
   actionLabel: { color: '#fff', fontSize: 11, fontWeight: '600' },
   emptyContainer: { flex: 1, justifyContent: 'center' },
   emptyState: { alignItems: 'center', padding: theme.spacing.xl, gap: theme.spacing.md },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
   emptySubtitle: {
-    fontSize: 14, color: theme.colors.textSecondary,
+    fontSize: 14, color: colors.textSecondary,
     textAlign: 'center', lineHeight: 20,
   },
   modalOverlay: {
@@ -354,25 +357,25 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg, gap: theme.spacing.md,
   },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
   modalInput: {
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    fontSize: 15, color: theme.colors.text,
+    fontSize: 15, color: colors.text,
   },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing.sm },
   modalCancel: {
     paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm,
   },
-  modalCancelText: { fontSize: 15, color: theme.colors.textSecondary },
+  modalCancelText: { fontSize: 15, color: colors.textSecondary },
   modalConfirm: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
   },
-  modalConfirmDisabled: { backgroundColor: theme.colors.border },
+  modalConfirmDisabled: { backgroundColor: colors.border },
   modalConfirmText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

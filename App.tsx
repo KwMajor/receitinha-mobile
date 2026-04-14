@@ -1,28 +1,33 @@
-import { StyleSheet, Text, View, ActivityIndicator, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { initDatabase } from './src/services/sqlite/database';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
+import { ThemeProvider } from './src/contexts/ThemeContext';
+import { useSettingsStore } from './src/store/settingsStore';
 
 export default function App() {
-  const [isDbReady, setIsDbReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     async function setupApp() {
       try {
-        await initDatabase();
+        // Hidrata as preferências do usuário e o banco antes do primeiro render
+        await Promise.all([
+          initDatabase(),
+          useSettingsStore.persist.rehydrate(),
+        ]);
       } catch (e) {
         console.warn('Erro ao inicializar o app:', e);
       } finally {
-        setIsDbReady(true);
+        setIsReady(true);
       }
     }
-    
     setupApp();
   }, []);
 
-  if (!isDbReady) {
+  if (!isReady) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#FF6C37" />
@@ -34,8 +39,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <StatusBar barStyle="dark-content" translucent={false} backgroundColor="#ffffff" />
-        <RootNavigator />
+        <ThemeProvider>
+          <RootNavigator />
+        </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

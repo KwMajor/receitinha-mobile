@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy';
 
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../services/api/client';
 import { getCategories } from '../../services/sqlite/categoryService';
@@ -47,9 +48,34 @@ export interface RecipeFormProps {
   titleHeader?: string;
 }
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { padding: theme.spacing.md, backgroundColor: colors.background },
+  saveBtn: { marginRight: theme.spacing.md },
+  section: { marginBottom: theme.spacing.xl },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: theme.spacing.md },
+  inputGroup: { marginBottom: theme.spacing.md },
+  label: { fontSize: 14, color: colors.text, marginBottom: theme.spacing.xs },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: colors.surface, color: colors.text },
+  textArea: { minHeight: 80, textAlignVertical: 'top' as const },
+  row: { flexDirection: 'row' as const, justifyContent: 'space-between' as const },
+  sectionHint: { fontSize: 13, color: colors.textSecondary, marginBottom: theme.spacing.md, marginTop: -theme.spacing.sm },
+  error: { color: colors.error, fontSize: 12, marginTop: 4 },
+  addButton: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, padding: theme.spacing.md, borderWidth: 1, borderStyle: 'dashed' as const, borderColor: colors.primary, borderRadius: theme.borderRadius.md, marginTop: theme.spacing.sm },
+  addButtonText: { color: colors.primary, fontWeight: 'bold' as const, marginLeft: theme.spacing.sm },
+  pickerButton: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: colors.surface },
+  pickerButtonText: { color: colors.text },
+  modalContainer: { flex: 1, justifyContent: 'flex-end' as const, backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { backgroundColor: colors.background, borderTopLeftRadius: theme.borderRadius.lg, borderTopRightRadius: theme.borderRadius.lg, maxHeight: '50%' as any },
+  modalTitle: { padding: theme.spacing.md, fontSize: 18, fontWeight: 'bold' as const, textAlign: 'center' as const, borderBottomWidth: 1, borderColor: colors.border, color: colors.text },
+  modalItem: { padding: theme.spacing.md, borderBottomWidth: 1, borderColor: colors.surface },
+  modalItemText: { fontSize: 16, textAlign: 'center' as const, color: colors.text },
+});
+
 const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }: RecipeFormProps) => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [loading, setLoading] = useState(false);
   const [modalCategoryVisible, setModalCategoryVisible] = useState(false);
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
@@ -78,7 +104,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       title: titleHeader,
       headerRight: () => (
         <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)} disabled={loading}>
-          {loading ? <ActivityIndicator color={theme.colors.primary} size="small" /> : <Feather name="check" size={24} color={theme.colors.primary} />}
+          {loading ? <ActivityIndicator color={colors.primary} size="small" /> : <Feather name="check" size={24} color={colors.primary} />}
         </TouchableOpacity>
       )
     });
@@ -192,7 +218,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
             <Text style={styles.label}>Categoria *</Text>
             <TouchableOpacity style={styles.pickerButton} onPress={() => setModalCategoryVisible(true)}>
               <Text style={styles.pickerButtonText}>{value || 'Selecione'}</Text>
-              <Feather name="chevron-down" size={20} color={theme.colors.textSecondary} />
+              <Feather name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
             {errors.category && <Text style={styles.error}>{errors.category.message}</Text>}
             
@@ -241,7 +267,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           </View>
         ))}
         <TouchableOpacity style={styles.addButton} onPress={() => appendIng({ quantity: '', unit: 'g', name: '' })}>
-          <Feather name="plus" size={20} color={theme.colors.primary} />
+          <Feather name="plus" size={20} color={colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Ingrediente</Text>
         </TouchableOpacity>
       </View>
@@ -275,7 +301,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           appendStep({ instruction: '', timerMinutes: '' });
           setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
         }}>
-          <Feather name="plus" size={20} color={theme.colors.primary} />
+          <Feather name="plus" size={20} color={colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Passo</Text>
         </TouchableOpacity>
       </View>
@@ -285,26 +311,4 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
   );
 };
 
-const styles = StyleSheet.create({
-  container: { padding: theme.spacing.md, backgroundColor: theme.colors.background },
-  saveBtn: { marginRight: theme.spacing.md },
-  section: { marginBottom: theme.spacing.xl },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.md },
-  inputGroup: { marginBottom: theme.spacing.md },
-  label: { fontSize: 14, color: theme.colors.text, marginBottom: theme.spacing.xs },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: '#fff' },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  sectionHint: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: theme.spacing.md, marginTop: -theme.spacing.sm },
-  error: { color: theme.colors.error, fontSize: 12, marginTop: 4 },
-  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.spacing.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.primary, borderRadius: theme.borderRadius.md, marginTop: theme.spacing.sm },
-  addButtonText: { color: theme.colors.primary, fontWeight: 'bold', marginLeft: theme.spacing.sm },
-  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: '#fff' },
-  pickerButtonText: { color: theme.colors.text },
-  modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: theme.borderRadius.lg, borderTopRightRadius: theme.borderRadius.lg, maxHeight: '50%' },
-  modalTitle: { padding: theme.spacing.md, fontSize: 18, fontWeight: 'bold', textAlign: 'center', borderBottomWidth: 1, borderColor: theme.colors.border },
-  modalItem: { padding: theme.spacing.md, borderBottomWidth: 1, borderColor: theme.colors.surface },
-  modalItemText: { fontSize: 16, textAlign: 'center' }
-});
 export default RecipeForm;
