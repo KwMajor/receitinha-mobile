@@ -15,6 +15,8 @@ import {
   clearChecked, addItem, deleteList,
 } from '../../services/sqlite/shoppingService';
 import { exportAsPDF, exportAsText, exportAsWhatsApp } from '../../services/exportService';
+import { useAuthStore } from '../../store/authStore';
+import { importFromShoppingList } from '../../services/sqlite/pantryService';
 
 const UNITS = ['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'];
 
@@ -76,6 +78,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const { listId, fromPlan } = route.params;
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const { user } = useAuthStore();
 
   const [listName, setListName] = useState('');
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -94,6 +97,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
   // Success banner for fromPlan
   const bannerOpacity = useRef(new Animated.Value(fromPlan ? 1 : 0)).current;
   const [showBanner, setShowBanner] = useState(!!fromPlan);
+
 
   useEffect(() => {
     if (!fromPlan) return;
@@ -175,9 +179,13 @@ export const ShoppingListDetailScreen: React.FC = () => {
 
     const allChecked = updated.length > 0 && updated.every((it) => it.isChecked);
     if (allChecked) {
+      // Auto-import all checked items to pantry silently
+      if (user) {
+        importFromShoppingList(user.id, listId).catch(() => {});
+      }
       Alert.alert(
         'Lista concluída! 🎉',
-        'Todos os itens foram marcados. Deseja excluir esta lista?',
+        'Itens adicionados à sua despensa automaticamente. Deseja excluir esta lista?',
         [
           { text: 'Manter lista', style: 'cancel' },
           {
@@ -297,6 +305,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
           </Text>
         </Animated.View>
       )}
+
 
       {/* Progress bar */}
       {items.length > 0 && (

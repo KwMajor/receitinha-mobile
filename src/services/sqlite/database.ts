@@ -19,6 +19,16 @@ export const initDatabase = async (): Promise<void> => {
       CREATE TABLE IF NOT EXISTS barcode_cache (
         barcode TEXT PRIMARY KEY, product_name TEXT, cached_at INTEGER
       );
+
+      CREATE TABLE IF NOT EXISTS pantry (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        ingredient_name TEXT NOT NULL,
+        quantity REAL,
+        unit TEXT,
+        added_at INTEGER NOT NULL,
+        UNIQUE(user_id, ingredient_name)
+      );
     `);
 
     // Migração: adiciona brand ao barcode_cache se não existir

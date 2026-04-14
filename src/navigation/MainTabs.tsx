@@ -18,6 +18,7 @@ import { ConverterScreen } from '../screens/settings/ConverterScreen';
 import { BackupScreen } from '../screens/settings/BackupScreen';
 import { AppearanceScreen } from '../screens/settings/AppearanceScreen';
 import { WeekPlanScreen } from '../screens/planning/WeekPlanScreen';
+import { SuggestionsScreen } from '../screens/suggestions/SuggestionsScreen';
 import { ShoppingListsScreen } from '../screens/shopping/ShoppingListsScreen';
 import { ShoppingListDetailScreen } from '../screens/shopping/ShoppingListDetailScreen';
 import { BarcodeScannerScreen } from '../screens/shopping/BarcodeScannerScreen';
@@ -52,6 +53,9 @@ const FavoritesStackGroup = () => (
 const PlanningStackGroup = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="WeekPlan" component={WeekPlanScreen} />
+    <Stack.Screen name="Suggestions" component={SuggestionsScreen} />
+    <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+    <Stack.Screen name="CookingMode" component={CookingScreen} options={{ presentation: 'modal' }} />
   </Stack.Navigator>
 );
 

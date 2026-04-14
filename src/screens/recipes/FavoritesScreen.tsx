@@ -68,10 +68,10 @@ export const FavoritesScreen = () => {
     try {
       if (activeTab === 'favorites') {
         const favs = await getFavorites(user.id);
-        setFavorites(favs);
+        setFavorites(Array.isArray(favs) ? favs : []);
       } else {
         const cols = await getCollections(user.id);
-        setCollections(cols);
+        setCollections(Array.isArray(cols) ? cols : []);
       }
     } catch {
       // silencia

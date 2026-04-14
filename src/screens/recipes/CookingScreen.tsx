@@ -24,6 +24,7 @@ import { theme } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTimer } from '../../hooks/useTimer';
 import { addToHistory, getRecipeStats } from '../../services/sqlite/cookingHistoryService';
+import { deductRecipeIngredients } from '../../services/sqlite/pantryService';
 import { useAuthStore } from '../../store/authStore';
 import { Recipe } from '../../types';
 const MAX_NOTE = 200;
@@ -65,6 +66,7 @@ export const CookingScreen = () => {
   // Modal de conclusão
   const [showCompletion, setShowCompletion] = useState(false);
   const [saveToHistory, setSaveToHistory] = useState(true);
+  const [deductFromPantry, setDeductFromPantry] = useState(true);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -121,6 +123,7 @@ export const CookingScreen = () => {
 
   const openCompletionModal = () => {
     setSaveToHistory(true);
+    setDeductFromPantry(true);
     setNote('');
     setShowCompletion(true);
     runCelebration();
@@ -129,9 +132,15 @@ export const CookingScreen = () => {
   const handleSaveAndExit = async () => {
     setSaving(true);
     try {
-      if (saveToHistory && user) {
-        await addToHistory(user.id, recipe.id, note.trim() || undefined);
-      }
+      const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      await Promise.all([
+        saveToHistory && user
+          ? addToHistory(user.id, recipe.id, note.trim() || undefined)
+          : Promise.resolve(),
+        deductFromPantry && user && ingredients.length > 0
+          ? deductRecipeIngredients(user.id, ingredients)
+          : Promise.resolve(),
+      ]);
     } finally {
       setSaving(false);
       setShowCompletion(false);
@@ -293,6 +302,17 @@ export const CookingScreen = () => {
               <Switch
                 value={saveToHistory}
                 onValueChange={setSaveToHistory}
+                trackColor={{ false: '#555', true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {/* Toggle de despensa */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Descontar da despensa</Text>
+              <Switch
+                value={deductFromPantry}
+                onValueChange={setDeductFromPantry}
                 trackColor={{ false: '#555', true: colors.primary }}
                 thumbColor="#fff"
               />

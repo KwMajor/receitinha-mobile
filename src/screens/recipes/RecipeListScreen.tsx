@@ -29,7 +29,9 @@ export const RecipeListScreen = () => {
     useCallback(() => {
       refresh();
       if (user?.id) {
-        getCategories(user.id).then(cats => setCategoryList(cats.map(c => c.name)));
+        getCategories(user.id)
+          .then(cats => setCategoryList(Array.isArray(cats) ? cats.map(c => c.name) : []))
+          .catch(() => {});
       }
     }, [user?.id])
   );

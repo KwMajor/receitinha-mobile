@@ -236,6 +236,17 @@ export const WeekPlanScreen: React.FC = () => {
         </Text>
       </TouchableOpacity>
 
+      {/* Suggestions button */}
+      <TouchableOpacity
+        style={styles.suggestionsBtn}
+        onPress={() => navigation.navigate('Suggestions')}
+        activeOpacity={0.8}
+      >
+        <Feather name="star" size={16} color={colors.primary} />
+        <Text style={styles.suggestionsBtnText}>Sugestões pela despensa</Text>
+        <Feather name="chevron-right" size={16} color={colors.primary} />
+      </TouchableOpacity>
+
       {/* Drag mode banner */}
       {draggingSlot && (
         <View style={styles.dragBanner}>
@@ -501,6 +512,18 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   shoppingBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  suggestionsBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    backgroundColor: colors.primaryLight,
+    borderRadius: theme.borderRadius.md,
+  },
+  suggestionsBtnText: { flex: 1, color: colors.primary, fontWeight: '600' as const, fontSize: 14 },
   dragBanner: {
     flexDirection: 'row',
     alignItems: 'center',
