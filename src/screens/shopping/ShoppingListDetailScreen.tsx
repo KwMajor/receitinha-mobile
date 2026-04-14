@@ -8,11 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
-import { ShoppingItem } from '../../types';
+import { ShoppingItem, ShoppingList } from '../../types';
 import {
   getListById, getItems, toggleItem, removeItem,
   clearChecked, addItem, deleteList,
 } from '../../services/sqlite/shoppingService';
+import { exportAsPDF, exportAsText, exportAsWhatsApp } from '../../services/exportService';
 
 const UNITS = ['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'];
 
@@ -74,9 +75,12 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const { listId, fromPlan } = route.params;
 
   const [listName, setListName] = useState('');
+  const [list, setList] = useState<ShoppingList | null>(null);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [inputText, setInputText] = useState('');
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'text' | 'whatsapp' | null>(null);
 
   // Add item modal
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -109,7 +113,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
         getListById(listId),
         getItems(listId),
       ]);
-      if (list) setListName(list.name);
+      if (list) { setListName(list.name); setList(list); }
       setItems(allItems);
     } finally {
       if (showSpinner) setIsLoading(false);
@@ -125,6 +129,21 @@ export const ShoppingListDetailScreen: React.FC = () => {
   );
 
   // ── Actions ────────────────────────────────────────────────────────────────
+
+  const handleExport = async (type: 'pdf' | 'text' | 'whatsapp') => {
+    if (!list) return;
+    setExportModalVisible(false);
+    setExporting(type);
+    try {
+      if (type === 'pdf') await exportAsPDF(list, items);
+      else if (type === 'text') await exportAsText(list, items);
+      else await exportAsWhatsApp(list, items);
+    } catch (e: any) {
+      Alert.alert('Erro ao exportar', e?.message ?? 'Tente novamente.');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const handleDeleteList = () => {
     Alert.alert(
@@ -244,6 +263,18 @@ export const ShoppingListDetailScreen: React.FC = () => {
           accessibilityLabel="Limpar itens marcados"
         >
           <Feather name="check-square" size={20} color={checkedCount > 0 ? theme.colors.text : theme.colors.border} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setExportModalVisible(true)}
+          style={[styles.iconBtn, items.length === 0 && styles.iconBtnDisabled]}
+          disabled={items.length === 0}
+          accessibilityLabel="Exportar lista"
+        >
+          {exporting ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : (
+            <Feather name="share-2" size={20} color={theme.colors.text} />
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleDeleteList}
@@ -427,6 +458,70 @@ export const ShoppingListDetailScreen: React.FC = () => {
             </View>
           </TouchableOpacity>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Export action sheet */}
+      <Modal
+        visible={exportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setExportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            activeOpacity={1}
+            onPress={() => setExportModalVisible(false)}
+          />
+          <View style={styles.exportSheet}>
+            <View style={styles.exportHandle} />
+            <Text style={styles.exportTitle}>Exportar lista</Text>
+
+            <TouchableOpacity style={styles.exportOption} onPress={() => handleExport('pdf')}>
+              <View style={[styles.exportIcon, { backgroundColor: '#FFEBEE' }]}>
+                <Feather name="file-text" size={20} color="#E53935" />
+              </View>
+              <View style={styles.exportOptionInfo}>
+                <Text style={styles.exportOptionLabel}>Exportar como PDF</Text>
+                <Text style={styles.exportOptionSub}>Salvar ou compartilhar arquivo PDF</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+            </TouchableOpacity>
+
+            <View style={styles.exportDivider} />
+
+            <TouchableOpacity style={styles.exportOption} onPress={() => handleExport('text')}>
+              <View style={[styles.exportIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Feather name="align-left" size={20} color="#1E88E5" />
+              </View>
+              <View style={styles.exportOptionInfo}>
+                <Text style={styles.exportOptionLabel}>Compartilhar como texto</Text>
+                <Text style={styles.exportOptionSub}>E-mail, notas, SMS e outros</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+            </TouchableOpacity>
+
+            <View style={styles.exportDivider} />
+
+            <TouchableOpacity style={styles.exportOption} onPress={() => handleExport('whatsapp')}>
+              <View style={[styles.exportIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Feather name="message-circle" size={20} color="#43A047" />
+              </View>
+              <View style={styles.exportOptionInfo}>
+                <Text style={styles.exportOptionLabel}>Enviar para WhatsApp</Text>
+                <Text style={styles.exportOptionSub}>Lista compacta sem itens marcados</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={theme.colors.border} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.exportCancel}
+              onPress={() => setExportModalVisible(false)}
+            >
+              <Text style={styles.exportCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
     </SafeAreaView>
@@ -737,5 +832,78 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
+  },
+  // Export action sheet
+  exportSheet: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
+    paddingHorizontal: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  exportHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  exportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  exportOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    gap: 14,
+  },
+  exportIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportOptionInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  exportOptionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  exportOptionSub: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  exportDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: 4,
+  },
+  exportCancel: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+  },
+  exportCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
   },
 });

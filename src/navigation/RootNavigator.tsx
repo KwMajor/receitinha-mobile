@@ -5,6 +5,7 @@ import { onAuthStateChanged } from '../services/firebase/auth';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { SplashScreen } from '../screens/auth/SplashScreen';
+
 export const RootNavigator = () => {
   const { isAuthenticated, isLoading, setLoading, setUser } = useAuthStore();
 
@@ -26,9 +27,7 @@ export const RootNavigator = () => {
     return () => unsubscribe();
   }, [setUser, setLoading]);
 
-  if (isLoading) {
-    return <SplashScreen />;
-  }
+  if (isLoading) return <SplashScreen />;
 
   return (
     <NavigationContainer>

@@ -32,7 +32,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow the app to use your location."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "ios": {
       "supportsTablet": true,

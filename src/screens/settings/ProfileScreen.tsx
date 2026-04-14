@@ -7,6 +7,7 @@ import { signOut, updateUserName, updateUserEmail } from '../../services/firebas
 import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../services/sqlite/recipeService';
 import { countHistory } from '../../services/sqlite/cookingHistoryService';
+import { getLastBackupTimestamp } from '../../services/firebase/backupService';
 import { theme } from '../../constants/theme';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 
@@ -15,6 +16,7 @@ export const ProfileScreen = () => {
   const { user } = useAuthStore();
   const [recipeCount, setRecipeCount] = useState(0);
   const [cookCount, setCookCount] = useState(0);
+  const [backupOutdated, setBackupOutdated] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -22,12 +24,15 @@ export const ProfileScreen = () => {
 
   const loadData = async () => {
     if (user?.id) {
-      const [recipes, cooked] = await Promise.all([
+      const [recipes, cooked, lastBackup] = await Promise.all([
         getRecipes(user.id),
         countHistory(user.id),
+        getLastBackupTimestamp(user.id),
       ]);
       setRecipeCount(recipes.length);
       setCookCount(cooked);
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      setBackupOutdated(!lastBackup || Date.now() - lastBackup > SEVEN_DAYS);
     }
   };
 
@@ -97,12 +102,13 @@ export const ProfileScreen = () => {
       .substring(0, 2);
   };
 
-  const MenuItem = ({ icon, title, onPress, showDivider = true }: any) => (
+  const MenuItem = ({ icon, title, onPress, showDivider = true, badge = false }: any) => (
     <>
       <TouchableOpacity style={styles.menuItem} onPress={onPress}>
         <View style={styles.menuItemLeft}>
           <Feather name={icon} size={20} color={theme.colors.textSecondary} />
           <Text style={styles.menuItemText}>{title}</Text>
+          {badge && <View style={styles.badge} />}
         </View>
         <Feather name="chevron-right" size={20} color={theme.colors.border} />
       </TouchableOpacity>
@@ -167,6 +173,12 @@ export const ProfileScreen = () => {
           icon="repeat"
           title="Conversor de Medidas"
           onPress={() => navigation.navigate('Converter')}
+        />
+        <MenuItem
+          icon="cloud"
+          title="Backup na nuvem"
+          onPress={() => navigation.navigate('Backup')}
+          badge={backupOutdated}
           showDivider={false}
         />
       </View>
@@ -325,6 +337,13 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     marginLeft: theme.spacing.md,
     fontWeight: '500',
+  },
+  badge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.error,
+    marginLeft: theme.spacing.sm,
   },
   editProfileBtn: {
     width: 36,

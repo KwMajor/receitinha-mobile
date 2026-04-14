@@ -156,6 +156,27 @@ async function init() {
     CREATE INDEX IF NOT EXISTS idx_usl_user    ON user_shopping_lists(user_id);
     CREATE INDEX IF NOT EXISTS idx_uwp_user    ON user_week_plan(user_id, week_start);
   `);
+
+  // Migration: troca ON DELETE CASCADE → SET NULL em user_week_plan.recipe_id
+  // Isso evita que deletar uma receita remova as entradas do plano semanal.
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints tc
+        JOIN information_schema.referential_constraints rc ON rc.constraint_name = tc.constraint_name
+        WHERE tc.table_name = 'user_week_plan'
+          AND tc.constraint_type = 'FOREIGN KEY'
+          AND rc.delete_rule = 'CASCADE'
+      ) THEN
+        ALTER TABLE user_week_plan
+          DROP CONSTRAINT IF EXISTS user_week_plan_recipe_id_fkey;
+        ALTER TABLE user_week_plan
+          ADD CONSTRAINT user_week_plan_recipe_id_fkey
+          FOREIGN KEY (recipe_id) REFERENCES user_recipes(id) ON DELETE SET NULL;
+      END IF;
+    END$$;
+  `);
 }
 
 module.exports = { pool, init };

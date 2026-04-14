@@ -192,7 +192,7 @@ router.post('/generate', async (req, res) => {
     }
 
     const { rows: planRows } = await pool.query(
-      'SELECT DISTINCT recipe_id FROM user_week_plan WHERE user_id = $1 AND week_start = $2',
+      'SELECT DISTINCT recipe_id FROM user_week_plan WHERE user_id = $1 AND week_start = $2 AND recipe_id IS NOT NULL',
       [req.user.uid, weekStart]
     );
 
@@ -211,8 +211,8 @@ router.post('/generate', async (req, res) => {
       [listId, req.user.uid, listName]
     );
 
-    if (planRows.length > 0) {
-      const recipeIds = planRows.map(r => r.recipe_id);
+    const recipeIds = planRows.map(r => r.recipe_id);
+    if (recipeIds.length > 0) {
       const ph = recipeIds.map((_, i) => `$${i + 1}`).join(',');
       const { rows: ings } = await pool.query(
         `SELECT name, quantity, unit FROM user_ingredients WHERE recipe_id IN (${ph})`, recipeIds

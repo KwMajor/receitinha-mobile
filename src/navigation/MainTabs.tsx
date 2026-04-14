@@ -15,6 +15,7 @@ import { CategoriesScreen } from '../screens/settings/CategoriesScreen';
 import { ProfileScreen } from '../screens/settings/ProfileScreen';
 import { CookingHistoryScreen } from '../screens/settings/CookingHistoryScreen';
 import { ConverterScreen } from '../screens/settings/ConverterScreen';
+import { BackupScreen } from '../screens/settings/BackupScreen';
 import { WeekPlanScreen } from '../screens/planning/WeekPlanScreen';
 import { ShoppingListsScreen } from '../screens/shopping/ShoppingListsScreen';
 import { ShoppingListDetailScreen } from '../screens/shopping/ShoppingListDetailScreen';
@@ -78,6 +79,7 @@ const ProfileStackGroup = () => (
     <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Minhas Categorias' }} />
     <Stack.Screen name="CookingHistory" component={CookingHistoryScreen} options={{ title: 'Histórico de Preparo' }} />
     <Stack.Screen name="Converter" component={ConverterScreen} options={{ title: 'Conversor de Medidas' }} />
+    <Stack.Screen name="Backup" component={BackupScreen} options={{ title: 'Backup na nuvem' }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
     <Stack.Screen name="CookingMode" component={CookingScreen} options={{ presentation: 'modal' }} />
