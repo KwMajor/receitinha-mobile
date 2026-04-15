@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Modal, ScrollView,
-  Alert, Animated, Platform, Keyboard,
+  Alert, Animated, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -126,30 +126,42 @@ const getStyles = (colors: any) => StyleSheet.create({
   addBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.background,
     gap: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 6,
   },
   addInput: {
     flex: 1,
-    height: 44,
+    height: 46,
     backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.round,
     paddingHorizontal: theme.spacing.md,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.border,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.borderRadius.md,
+    width: 46,
+    height: 46,
+    borderRadius: theme.borderRadius.round,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
   },
   // Suggestions tab
   listContent: {
@@ -272,6 +284,100 @@ const getStyles = (colors: any) => StyleSheet.create({
   clearBtn: {
     padding: theme.spacing.md,
   },
+  // Add item modal
+  addModalField: {
+    gap: 6,
+  },
+  addModalCard: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingBottom: 32,
+  },
+  addModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  addModalName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+  },
+  addModalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: -4,
+  },
+  addModalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    fontSize: 15,
+    color: colors.text,
+    backgroundColor: colors.surface,
+  },
+  addModalInputQty: {
+    width: 120,
+  },
+  unitsRow: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  unitChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  unitChipSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '15',
+  },
+  unitChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  unitChipTextSelected: {
+    color: colors.primary,
+  },
+  addModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+    marginTop: 4,
+  },
+  addModalCancelBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  addModalCancelText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  addModalConfirmBtn: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: theme.borderRadius.md,
+  },
+  addModalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -296,6 +402,11 @@ export const SuggestionsScreen: React.FC = () => {
   const [suggestions, setSuggestions]         = useState<MatchResult[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionsLoaded, setSuggestionsLoaded]   = useState(false);
+
+  // ── Add item modal ────────────────────────────────────────────────────────
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [modalQty, setModalQty]               = useState('');
+  const [modalUnit, setModalUnit]             = useState<string | null>(null);
 
   // ── Import modal ─────────────────────────────────────────────────────────
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -349,12 +460,20 @@ export const SuggestionsScreen: React.FC = () => {
       )
     : pantryItems;
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
+    setModalQty('');
+    setModalUnit(null);
+    setAddModalVisible(true);
+  };
+
+  const handleConfirmAdd = async () => {
     const name = addName.trim();
     if (!name || !user) return;
-    Keyboard.dismiss();
-    await addPantryItem(user.id, name);
+    const qty = modalQty.trim() ? parseFloat(modalQty.replace(',', '.')) : undefined;
+    const unit = modalUnit ?? undefined;
+    setAddModalVisible(false);
     setAddName('');
+    await addPantryItem(user.id, name, isNaN(qty as number) ? undefined : qty, unit);
     const updated = await getPantryItems(user.id);
     setPantryItems(updated);
     loadSuggestions();
@@ -539,11 +658,7 @@ export const SuggestionsScreen: React.FC = () => {
               returnKeyType="done"
               onSubmitEditing={handleAdd}
             />
-            <TouchableOpacity
-              style={[styles.addBtn, !addName.trim() && { opacity: 0.4 }]}
-              onPress={handleAdd}
-              disabled={!addName.trim()}
-            >
+            <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
               <Feather name="plus" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -610,6 +725,80 @@ export const SuggestionsScreen: React.FC = () => {
         <Feather name="check-circle" size={18} color="#fff" />
         <Text style={styles.toastText}>{toastMsg}</Text>
       </Animated.View>
+
+      {/* ── Add item modal ── */}
+      <Modal
+        visible={addModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            activeOpacity={1}
+            onPress={() => setAddModalVisible(false)}
+          />
+          <TouchableOpacity activeOpacity={1} style={styles.addModalCard} onPress={() => {}}>
+            <Text style={styles.addModalTitle}>Adicionar à despensa</Text>
+
+            <View style={styles.addModalField}>
+              <Text style={styles.addModalLabel}>Nome</Text>
+              <TextInput
+                style={styles.addModalInput}
+                value={addName}
+                onChangeText={setAddName}
+                placeholder="Ex: Tomate"
+                placeholderTextColor={colors.textSecondary}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.addModalField}>
+              <Text style={styles.addModalLabel}>Quantidade (opcional)</Text>
+              <TextInput
+                style={[styles.addModalInput, styles.addModalInputQty]}
+                value={modalQty}
+                onChangeText={v => setModalQty(v.replace(/[^0-9.,]/g, ''))}
+                placeholder="Ex: 2"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.addModalField}>
+              <Text style={styles.addModalLabel}>Unidade (opcional)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.unitsRow}>
+                {['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'].map(u => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[styles.unitChip, modalUnit === u && styles.unitChipSelected]}
+                    onPress={() => setModalUnit(modalUnit === u ? null : u)}
+                  >
+                    <Text style={[styles.unitChipText, modalUnit === u && styles.unitChipTextSelected]}>{u}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.addModalActions}>
+              <TouchableOpacity style={styles.addModalCancelBtn} onPress={() => setAddModalVisible(false)}>
+                <Text style={styles.addModalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.addModalConfirmBtn, !addName.trim() && { opacity: 0.4 }]}
+                onPress={handleConfirmAdd}
+                disabled={!addName.trim()}
+              >
+                <Text style={styles.addModalConfirmText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Import modal ── */}
       <Modal
