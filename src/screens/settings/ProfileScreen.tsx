@@ -358,6 +358,11 @@ export const ProfileScreen = () => {
           badge={backupOutdated}
         />
         <MenuItem
+          icon="shuffle"
+          title="Guia de Substituições"
+          onPress={() => navigation.navigate('Substitutions')}
+        />
+        <MenuItem
           icon="moon"
           title="Aparência"
           onPress={() => navigation.navigate('Appearance')}

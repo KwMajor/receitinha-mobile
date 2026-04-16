@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Vibration,
   View,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -22,10 +21,10 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useTimer } from '../../hooks/useTimer';
 import { addToHistory, getRecipeStats } from '../../services/sqlite/cookingHistoryService';
 import { deductRecipeIngredients } from '../../services/sqlite/pantryService';
 import { useAuthStore } from '../../store/authStore';
+import { useTimersStore } from '../../store/timersStore';
 import { Recipe } from '../../types';
 const MAX_NOTE = 200;
 
@@ -83,22 +82,54 @@ export const CookingScreen = () => {
     ]).start();
   }, [celebScale, celebOpacity]);
 
-  // Controle de Timer
+  // ── Timer global (store) ────────────────────────────────────────────────────
+  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers } = useTimersStore();
+  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
+  const prevDoneRef = useRef(false);
+
+  const activeTimer = timers.find(t => t.id === activeTimerId) ?? null;
+  const seconds = activeTimer?.remainingSeconds ?? timerMinutes * 60;
+  const isRunning = activeTimer?.isRunning ?? false;
+  const isDone = activeTimer?.isDone ?? false;
+
+  // Detecta conclusão do timer → flash visual (haptics já disparados pelo motor global em App.tsx)
   const handleTimerComplete = useCallback(() => {
-    Vibration.vibrate([0, 500, 200, 500]);
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 2000);
   }, []);
 
-  const { seconds, isRunning, isDone, start, pause, reset, setDuration } = useTimer({
-    initialSeconds: timerMinutes * 60,
-    stepTitle: currentStep?.instruction || 'Passo atual',
-    onComplete: handleTimerComplete,
-  });
-
   useEffect(() => {
-    setDuration((currentStep?.timer_minutes || 0) * 60);
-  }, [currentStepIndex, setDuration, currentStep?.timer_minutes]);
+    if (isDone && !prevDoneRef.current) handleTimerComplete();
+    prevDoneRef.current = isDone;
+  }, [isDone, handleTimerComplete]);
+
+  // Reseta o timer ativo ao trocar de passo (o timer anterior continua no store)
+  useEffect(() => {
+    setActiveTimerId(null);
+  }, [currentStepIndex]);
+
+  const start = () => {
+    if (!activeTimerId) {
+      const secs = timerMinutes * 60;
+      if (secs <= 0) return;
+      const id = addTimer(`${recipe.title} — Passo ${currentStepIndex + 1}`, secs);
+      setActiveTimerId(id);
+      startTimer(id);
+    } else {
+      resumeTimer(activeTimerId);
+    }
+  };
+
+  const pause = () => {
+    if (activeTimerId) pauseTimer(activeTimerId);
+  };
+
+  const reset = () => {
+    if (activeTimerId) {
+      removeTimer(activeTimerId);
+      setActiveTimerId(null);
+    }
+  };
 
   const handleClose = () => {
     Alert.alert('Sair', 'Tem certeza que quer sair do modo de preparo?', [

@@ -17,6 +17,7 @@ import {
 import { exportAsPDF, exportAsText, exportAsWhatsApp } from '../../services/exportService';
 import { useAuthStore } from '../../store/authStore';
 import { importFromShoppingList } from '../../services/sqlite/pantryService';
+import { useTimersStore } from '../../store/timersStore';
 
 const UNITS = ['un', 'kg', 'g', 'L', 'ml', 'cx', 'pct', 'dz'];
 
@@ -79,6 +80,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const { user } = useAuthStore();
+  const { openDrawer } = useTimersStore();
 
   const [listName, setListName] = useState('');
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -286,6 +288,14 @@ export const ShoppingListDetailScreen: React.FC = () => {
           ) : (
             <Feather name="share-2" size={20} color={colors.text} />
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => openDrawer(true)}
+          style={styles.timerBtn}
+          accessibilityLabel="Adicionar timer"
+        >
+          <Feather name="clock" size={13} color={colors.primary} />
+          <Text style={styles.timerBtnText}>+ Timer</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleDeleteList}
@@ -637,6 +647,20 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginLeft: theme.spacing.xs,
   },
   iconBtn: { padding: theme.spacing.sm },
+  timerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: colors.primaryLight,
+  },
+  timerBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
   iconBtnDisabled: { opacity: 0.4 },
   successBanner: {
     flexDirection: 'row',

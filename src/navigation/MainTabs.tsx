@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,6 +18,7 @@ import { CookingHistoryScreen } from '../screens/settings/CookingHistoryScreen';
 import { ConverterScreen } from '../screens/settings/ConverterScreen';
 import { BackupScreen } from '../screens/settings/BackupScreen';
 import { AppearanceScreen } from '../screens/settings/AppearanceScreen';
+import { SubstitutionsScreen } from '../screens/settings/SubstitutionsScreen';
 import { WeekPlanScreen } from '../screens/planning/WeekPlanScreen';
 import { SuggestionsScreen } from '../screens/suggestions/SuggestionsScreen';
 import { ShoppingListsScreen } from '../screens/shopping/ShoppingListsScreen';
@@ -24,6 +26,8 @@ import { ShoppingListDetailScreen } from '../screens/shopping/ShoppingListDetail
 import { BarcodeScannerScreen } from '../screens/shopping/BarcodeScannerScreen';
 import { CommunityFeedScreen } from '../screens/social/CommunityFeedScreen';
 import { PublicRecipeScreen } from '../screens/social/PublicRecipeScreen';
+import { FloatingTimerWidget } from '../components/timers/FloatingTimerWidget';
+import { TimerDrawer } from '../components/timers/TimerDrawer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -86,6 +90,7 @@ const ProfileStackGroup = () => (
     <Stack.Screen name="Converter" component={ConverterScreen} options={{ title: 'Conversor de Medidas' }} />
     <Stack.Screen name="Backup" component={BackupScreen} options={{ title: 'Backup na nuvem' }} />
     <Stack.Screen name="Appearance" component={AppearanceScreen} options={{ title: 'Aparência' }} />
+    <Stack.Screen name="Substitutions" component={SubstitutionsScreen} options={{ title: 'Guia de Substituições' }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
     <Stack.Screen name="CookingMode" component={CookingScreen} options={{ presentation: 'modal' }} />
@@ -98,6 +103,7 @@ export const MainTabs = () => {
   const { colors } = useTheme();
 
   return (
+    <View style={{ flex: 1 }}>
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -158,5 +164,8 @@ export const MainTabs = () => {
         }}
       />
     </Tab.Navigator>
+    <FloatingTimerWidget />
+    <TimerDrawer />
+    </View>
   );
 };

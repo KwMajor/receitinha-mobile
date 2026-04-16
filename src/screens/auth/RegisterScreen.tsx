@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { signUp } from '../../services/firebase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const registerSchema = z.object({
   name: z.string()
@@ -41,25 +42,26 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 const PASSWORD_RULES = [
-  { label: 'Mínimo 8 caracteres',      test: (v: string) => v.length >= 8 },
-  { label: 'Uma letra maiúscula',       test: (v: string) => /[A-Z]/.test(v) },
-  { label: 'Uma letra minúscula',       test: (v: string) => /[a-z]/.test(v) },
-  { label: 'Um número',                 test: (v: string) => /[0-9]/.test(v) },
-  { label: 'Um caractere especial',     test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+  { label: 'Mínimo 8 caracteres',  test: (v: string) => v.length >= 8 },
+  { label: 'Uma letra maiúscula',  test: (v: string) => /[A-Z]/.test(v) },
+  { label: 'Uma letra minúscula',  test: (v: string) => /[a-z]/.test(v) },
+  { label: 'Um número',            test: (v: string) => /[0-9]/.test(v) },
+  { label: 'Um caractere especial',test: (v: string) => /[^A-Za-z0-9]/.test(v) },
 ];
 
 function PasswordStrength({ value }: { value: string }) {
+  const { colors } = useTheme();
   if (!value) return null;
   const passed = PASSWORD_RULES.filter((r) => r.test(value)).length;
   const strength = passed <= 2 ? 'Fraca' : passed <= 4 ? 'Média' : 'Forte';
-  const color = passed <= 2 ? theme.colors.error : passed <= 4 ? '#F59E0B' : theme.colors.success;
+  const color = passed <= 2 ? colors.error : passed <= 4 ? '#F59E0B' : colors.success;
   return (
     <View style={strengthStyles.container}>
       <View style={strengthStyles.bars}>
         {PASSWORD_RULES.map((_, i) => (
           <View
             key={i}
-            style={[strengthStyles.bar, { backgroundColor: i < passed ? color : theme.colors.border }]}
+            style={[strengthStyles.bar, { backgroundColor: i < passed ? color : colors.border }]}
           />
         ))}
       </View>
@@ -69,8 +71,8 @@ function PasswordStrength({ value }: { value: string }) {
           const ok = r.test(value);
           return (
             <View key={r.label} style={strengthStyles.ruleRow}>
-              <Feather name={ok ? 'check' : 'x'} size={11} color={ok ? theme.colors.success : theme.colors.textSecondary} />
-              <Text style={[strengthStyles.ruleText, ok && strengthStyles.ruleTextOk]}>{r.label}</Text>
+              <Feather name={ok ? 'check' : 'x'} size={11} color={ok ? colors.success : colors.textSecondary} />
+              <Text style={[strengthStyles.ruleText, { color: colors.textSecondary }, ok && { color: colors.success }]}>{r.label}</Text>
             </View>
           );
         })}
@@ -84,6 +86,8 @@ export const RegisterScreen = () => {
   const [passwordValue, setPasswordValue] = useState('');
   const { setUser } = useAuthStore();
   const navigation = useNavigation<any>();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -103,7 +107,6 @@ export const RegisterScreen = () => {
     try {
       setLoading(true);
       const user = await signUp(data.email, data.password, data.name);
-
       setUser({
         id: user.uid,
         name: data.name,
@@ -118,7 +121,7 @@ export const RegisterScreen = () => {
   };
 
   return (
-        <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Crie sua conta</Text>
 
       <Controller
@@ -133,6 +136,7 @@ export const RegisterScreen = () => {
               onChangeText={(t) => onChange(t.replace(/[^\p{L}\p{M} ]/gu, ''))}
               value={value}
               placeholder="João da Silva"
+              placeholderTextColor={colors.textSecondary}
               autoCapitalize="words"
               returnKeyType="done"
             />
@@ -156,6 +160,7 @@ export const RegisterScreen = () => {
               autoCapitalize="none"
               autoCorrect={false}
               placeholder="seu@email.com"
+              placeholderTextColor={colors.textSecondary}
               returnKeyType="done"
             />
             {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
@@ -176,6 +181,7 @@ export const RegisterScreen = () => {
               value={value}
               secureTextEntry
               placeholder="******"
+              placeholderTextColor={colors.textSecondary}
               returnKeyType="done"
             />
             <PasswordStrength value={passwordValue} />
@@ -190,7 +196,16 @@ export const RegisterScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirmar Senha</Text>
-            <TextInput style={styles.input} onBlur={onBlur} onChangeText={onChange} value={value} secureTextEntry placeholder="******" returnKeyType="done" />
+            <TextInput
+              style={styles.input}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              secureTextEntry
+              placeholder="******"
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="done"
+            />
             {errors.confirmPassword && <Text style={styles.error}>{errors.confirmPassword.message}</Text>}
           </View>
         )}
@@ -214,20 +229,19 @@ const strengthStyles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '700' },
   rules: { gap: 3 },
   ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  ruleText: { fontSize: 12, color: theme.colors.textSecondary },
-  ruleTextOk: { color: theme.colors.success },
+  ruleText: { fontSize: 12 },
 });
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: theme.spacing.lg, backgroundColor: theme.colors.background, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.xl, textAlign: 'center' },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flexGrow: 1, padding: theme.spacing.lg, backgroundColor: colors.background, justifyContent: 'center' },
+  title: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: theme.spacing.xl, textAlign: 'center' },
   inputContainer: { marginBottom: theme.spacing.md },
-  label: { marginBottom: theme.spacing.xs, color: theme.colors.text },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: theme.colors.surface },
-  error: { color: theme.colors.error, fontSize: 12, marginTop: 4 },
-  button: { backgroundColor: theme.colors.primary, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, alignItems: 'center', marginTop: theme.spacing.lg },
+  label: { marginBottom: theme.spacing.xs, color: colors.text },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: colors.surface, color: colors.text },
+  error: { color: colors.error, fontSize: 12, marginTop: 4 },
+  button: { backgroundColor: colors.primary, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, alignItems: 'center', marginTop: theme.spacing.lg },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   loginLink: { marginTop: theme.spacing.xl, alignItems: 'center' },
-  loginText: { color: theme.colors.textSecondary },
-  loginTextBold: { color: theme.colors.primary, fontWeight: 'bold' }
+  loginText: { color: colors.textSecondary },
+  loginTextBold: { color: colors.primary, fontWeight: 'bold' },
 });

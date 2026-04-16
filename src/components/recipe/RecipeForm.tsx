@@ -46,6 +46,7 @@ export interface RecipeFormProps {
   initialData?: any;
   onSubmitData: (data: any) => Promise<void>;
   titleHeader?: string;
+  onImportPress?: () => void;
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
@@ -71,7 +72,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   modalItemText: { fontSize: 16, textAlign: 'center' as const, color: colors.text },
 });
 
-const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }: RecipeFormProps) => {
+const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', onImportPress }: RecipeFormProps) => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { colors } = useTheme();
@@ -113,12 +114,19 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     navigation.setOptions({
       title: titleHeader,
       headerRight: () => (
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.primary} size="small" /> : <Feather name="check" size={24} color={colors.primary} />}
-        </TouchableOpacity>
-      )
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: theme.spacing.md }}>
+          {onImportPress && (
+            <TouchableOpacity onPress={onImportPress} style={{ padding: 4 }}>
+              <Feather name="link" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleSubmit(onSubmit)} disabled={loading} style={{ padding: 4 }}>
+            {loading ? <ActivityIndicator color={colors.primary} size="small" /> : <Feather name="check" size={24} color={colors.primary} />}
+          </TouchableOpacity>
+        </View>
+      ),
     });
-  }, [navigation, loading, titleHeader]);
+  }, [navigation, loading, titleHeader, onImportPress]);
 
   const uploadPhoto = async (uri: string): Promise<string> => {
     // Busca assinatura do backend — nunca expõe o API secret no app

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -15,6 +15,9 @@ import { useServings } from '../../hooks/useServings';
 import { NutritionCard } from '../../components/recipe/NutritionCard';
 import { calculateRecipeNutrition, NutritionInfo } from '../../services/nutritionService';
 import { publishRecipe, unpublishRecipe } from '../../services/api/communityService';
+import { SubstitutionBadge } from '../../components/recipe/SubstitutionBadge';
+import { SubstitutionModal } from '../../components/recipe/SubstitutionModal';
+import { getSubstitutionsForRecipe, SubstitutionEntry } from '../../services/substitutionService';
 
 export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
@@ -30,6 +33,12 @@ export const RecipeDetailScreen = () => {
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [nutrition, setNutrition] = useState<NutritionInfo | null>(null);
   const [nutritionLoading, setNutritionLoading] = useState(false);
+  const [subModalEntry, setSubModalEntry] = useState<SubstitutionEntry | null>(null);
+
+  const substitutionMap = useMemo(
+    () => recipe?.ingredients?.length ? getSubstitutionsForRecipe(recipe.ingredients) : new Map<string, SubstitutionEntry>(),
+    [recipe?.ingredients],
+  );
 
   // Utilize the servings hook
   const { currentServings, setServings, adjustedIngredients } = useServings(
@@ -236,17 +245,26 @@ export const RecipeDetailScreen = () => {
 
           <View style={styles.tabContent}>
             {activeTab === 'ingredients' ? (
-              adjustedIngredients.map((ing, i) => (
-                <View key={ing.id} style={styles.ingredientRow}>
-                  <View style={styles.bullet} />
-                  <Text style={styles.ingredientText}>
-                    <Text style={[styles.boldText, (ing as any).isAdjusted && { color: colors.primary }]}>
-                      {formatQuantity(ing.quantity)} {formatUnit(ing.quantity, ing.unit)} 
+              adjustedIngredients.map((ing) => {
+                const subEntry = substitutionMap.get(ing.name);
+                return (
+                  <View key={ing.id} style={styles.ingredientRow}>
+                    <View style={styles.bullet} />
+                    <Text style={styles.ingredientText}>
+                      <Text style={[styles.boldText, (ing as any).isAdjusted && { color: colors.primary }]}>
+                        {formatQuantity(ing.quantity)} {formatUnit(ing.quantity, ing.unit)}
+                      </Text>
+                      {' '}de {ing.name}
                     </Text>
-                    {' '}de {ing.name}
-                  </Text>
-                </View>
-              ))
+                    {subEntry && (
+                      <SubstitutionBadge
+                        ingredientName={ing.name}
+                        onPress={() => setSubModalEntry(subEntry)}
+                      />
+                    )}
+                  </View>
+                );
+              })
             ) : (
               <View>
                 {recipe.steps.length > 0 && (
@@ -283,6 +301,14 @@ export const RecipeDetailScreen = () => {
 
         </View>
       </ScrollView>
+
+      {/* Modal único de substituições — um só por tela, não um por ingrediente */}
+      <SubstitutionModal
+        visible={subModalEntry !== null}
+        entry={subModalEntry}
+        ingredientName={subModalEntry?.original ?? ''}
+        onClose={() => setSubModalEntry(null)}
+      />
 
       {/* Botão Flutuante Iniciar Preparo */}
       <View style={styles.fabContainer}>

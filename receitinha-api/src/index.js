@@ -13,6 +13,7 @@ const userHistoryRouter = require('./routes/user/history');
 const userShoppingRouter = require('./routes/user/shopping');
 const userPlanningRouter = require('./routes/user/planning');
 const userPhotosRouter = require('./routes/user/photos');
+const scrapeRouter = require('./routes/scrape');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,6 +80,16 @@ app.use('/api/user/history', userLimiter, userHistoryRouter);
 app.use('/api/user/shopping', userLimiter, userShoppingRouter);
 app.use('/api/user/planning', userLimiter, userPlanningRouter);
 app.use('/api/user/photos', userLimiter, userPhotosRouter);
+
+// Scrape de receitas — rate limit estrito (faz chamadas HTTP externas)
+const scrapeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Limite de importações atingido. Aguarde alguns minutos.' },
+});
+app.use('/api/scrape', scrapeLimiter, scrapeRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
