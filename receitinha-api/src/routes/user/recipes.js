@@ -16,6 +16,7 @@ function mapRecipe(r) {
     servings: r.servings,
     category: r.category ?? '',
     photoUrl: r.photo_url ?? null,
+    videoUrl: r.video_url ?? null,
     is_public: r.is_public ? 1 : 0,
     createdAt: r.created_at,
   };
@@ -102,15 +103,16 @@ router.post('/', async (req, res) => {
     if (isNaN(servings) || servings < 1 || servings > 100) return res.status(400).json({ message: 'Porções inválidas (1–100).' });
     const category = typeof req.body.category === 'string' ? req.body.category.trim().slice(0, 100) : '';
     const photoUrl = typeof req.body.photoUrl === 'string' ? req.body.photoUrl.slice(0, 500) : null;
+    const videoUrl = typeof req.body.videoUrl === 'string' && req.body.videoUrl ? req.body.videoUrl.slice(0, 500) : null;
     const isPublic = req.body.isPublic === true;
     const ingredients = Array.isArray(req.body.ingredients) ? req.body.ingredients.slice(0, 100) : [];
     const steps = Array.isArray(req.body.steps) ? req.body.steps.slice(0, 100) : [];
 
     const id = randomUUID();
     await pool.query(
-      `INSERT INTO user_recipes (id, user_id, title, description, prep_time, servings, category, photo_url, is_public)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [id, req.user.uid, title, description, prepTime, servings, category, photoUrl, isPublic]
+      `INSERT INTO user_recipes (id, user_id, title, description, prep_time, servings, category, photo_url, video_url, is_public)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [id, req.user.uid, title, description, prepTime, servings, category, photoUrl, videoUrl, isPublic]
     );
 
     for (let j = 0; j < ingredients.length; j++) {
@@ -144,7 +146,7 @@ router.post('/', async (req, res) => {
 // PUT /api/user/recipes/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { title, description, prepTime, servings, category, photoUrl, isPublic, ingredients, steps } = req.body;
+    const { title, description, prepTime, servings, category, photoUrl, videoUrl, isPublic, ingredients, steps } = req.body;
     const fields = []; const vals = [];
     let i = 1;
     if (title !== undefined) {
@@ -165,6 +167,7 @@ router.put('/:id', async (req, res) => {
     }
     if (category !== undefined)    { fields.push(`category=$${i++}`);    vals.push(typeof category === 'string' ? category.trim().slice(0, 100) : ''); }
     if (photoUrl !== undefined)    { fields.push(`photo_url=$${i++}`);   vals.push(typeof photoUrl === 'string' ? photoUrl.slice(0, 500) : null); }
+    if (videoUrl !== undefined)    { fields.push(`video_url=$${i++}`);   vals.push(typeof videoUrl === 'string' && videoUrl ? videoUrl.slice(0, 500) : null); }
     if (isPublic !== undefined)    { fields.push(`is_public=$${i++}`);   vals.push(isPublic === true); }
 
     if (fields.length) {
@@ -195,6 +198,22 @@ router.put('/:id', async (req, res) => {
     }
 
     res.json(await fetchFull(req.params.id));
+  } catch (err) {
+    console.error(err); res.status(500).json({ message: 'Erro interno.' });
+  }
+});
+
+// PATCH /api/user/recipes/:id/video
+router.patch('/:id/video', async (req, res) => {
+  try {
+    const videoUrl = typeof req.body.videoUrl === 'string' && req.body.videoUrl
+      ? req.body.videoUrl.slice(0, 500)
+      : null;
+    await pool.query(
+      'UPDATE user_recipes SET video_url=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3',
+      [videoUrl, req.params.id, req.user.uid]
+    );
+    res.json({ ok: true });
   } catch (err) {
     console.error(err); res.status(500).json({ message: 'Erro interno.' });
   }

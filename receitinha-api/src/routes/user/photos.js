@@ -16,7 +16,9 @@ router.get('/sign', (req, res) => {
     return res.status(503).json({ message: 'Serviço de upload não configurado.' });
   }
 
-  const folder = `recipes/${req.user.uid}`;
+  const folder = req.query.type === 'video'
+    ? `recipes/videos/${req.user.uid}`
+    : `recipes/${req.user.uid}`;
   const timestamp = Math.round(Date.now() / 1000);
 
   // Assina exatamente os parâmetros que serão enviados ao Cloudinary

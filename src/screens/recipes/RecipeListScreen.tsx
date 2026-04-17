@@ -11,6 +11,7 @@ import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { getCategories } from '../../services/sqlite/categoryService';
 import { useAuthStore } from '../../store/authStore';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { useTimersStore } from '../../store/timersStore';
 
 export const RecipeListScreen = () => {
   const navigation = useNavigation<any>();
@@ -22,6 +23,8 @@ export const RecipeListScreen = () => {
   const [categoryList, setCategoryList] = useState<string[]>([]);
   
   const { recipes, isLoading, error, fetchRecipes, applyFilters, filters, refresh } = useRecipes();
+  const { timers, openDrawer } = useTimersStore();
+  const activeTimerCount = timers.filter(t => !t.isDone).length;
   
   const debouncedSearch = useDebounce(localSearch, 300);
 
@@ -114,6 +117,21 @@ export const RecipeListScreen = () => {
         />
       )}
 
+      {/* FAB — Timer */}
+      <TouchableOpacity
+        style={styles.timerFab}
+        onPress={() => openDrawer()}
+        accessibilityLabel="Abrir timers"
+        accessibilityRole="button"
+      >
+        <Feather name="clock" size={22} color="#fff" />
+        {activeTimerCount > 0 && (
+          <View style={styles.timerBadge}>
+            <Text style={styles.timerBadgeText}>{activeTimerCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
       {/* MODAL DE FILTROS */}
       <Modal visible={filterModalVisible} animationType="slide" transparent onRequestClose={() => setFilterModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
@@ -189,5 +207,34 @@ const getStyles = (colors: any) => StyleSheet.create({
   clearBtn: { flex: 1, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: colors.surface },
   clearBtnText: { color: colors.text, fontWeight: 'bold' },
   applyBtn: { flex: 2, padding: theme.spacing.md, alignItems: 'center', borderRadius: theme.borderRadius.md, backgroundColor: colors.primary },
-  applyBtnText: { color: '#fff', fontWeight: 'bold' }
+  applyBtnText: { color: '#fff', fontWeight: 'bold' },
+  timerFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  timerBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  timerBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 });

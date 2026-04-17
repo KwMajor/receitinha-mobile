@@ -157,6 +157,31 @@ async function init() {
     CREATE INDEX IF NOT EXISTS idx_uwp_user    ON user_week_plan(user_id, week_start);
   `);
 
+  // Migration: add video_url column to user_recipes if not exists
+  await pool.query(`
+    ALTER TABLE user_recipes ADD COLUMN IF NOT EXISTS video_url TEXT;
+  `);
+
+  // Migration: add price column to user_shopping_items if not exists
+  await pool.query(`
+    ALTER TABLE user_shopping_items ADD COLUMN IF NOT EXISTS price REAL DEFAULT NULL;
+  `);
+
+  // Migration: persistent spending records (survives list deletion)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_spending_records (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL,
+      item_name    TEXT NOT NULL,
+      category     TEXT DEFAULT 'Outros',
+      price        REAL NOT NULL,
+      list_name    TEXT,
+      list_id      TEXT,
+      recorded_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_usp_user ON user_spending_records(user_id, recorded_at DESC);
+  `);
+
   // Migration: troca ON DELETE CASCADE → SET NULL em user_week_plan.recipe_id
   // Isso evita que deletar uma receita remova as entradas do plano semanal.
   await pool.query(`

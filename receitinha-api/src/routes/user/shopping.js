@@ -19,6 +19,7 @@ function mapItem(i) {
     id: i.id, listId: i.list_id, name: i.name,
     quantity: i.quantity ?? undefined, unit: i.unit ?? undefined,
     category: i.category, isChecked: i.is_checked, addedAt: i.added_at,
+    price: i.price ?? undefined,
   };
 }
 
@@ -72,6 +73,23 @@ router.put('/lists/:id', async (req, res) => {
 // DELETE /api/user/shopping/lists/:id
 router.delete('/lists/:id', async (req, res) => {
   try {
+    // Archive checked+priced items before deletion
+    const { rows: [listRow] } = await pool.query(
+      'SELECT name FROM user_shopping_lists WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.uid]
+    );
+    if (listRow) {
+      const { rows: pricedItems } = await pool.query(
+        'SELECT id, name, category, price FROM user_shopping_items WHERE list_id = $1 AND is_checked = TRUE AND price IS NOT NULL',
+        [req.params.id]
+      );
+      for (const item of pricedItems) {
+        await pool.query(
+          'INSERT INTO user_spending_records (id, user_id, item_name, category, price, list_name, list_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+          [randomUUID(), req.user.uid, item.name, item.category || 'Outros', item.price, listRow.name, req.params.id]
+        );
+      }
+    }
     await pool.query('DELETE FROM user_shopping_lists WHERE id = $1 AND user_id = $2',
       [req.params.id, req.user.uid]);
     res.status(204).send();
@@ -172,10 +190,39 @@ router.delete('/items/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
 });
 
+// PATCH /api/user/shopping/items/:id/price
+router.patch('/items/:id/price', async (req, res) => {
+  try {
+    if (!await requireItemOwnership(req.params.id, req.user.uid, res)) return;
+    const raw = req.body.price;
+    const price = raw == null ? null : Number(raw);
+    if (price !== null && (isNaN(price) || price < 0)) {
+      return res.status(400).json({ message: 'Preço inválido.' });
+    }
+    await pool.query(
+      'UPDATE user_shopping_items SET price = $1 WHERE id = $2',
+      [price, req.params.id]
+    );
+    res.status(204).send();
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
+});
+
 // DELETE /api/user/shopping/lists/:id/checked
 router.delete('/lists/:id/checked', async (req, res) => {
   try {
     if (!await requireListOwnership(req.params.id, req.user.uid, res)) return;
+    // Archive priced checked items before removal
+    const { rows: [listRow] } = await pool.query('SELECT name FROM user_shopping_lists WHERE id = $1', [req.params.id]);
+    const { rows: pricedItems } = await pool.query(
+      'SELECT name, category, price FROM user_shopping_items WHERE list_id = $1 AND is_checked = TRUE AND price IS NOT NULL',
+      [req.params.id]
+    );
+    for (const item of pricedItems) {
+      await pool.query(
+        'INSERT INTO user_spending_records (id, user_id, item_name, category, price, list_name, list_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [randomUUID(), req.user.uid, item.name, item.category || 'Outros', item.price, listRow?.name ?? null, req.params.id]
+      );
+    }
     await pool.query('DELETE FROM user_shopping_items WHERE list_id = $1 AND is_checked = TRUE', [req.params.id]);
     res.status(204).send();
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
@@ -238,6 +285,84 @@ router.post('/generate', async (req, res) => {
     }
 
     res.status(201).json({ id: listId });
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
+});
+
+// GET /api/user/shopping/budget?months=4
+// Returns monthly totals + category breakdown from persistent spending records
+router.get('/budget', async (req, res) => {
+  try {
+    const months = Math.min(12, Math.max(1, parseInt(req.query.months ?? '4') || 4));
+    const cutoff = `DATE_TRUNC('month', NOW()) - INTERVAL '1 month' * ($2 - 1)`;
+
+    const { rows: monthRows } = await pool.query(
+      `SELECT
+         TO_CHAR(DATE_TRUNC('month', recorded_at), 'YYYY-MM') AS month,
+         SUM(price) AS total
+       FROM user_spending_records
+       WHERE user_id = $1
+         AND recorded_at >= ${cutoff}
+       GROUP BY DATE_TRUNC('month', recorded_at)
+       ORDER BY DATE_TRUNC('month', recorded_at) ASC`,
+      [req.user.uid, months]
+    );
+
+    const { rows: catRows } = await pool.query(
+      `SELECT category, SUM(price) AS total
+       FROM user_spending_records
+       WHERE user_id = $1
+         AND recorded_at >= ${cutoff}
+       GROUP BY category
+       ORDER BY total DESC`,
+      [req.user.uid, months]
+    );
+
+    const grandTotal = catRows.reduce((s, r) => s + parseFloat(r.total), 0);
+
+    res.json({
+      months: monthRows.map(r => ({ month: r.month, total: parseFloat(r.total) })),
+      categories: catRows.map(r => ({
+        category: r.category,
+        total: parseFloat(r.total),
+        percentage: grandTotal > 0 ? Math.round((parseFloat(r.total) / grandTotal) * 100) : 0,
+      })),
+    });
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
+});
+
+// GET /api/user/shopping/spending?months=6
+// Returns detailed spending records grouped by month (for the history screen)
+router.get('/spending', async (req, res) => {
+  try {
+    const months = Math.min(24, Math.max(1, parseInt(req.query.months ?? '6') || 6));
+
+    const { rows } = await pool.query(
+      `SELECT id, item_name, category, price, list_name, recorded_at
+       FROM user_spending_records
+       WHERE user_id = $1
+         AND recorded_at >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month' * ($2 - 1)
+       ORDER BY recorded_at DESC`,
+      [req.user.uid, months]
+    );
+
+    // Group by month
+    const grouped = new Map();
+    for (const r of rows) {
+      const monthKey = r.recorded_at.toISOString().slice(0, 7);
+      if (!grouped.has(monthKey)) grouped.set(monthKey, { month: monthKey, total: 0, records: [] });
+      const entry = grouped.get(monthKey);
+      entry.total += parseFloat(r.price);
+      entry.records.push({
+        id: r.id,
+        itemName: r.item_name,
+        category: r.category,
+        price: parseFloat(r.price),
+        listName: r.list_name,
+        recordedAt: r.recorded_at,
+      });
+    }
+
+    res.json(Array.from(grouped.values()));
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
 });
 

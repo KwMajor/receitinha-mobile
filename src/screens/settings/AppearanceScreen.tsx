@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Image,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSettingsStore, ThemeOption, FontSizeOption } from '../../store/settingsStore';
+import { useSettingsStore, ThemeOption, FontSizeOption, VoiceRateOption } from '../../store/settingsStore';
 
 // ── Opções de tema ─────────────────────────────────────────────────────────────
 
@@ -37,9 +37,15 @@ const FONT_OPTIONS: FontCard[] = [
 
 // ── Componente ─────────────────────────────────────────────────────────────────
 
+const VOICE_RATE_OPTIONS: { value: VoiceRateOption; label: string }[] = [
+  { value: 'slow',   label: 'Lenta'  },
+  { value: 'normal', label: 'Normal' },
+  { value: 'fast',   label: 'Rápida' },
+];
+
 export const AppearanceScreen: React.FC = () => {
-  const { colors, fontSizes, spacing, borderRadius, isDark } = useTheme();
-  const { theme, fontSize, setTheme, setFontSize } = useSettingsStore();
+  const { colors, fontSizes, spacing, borderRadius } = useTheme();
+  const { theme, fontSize, voiceAutoRead, voiceRate, setTheme, setFontSize, setVoiceAutoRead, setVoiceRate } = useSettingsStore();
 
   const s = useStyles(colors, spacing, borderRadius);
 
@@ -138,6 +144,45 @@ export const AppearanceScreen: React.FC = () => {
               <Feather name="users" size={fontSizes.md} color={colors.textSecondary} />
               <Text style={[s.previewMetaText, { fontSize: fontSizes.sm }]}>8 porções</Text>
             </View>
+          </View>
+        </View>
+
+        {/* ── SEÇÃO VOZ ── */}
+        <Text style={[s.sectionTitle, { fontSize: fontSizes.sm, marginTop: spacing.lg }]}>VOZ</Text>
+
+        <View style={s.voiceCard}>
+          <View style={s.voiceRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[s.voiceLabel, { fontSize: fontSizes.md }]}>Ler passos automaticamente</Text>
+              <Text style={[s.voiceDesc, { fontSize: fontSizes.xs }]}>Lê cada passo em voz alta ao avançar no preparo</Text>
+            </View>
+            <Switch
+              value={voiceAutoRead}
+              onValueChange={setVoiceAutoRead}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          <View style={s.voiceDivider} />
+
+          <Text style={[s.voiceRateLabel, { fontSize: fontSizes.xs }]}>VELOCIDADE DA FALA</Text>
+          <View style={s.voiceRateRow}>
+            {VOICE_RATE_OPTIONS.map(opt => {
+              const selected = voiceRate === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[s.voiceRateBtn, selected && s.voiceRateBtnSelected]}
+                  onPress={() => setVoiceRate(opt.value)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[s.voiceRateBtnText, { fontSize: fontSizes.sm }, selected && s.voiceRateBtnTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -352,6 +397,62 @@ function useStyles(
     miniCardMeta: {
       flexDirection: 'row',
       gap: spacing.md,
+    },
+
+    // Voz
+    voiceCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    voiceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    voiceLabel: {
+      fontWeight: '600',
+      color: colors.text,
+    },
+    voiceDesc: {
+      color: colors.textSecondary,
+    },
+    voiceDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    voiceRateLabel: {
+      fontWeight: '700',
+      color: colors.textSecondary,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    voiceRateRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    voiceRateBtn: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.background,
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    voiceRateBtnSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    voiceRateBtnText: {
+      fontWeight: '600',
+      color: colors.text,
+    },
+    voiceRateBtnTextSelected: {
+      color: '#fff',
     },
   });
 }

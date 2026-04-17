@@ -1,5 +1,5 @@
 import { api } from '../api/client';
-import { ShoppingList, ShoppingItem } from '../../types';
+import { ShoppingList, ShoppingItem, BudgetReport, SpendingMonth } from '../../types';
 
 // ── List management ──────────────────────────────────────────────────────────
 
@@ -76,6 +76,18 @@ export async function clearChecked(listId: string): Promise<void> {
 
 export async function getItems(listId: string): Promise<ShoppingItem[]> {
   return api.get<ShoppingItem[]>(`/api/user/shopping/lists/${listId}/items`);
+}
+
+export async function setItemPrice(itemId: string, price: number | null): Promise<void> {
+  await api.patch(`/api/user/shopping/items/${itemId}/price`, { price });
+}
+
+export async function getBudgetReport(months = 4): Promise<BudgetReport> {
+  return api.get<BudgetReport>(`/api/user/shopping/budget?months=${months}`);
+}
+
+export async function getSpendingHistory(months = 6): Promise<SpendingMonth[]> {
+  return api.get<SpendingMonth[]>(`/api/user/shopping/spending?months=${months}`);
 }
 
 // ── Auto-generation from week plan ──────────────────────────────────────────

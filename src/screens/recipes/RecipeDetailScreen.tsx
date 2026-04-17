@@ -18,6 +18,7 @@ import { publishRecipe, unpublishRecipe } from '../../services/api/communityServ
 import { SubstitutionBadge } from '../../components/recipe/SubstitutionBadge';
 import { SubstitutionModal } from '../../components/recipe/SubstitutionModal';
 import { getSubstitutionsForRecipe, SubstitutionEntry } from '../../services/substitutionService';
+import { VideoPlayer } from '../../components/recipe/VideoPlayer';
 
 export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
@@ -223,6 +224,10 @@ export const RecipeDetailScreen = () => {
               onDecrease={() => setServings((prev: number) => prev - 1)}
             />
           </View>
+
+          {recipe.videoUrl ? (
+            <VideoPlayer uri={recipe.videoUrl} />
+          ) : null}
 
           <View style={styles.tabsContainer} accessibilityRole="tablist">
              <TouchableOpacity

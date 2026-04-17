@@ -14,6 +14,7 @@ import { api } from '../../services/api/client';
 import { getCategories } from '../../services/sqlite/categoryService';
 
 import { PhotoPicker } from '../../components/forms/PhotoPicker';
+import { VideoPicker } from '../../components/forms/VideoPicker';
 import { IngredientItem } from '../../components/forms/IngredientItem';
 import { StepItem } from '../../components/forms/StepItem';
 
@@ -25,6 +26,7 @@ const recipeSchema = z.object({
     .min(1, 'Obrigatório')
     .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   photoUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
   ingredients: z.array(z.object({
     quantity: z.string()
       .min(1, 'Obrigatório')
@@ -128,6 +130,33 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
     });
   }, [navigation, loading, titleHeader, onImportPress]);
 
+  const uploadVideo = async (uri: string): Promise<string> => {
+    const { signature, timestamp, apiKey, cloudName, folder } = await api.get<{
+      signature: string; timestamp: number; apiKey: string; cloudName: string; folder: string;
+    }>('/api/user/photos/sign?type=video');
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+
+    const result = await uploadAsync(uploadUrl, uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: 'video/mp4',
+      parameters: {
+        api_key: apiKey,
+        timestamp: String(timestamp),
+        signature,
+        folder,
+      },
+    });
+
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`Upload do vídeo falhou com status ${result.status}`);
+    }
+
+    return JSON.parse(result.body).secure_url;
+  };
+
   const uploadPhoto = async (uri: string): Promise<string> => {
     // Busca assinatura do backend — nunca expõe o API secret no app
     const { signature, timestamp, apiKey, cloudName, folder } = await api.get<{
@@ -167,12 +196,18 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
         finalPhotoUrl = await uploadPhoto(data.photoUrl);
       }
 
+      let finalVideoUrl = data.videoUrl;
+      if (data.videoUrl && !data.videoUrl.startsWith('http')) {
+        finalVideoUrl = await uploadVideo(data.videoUrl);
+      }
+
       const prepTime = data.steps.reduce((acc, s) => acc + parseInt(s.timerMinutes, 10), 0);
 
       await onSubmitData({
         ...data,
         prepTime,
         photoUrl: finalPhotoUrl,
+        videoUrl: finalVideoUrl,
       });
 
     } catch (error) {
@@ -194,13 +229,20 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
     >
-      {/* SEÇÃO 1 — Foto */}
+      {/* SEÇÃO 1 — Foto e Vídeo */}
       <View style={styles.section}>
         <Controller
           control={control}
           name="photoUrl"
           render={({ field: { onChange, value } }) => (
             <PhotoPicker imageUri={value || null} onChange={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="videoUrl"
+          render={({ field: { onChange, value } }) => (
+            <VideoPicker videoUri={value || null} onChange={uri => onChange(uri ?? '')} />
           )}
         />
       </View>

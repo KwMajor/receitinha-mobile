@@ -18,6 +18,7 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as Speech from 'expo-speech';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -25,6 +26,9 @@ import { addToHistory, getRecipeStats } from '../../services/sqlite/cookingHisto
 import { deductRecipeIngredients } from '../../services/sqlite/pantryService';
 import { useAuthStore } from '../../store/authStore';
 import { useTimersStore } from '../../store/timersStore';
+import { useSettingsStore, VOICE_RATE_VALUES } from '../../store/settingsStore';
+import { useVoiceControl } from '../../hooks/useVoiceControl';
+import { parseCommand } from '../../utils/voiceCommands';
 import { Recipe } from '../../types';
 const MAX_NOTE = 200;
 
@@ -179,7 +183,120 @@ export const CookingScreen = () => {
     }
   };
 
-  // Gestos (Swipe)
+  // ── Voz ────────────────────────────────────────────────────────────────────
+  const { voiceRate } = useSettingsStore();
+  const { isListening, transcript, isSupported, startListening, stopListening, destroy } = useVoiceControl();
+
+  const voiceActiveRef = useRef(false);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (voiceActive) {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.25, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseLoop.current?.stop();
+      pulseAnim.setValue(1);
+    }
+  }, [voiceActive, pulseAnim]);
+
+  // Cleanup voz ao desmontar
+  useEffect(() => () => { destroy(); }, [destroy]);
+
+  const speak = useCallback((text: string) => {
+    Speech.stop();
+    Speech.speak(text, { language: 'pt-BR', rate: VOICE_RATE_VALUES[voiceRate] });
+  }, [voiceRate]);
+
+  // Processa transcript novo
+  useEffect(() => {
+    if (!transcript || !voiceActiveRef.current) return;
+
+    const command = parseCommand(transcript);
+
+    switch (command) {
+      case 'NEXT':
+        if (currentStepIndex < steps.length - 1) {
+          setCurrentStepIndex(prev => prev + 1);
+          speak(`Indo para o passo ${currentStepIndex + 2}`);
+        } else {
+          speak('Este é o último passo.');
+        }
+        break;
+      case 'PREVIOUS':
+        if (currentStepIndex > 0) {
+          setCurrentStepIndex(prev => prev - 1);
+          speak(`Voltando para o passo ${currentStepIndex}`);
+        } else {
+          speak('Este é o primeiro passo.');
+        }
+        break;
+      case 'REPEAT':
+        speak(steps[currentStepIndex]?.instruction ?? '');
+        break;
+      case 'START_TIMER':
+        start();
+        speak('Timer iniciado.');
+        break;
+      case 'PAUSE_TIMER':
+        pause();
+        speak('Timer pausado.');
+        break;
+      case 'STOP':
+        voiceActiveRef.current = false;
+        setVoiceActive(false);
+        stopListening();
+        speak('Encerrando modo de voz.');
+        break;
+      default:
+        speak('Comando não reconhecido. Diga próximo, anterior ou repetir.');
+    }
+
+    // Reinicia escuta após feedback (exceto STOP)
+    if (command !== 'STOP') {
+      const delay = command === 'REPEAT' ? 4000 : 1500;
+      setTimeout(() => {
+        if (voiceActiveRef.current) startListening();
+      }, delay);
+    }
+  }, [transcript]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reinicia escuta se o Voice parou sozinho mas o modo está ativo
+  useEffect(() => {
+    if (!isListening && voiceActiveRef.current) {
+      const t = setTimeout(() => {
+        if (voiceActiveRef.current) startListening();
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [isListening]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleVoice = useCallback(async () => {
+    if (voiceActive) {
+      voiceActiveRef.current = false;
+      setVoiceActive(false);
+      await stopListening();
+      Speech.stop();
+    } else {
+      if (!isSupported) {
+        Alert.alert('Voz indisponível', 'O reconhecimento de voz não está disponível neste dispositivo.');
+        return;
+      }
+      voiceActiveRef.current = true;
+      setVoiceActive(true);
+      speak('Modo de voz ativado. Diga próximo, anterior ou repetir.');
+      setTimeout(() => { if (voiceActiveRef.current) startListening(); }, 1800);
+    }
+  }, [voiceActive, isSupported, startListening, stopListening, speak]);
+
+  // ── Gestos (Swipe) ──────────────────────────────────────────────────────────
   const onGestureEvent = (event: any) => {
     const { translationX, state } = event.nativeEvent;
     if (state === State.END) {
@@ -277,6 +394,18 @@ export const CookingScreen = () => {
         </View>
       </PanGestureHandler>
 
+      {/* VOZ — banner de escuta ativa */}
+      {voiceActive && (
+        <View style={styles.voiceBanner}>
+          <Feather name={isListening ? 'mic' : 'mic-off'} size={14} color="#fff" />
+          <Text style={styles.voiceBannerText}>
+            {isListening
+              ? "Ouvindo... diga 'próximo', 'anterior' ou 'repetir'"
+              : 'Processando...'}
+          </Text>
+        </View>
+      )}
+
       {/* FOOTER */}
       <View style={styles.footer}>
         <TouchableOpacity
@@ -287,6 +416,17 @@ export const CookingScreen = () => {
           <Feather name="arrow-left" size={20} color={currentStepIndex === 0 ? '#555' : '#fff'} />
           <Text style={[styles.footerBtnText, currentStepIndex === 0 && { color: '#555' }]}> Anterior</Text>
         </TouchableOpacity>
+
+        {/* Botão de microfone */}
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <TouchableOpacity
+            style={[styles.micBtn, voiceActive && styles.micBtnActive]}
+            onPress={toggleVoice}
+            accessibilityLabel={voiceActive ? 'Desativar controle por voz' : 'Ativar controle por voz'}
+          >
+            <Feather name={voiceActive ? 'mic' : 'mic-off'} size={22} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
 
         <TouchableOpacity
           style={[styles.footerBtnNext, currentStepIndex === steps.length - 1 && styles.footerBtnFinish]}
@@ -539,13 +679,42 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#222',
     borderRadius: 30,
   },
+  voiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(220,38,38,0.85)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  voiceBannerText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#2C2C2C',
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  micBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#444',
+  },
+  micBtnActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
   },
   footerBtn: {
     flexDirection: 'row',

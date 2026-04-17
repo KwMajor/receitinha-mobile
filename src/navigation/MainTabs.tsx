@@ -24,6 +24,8 @@ import { SuggestionsScreen } from '../screens/suggestions/SuggestionsScreen';
 import { ShoppingListsScreen } from '../screens/shopping/ShoppingListsScreen';
 import { ShoppingListDetailScreen } from '../screens/shopping/ShoppingListDetailScreen';
 import { BarcodeScannerScreen } from '../screens/shopping/BarcodeScannerScreen';
+import { BudgetReportScreen } from '../screens/shopping/BudgetReportScreen';
+import { SpendingHistoryScreen } from '../screens/shopping/SpendingHistoryScreen';
 import { CommunityFeedScreen } from '../screens/social/CommunityFeedScreen';
 import { PublicRecipeScreen } from '../screens/social/PublicRecipeScreen';
 import { FloatingTimerWidget } from '../components/timers/FloatingTimerWidget';
@@ -67,6 +69,7 @@ const ShoppingStackGroup = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ShoppingLists" component={ShoppingListsScreen} />
     <Stack.Screen name="ShoppingListDetail" component={ShoppingListDetailScreen} />
+    <Stack.Screen name="BudgetReport" component={BudgetReportScreen} />
     <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} options={{ presentation: 'modal' }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
@@ -91,6 +94,7 @@ const ProfileStackGroup = () => (
     <Stack.Screen name="Backup" component={BackupScreen} options={{ title: 'Backup na nuvem' }} />
     <Stack.Screen name="Appearance" component={AppearanceScreen} options={{ title: 'Aparência' }} />
     <Stack.Screen name="Substitutions" component={SubstitutionsScreen} options={{ title: 'Guia de Substituições' }} />
+    <Stack.Screen name="SpendingHistory" component={SpendingHistoryScreen} options={{ headerShown: false }} />
     <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ headerShown: false }} />
     <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ headerShown: true, title: 'Editar Receita' }} />
     <Stack.Screen name="CookingMode" component={CookingScreen} options={{ presentation: 'modal' }} />

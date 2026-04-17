@@ -363,6 +363,11 @@ export const ProfileScreen = () => {
           onPress={() => navigation.navigate('Substitutions')}
         />
         <MenuItem
+          icon="shopping-bag"
+          title="Histórico de Gastos"
+          onPress={() => navigation.navigate('SpendingHistory')}
+        />
+        <MenuItem
           icon="moon"
           title="Aparência"
           onPress={() => navigation.navigate('Appearance')}

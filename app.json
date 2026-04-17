@@ -33,13 +33,16 @@
         }
       ],
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-video"
     ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Usado para escanear códigos de barras de produtos e capturar fotos de receitas.",
         "NSPhotoLibraryUsageDescription": "The app needs access to your photos.",
+        "NSSpeechRecognitionUsageDescription": "Usado para comandos de voz durante o preparo de receitas.",
+        "NSMicrophoneUsageDescription": "Usado para reconhecer comandos de voz.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.anonymous.receitinha"

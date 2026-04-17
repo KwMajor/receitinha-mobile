@@ -48,6 +48,7 @@ export interface Recipe {
   prepTime: number; // in minutes
   servings: number;
   photoUrl?: string;
+  videoUrl?: string;
   is_public?: number; // 0 = privada, 1 = pública
   createdAt: Date;
 }
@@ -103,4 +104,36 @@ export interface ShoppingItem {
   category: string;
   isChecked: boolean;
   addedAt: Date;
+  price?: number;
+}
+
+export interface BudgetMonth {
+  month: string; // 'YYYY-MM'
+  total: number;
+}
+
+export interface BudgetCategory {
+  category: string;
+  total: number;
+  percentage: number;
+}
+
+export interface BudgetReport {
+  months: BudgetMonth[];
+  categories: BudgetCategory[];
+}
+
+export interface SpendingRecord {
+  id: string;
+  itemName: string;
+  category: string;
+  price: number;
+  listName?: string;
+  recordedAt: string;
+}
+
+export interface SpendingMonth {
+  month: string; // 'YYYY-MM'
+  total: number;
+  records: SpendingRecord[];
 }

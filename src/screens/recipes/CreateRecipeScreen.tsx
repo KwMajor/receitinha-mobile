@@ -179,6 +179,7 @@ export default function CreateRecipeScreen() {
         servings: parseInt(data.servings, 10),
         category: data.category,
         photoUrl: data.photoUrl,
+        videoUrl: data.videoUrl || undefined,
         isPublic: false,
         ingredients: data.ingredients.map((i: any) => ({
           name: i.name,
