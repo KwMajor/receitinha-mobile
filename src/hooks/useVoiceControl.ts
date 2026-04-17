@@ -1,20 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
-interface VoiceControlState {
-  isListening: boolean;
-  transcript: string;
-  error: string | null;
-  isSupported: boolean;
+// Lazy require — módulo nativo não disponível no Expo Go sem prebuild.
+// Se falhar, o hook retorna isSupported=false e todas as funções viram no-op.
+let Voice: typeof import('@react-native-voice/voice').default | null = null;
+try {
+  Voice = require('@react-native-voice/voice').default;
+} catch {
+  Voice = null;
 }
 
-interface VoiceControlActions {
-  startListening: () => Promise<void>;
-  stopListening: () => Promise<void>;
-  destroy: () => void;
-}
+type SpeechResultsEvent = import('@react-native-voice/voice').SpeechResultsEvent;
+type SpeechErrorEvent   = import('@react-native-voice/voice').SpeechErrorEvent;
 
-export function useVoiceControl(): VoiceControlState & VoiceControlActions {
+const noop = async () => {};
+
+export function useVoiceControl() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export function useVoiceControl(): VoiceControlState & VoiceControlActions {
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    if (!Voice) return;
     mountedRef.current = true;
 
     Voice.isAvailable()
@@ -36,7 +37,6 @@ export function useVoiceControl(): VoiceControlState & VoiceControlActions {
 
     Voice.onSpeechError = (e: SpeechErrorEvent) => {
       if (!mountedRef.current) return;
-      // error code 7 = "No match" — silently ignore and let loop retry
       const code = (e.error as any)?.code ?? '';
       if (code !== '7' && code !== 7) {
         setError(e.error?.message ?? 'Erro no reconhecimento de voz');
@@ -48,13 +48,15 @@ export function useVoiceControl(): VoiceControlState & VoiceControlActions {
       if (mountedRef.current) setIsListening(false);
     };
 
+    const v = Voice;
     return () => {
       mountedRef.current = false;
-      Voice.destroy().then(() => Voice.removeAllListeners()).catch(() => {});
+      v.destroy().then(() => v.removeAllListeners()).catch(() => {});
     };
   }, []);
 
   const startListening = useCallback(async () => {
+    if (!Voice) return;
     try {
       setTranscript('');
       setError(null);
@@ -67,16 +69,23 @@ export function useVoiceControl(): VoiceControlState & VoiceControlActions {
   }, []);
 
   const stopListening = useCallback(async () => {
-    try {
-      await Voice.stop();
-    } catch {}
+    if (!Voice) return;
+    try { await Voice.stop(); } catch {}
     setIsListening(false);
   }, []);
 
   const destroy = useCallback(() => {
-    Voice.destroy().then(() => Voice.removeAllListeners()).catch(() => {});
+    if (!Voice) return;
+    Voice.destroy().then(() => Voice!.removeAllListeners()).catch(() => {});
     setIsListening(false);
   }, []);
+
+  if (!Voice) {
+    return {
+      isListening: false, transcript: '', error: null, isSupported: false,
+      startListening: noop, stopListening: noop, destroy: () => {},
+    };
+  }
 
   return { isListening, transcript, error, isSupported, startListening, stopListening, destroy };
 }

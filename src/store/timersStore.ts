@@ -17,6 +17,8 @@ interface TimersState {
   timers: ActiveTimer[];
   drawerOpen: boolean;
   drawerAddMode: boolean;
+  isCookingMode: boolean;
+  setCookingMode: (v: boolean) => void;
 
   // Timer actions
   addTimer: (label: string, durationSeconds: number) => string;
@@ -50,6 +52,8 @@ export const useTimersStore = create<TimersState>((set, get) => ({
   timers: [],
   drawerOpen: false,
   drawerAddMode: false,
+  isCookingMode: false,
+  setCookingMode: (v) => set({ isCookingMode: v }),
 
   // ── Timer actions ──────────────────────────────────────────────────────────
 

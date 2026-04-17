@@ -87,7 +87,12 @@ export const CookingScreen = () => {
   }, [celebScale, celebOpacity]);
 
   // ── Timer global (store) ────────────────────────────────────────────────────
-  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers } = useTimersStore();
+  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode } = useTimersStore();
+
+  useEffect(() => {
+    setCookingMode(true);
+    return () => setCookingMode(false);
+  }, [setCookingMode]);
   const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   const prevDoneRef = useRef(false);
 

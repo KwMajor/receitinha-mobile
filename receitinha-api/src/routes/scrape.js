@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const iconv = require('iconv-lite');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -175,15 +176,40 @@ router.post('/', authMiddleware, async (req, res) => {
   let html;
   try {
     const response = await axios.get(url, {
+      responseType: 'arraybuffer',
       timeout: 10_000,
       headers: {
         'User-Agent': USER_AGENT,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Accept-Charset': 'utf-8, iso-8859-1;q=0.5',
       },
       maxRedirects: 5,
     });
-    html = response.data;
+
+    // Detecta charset do Content-Type header
+    const contentType = response.headers['content-type'] || '';
+    const headerCharset = (contentType.match(/charset=([^\s;]+)/i) || [])[1];
+
+    // Se não veio no header, faz uma leitura rápida como latin1 para achar <meta charset>
+    let charset = headerCharset;
+    if (!charset) {
+      const peek = iconv.decode(Buffer.from(response.data), 'latin1').slice(0, 2048);
+      const metaMatch =
+        peek.match(/<meta[^>]+charset=["']?([^\s"';>]+)/i) ||
+        peek.match(/<meta[^>]+content=["'][^"']*charset=([^\s"';>]+)/i);
+      charset = metaMatch ? metaMatch[1] : 'utf-8';
+    }
+
+    // Normaliza aliases comuns
+    const enc = charset.toLowerCase().replace(/[-_]/g, '');
+    const safeCharset =
+      enc === 'utf8'                               ? 'utf-8'   :
+      enc === 'iso88591' || enc === 'latin1'       ? 'latin1'  :
+      enc === 'windows1252' || enc === 'cp1252'    ? 'win1252' :
+      charset;
+
+    html = iconv.decode(Buffer.from(response.data), safeCharset);
   } catch (err) {
     if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
       return res.status(504).json({ message: 'O site demorou demais para responder. Tente novamente.' });

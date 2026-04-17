@@ -27,9 +27,9 @@ function urgentTimer(timers: ActiveTimer[]): ActiveTimer {
 
 export const FloatingTimerWidget: React.FC = () => {
   const { colors } = useTheme();
-  const { timers, openDrawer } = useTimersStore();
+  const { timers, openDrawer, isCookingMode } = useTimersStore();
 
-  if (timers.length === 0) return null;
+  if (timers.length === 0 || isCookingMode) return null;
 
   const urgent = urgentTimer(timers);
   const isDone = urgent.isDone;
