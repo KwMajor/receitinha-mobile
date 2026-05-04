@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
+import { getAuth, initializeAuth, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import Constants from 'expo-constants';
@@ -27,7 +27,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = (() => {
   try {
     return initializeAuth(app, {
-      persistence: indexedDBLocalPersistence,
+      persistence: inMemoryPersistence,
     });
   } catch (error: any) {
     // Em hot reload o auth pode ja estar inicializado

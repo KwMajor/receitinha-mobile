@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ActivityIndicator, AppState, AppStateStatus } f
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { initDatabase } from './src/services/sqlite/database';
+import { initDatabase, closeDatabase } from './src/services/sqlite/database';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
 import { ThemeProvider } from './src/contexts/ThemeContext';
@@ -44,20 +44,22 @@ export default function App() {
     return () => {
       stopTick();
       sub.remove();
+      closeDatabase();
     };
   }, []);
 
   useEffect(() => {
+    const safetyTimer = setTimeout(() => setIsReady(true), 4000);
     async function setupApp() {
       try {
-        // Hidrata as preferências do usuário e o banco antes do primeiro render
-        await Promise.all([
-          initDatabase(),
-          useSettingsStore.persist.rehydrate(),
+        await Promise.race([
+          Promise.all([initDatabase(), useSettingsStore.persist.rehydrate()]),
+          new Promise<void>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
         ]);
       } catch (e) {
         console.warn('Erro ao inicializar o app:', e);
       } finally {
+        clearTimeout(safetyTimer);
         setIsReady(true);
       }
     }

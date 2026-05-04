@@ -12,7 +12,10 @@ export const RootNavigator = () => {
   const { isDark, colors } = useTheme();
 
   useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     const unsubscribe = onAuthStateChanged((firebaseUser) => {
+      clearTimeout(timeout);
       if (firebaseUser) {
         setUser({
           id: firebaseUser.uid,
@@ -26,7 +29,7 @@ export const RootNavigator = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); clearTimeout(timeout); };
   }, [setUser, setLoading]);
 
   const navTheme = isDark

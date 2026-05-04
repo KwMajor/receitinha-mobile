@@ -4,9 +4,16 @@ let db: SQLite.SQLiteDatabase | null = null;
 
 export const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('receitinha.db');
+    db = await SQLite.openDatabaseAsync('receitinha.db', { enableChangeListener: false });
   }
   return db;
+};
+
+export const closeDatabase = async (): Promise<void> => {
+  if (db) {
+    await db.closeAsync().catch(() => {});
+    db = null;
+  }
 };
 
 export const initDatabase = async (): Promise<void> => {

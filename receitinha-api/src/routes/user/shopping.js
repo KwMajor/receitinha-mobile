@@ -70,6 +70,29 @@ router.put('/lists/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
 });
 
+// POST /api/user/shopping/lists/:id/finalize-spending
+// Records checked+priced items to spending without deleting the list
+router.post('/lists/:id/finalize-spending', async (req, res) => {
+  try {
+    if (!await requireListOwnership(req.params.id, req.user.uid, res)) return;
+    const { rows: [listRow] } = await pool.query(
+      'SELECT name FROM user_shopping_lists WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.uid]
+    );
+    const { rows: pricedItems } = await pool.query(
+      'SELECT id, name, category, price FROM user_shopping_items WHERE list_id = $1 AND is_checked = TRUE AND price IS NOT NULL',
+      [req.params.id]
+    );
+    for (const item of pricedItems) {
+      await pool.query(
+        'INSERT INTO user_spending_records (id, user_id, item_name, category, price, list_name, list_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [randomUUID(), req.user.uid, item.name, item.category || 'Outros', item.price, listRow?.name ?? null, req.params.id]
+      );
+    }
+    res.json({ recorded: pricedItems.length });
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Erro interno.' }); }
+});
+
 // DELETE /api/user/shopping/lists/:id
 router.delete('/lists/:id', async (req, res) => {
   try {

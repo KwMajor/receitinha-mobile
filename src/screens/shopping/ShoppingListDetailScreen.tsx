@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, SectionList, TouchableOpacity, StyleSheet,
+  View, Text, SectionList, TouchableOpacity, Pressable, StyleSheet,
   TextInput, KeyboardAvoidingView, Platform,
   Alert, ActivityIndicator, Animated, Modal, ScrollView,
 } from 'react-native';
@@ -12,7 +12,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { ShoppingItem, ShoppingList } from '../../types';
 import {
   getListById, getItems, toggleItem, removeItem,
-  clearChecked, addItem, deleteList,
+  clearChecked, addItem, deleteList, setItemPrice, finalizeSpending,
 } from '../../services/sqlite/shoppingService';
 import { exportAsPDF, exportAsText, exportAsWhatsApp } from '../../services/exportService';
 import { useAuthStore } from '../../store/authStore';
@@ -95,6 +95,12 @@ export const ShoppingListDetailScreen: React.FC = () => {
   const [modalName, setModalName] = useState('');
   const [modalQty, setModalQty] = useState('');
   const [modalUnit, setModalUnit] = useState<string | null>(null);
+  const [modalPrice, setModalPrice] = useState('');
+
+  // Price edit modal
+  const [priceModalVisible, setPriceModalVisible] = useState(false);
+  const [priceModalItem, setPriceModalItem] = useState<ShoppingItem | null>(null);
+  const [priceModalValue, setPriceModalValue] = useState('');
 
   // Success banner for fromPlan
   const bannerOpacity = useRef(new Animated.Value(fromPlan ? 1 : 0)).current;
@@ -189,7 +195,11 @@ export const ShoppingListDetailScreen: React.FC = () => {
         'Lista concluída! 🎉',
         'Itens adicionados à sua despensa automaticamente. Deseja excluir esta lista?',
         [
-          { text: 'Manter lista', style: 'cancel' },
+          {
+            text: 'Manter lista',
+            style: 'cancel',
+            onPress: () => { finalizeSpending(listId).catch(() => {}); },
+          },
           {
             text: 'Excluir',
             style: 'destructive',
@@ -229,10 +239,28 @@ export const ShoppingListDetailScreen: React.FC = () => {
     );
   };
 
+  const openPriceModal = (item: ShoppingItem) => {
+    setPriceModalItem(item);
+    setPriceModalValue(item.price != null ? String(item.price.toFixed(2).replace('.', ',')) : '');
+    setPriceModalVisible(true);
+  };
+
+  const handlePriceConfirm = async () => {
+    if (!priceModalItem) return;
+    const parsed = parseFloat(priceModalValue.replace(',', '.'));
+    const price = !isNaN(parsed) && parsed >= 0 ? parsed : null;
+    setPriceModalVisible(false);
+    await setItemPrice(priceModalItem.id, price).catch(() => {});
+    setItems((prev) => prev.map((it) =>
+      it.id === priceModalItem.id ? { ...it, price: price ?? undefined } : it
+    ));
+  };
+
   const openAddModal = () => {
     setModalName(inputText.trim());
     setModalQty('');
     setModalUnit(null);
+    setModalPrice('');
     setInputText('');
     setAddModalVisible(true);
   };
@@ -242,8 +270,12 @@ export const ShoppingListDetailScreen: React.FC = () => {
     if (!name) return;
     const qty = modalQty.trim() ? parseFloat(modalQty.trim()) : undefined;
     const unit = modalUnit ?? undefined;
+    const price = modalPrice.trim() ? parseFloat(modalPrice.trim().replace(',', '.')) : undefined;
     setAddModalVisible(false);
-    await addItem(listId, name, isNaN(qty as number) ? undefined : qty, unit);
+    const newId = await addItem(listId, name, isNaN(qty as number) ? undefined : qty, unit);
+    if (price != null && !isNaN(price)) {
+      await setItemPrice(newId, price).catch(() => {});
+    }
     const updated = await getItems(listId);
     setItems(updated);
   };
@@ -369,6 +401,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 item={item}
                 onToggle={() => handleToggle(item.id)}
                 onRemove={() => handleRemoveItem(item.id)}
+                onPricePress={() => openPriceModal(item)}
               />
             )}
           />
@@ -463,6 +496,21 @@ export const ShoppingListDetailScreen: React.FC = () => {
               </ScrollView>
             </View>
 
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Preço estimado (opcional)</Text>
+              <View style={styles.priceInputRow}>
+                <Text style={styles.priceCurrency}>R$</Text>
+                <TextInput
+                  style={[styles.modalInput, styles.priceInput]}
+                  value={modalPrice}
+                  onChangeText={(v) => setModalPrice(v.replace(/[^0-9.,]/g, ''))}
+                  placeholder="0,00"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
@@ -476,6 +524,71 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 disabled={!modalName.trim()}
               >
                 <Text style={styles.modalConfirmText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Price edit modal */}
+      <Modal
+        visible={priceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPriceModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            activeOpacity={1}
+            onPress={() => setPriceModalVisible(false)}
+          />
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {priceModalItem?.price != null ? 'Editar preço' : 'Adicionar preço'}
+            </Text>
+            <Text style={styles.modalLabel}>{priceModalItem?.name}</Text>
+            <View style={styles.priceInputRow}>
+              <Text style={styles.priceCurrency}>R$</Text>
+              <TextInput
+                style={[styles.modalInput, styles.priceInput]}
+                value={priceModalValue}
+                onChangeText={(v) => setPriceModalValue(v.replace(/[^0-9.,]/g, ''))}
+                placeholder="0,00"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            </View>
+            <View style={styles.modalActions}>
+              {priceModalItem?.price != null && (
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={async () => {
+                    setPriceModalVisible(false);
+                    await setItemPrice(priceModalItem!.id, null).catch(() => {});
+                    setItems((prev) => prev.map((it) =>
+                      it.id === priceModalItem!.id ? { ...it, price: undefined } : it
+                    ));
+                  }}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.error }]}>Remover</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setPriceModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalConfirmBtn}
+                onPress={handlePriceConfirm}
+              >
+                <Text style={styles.modalConfirmText}>Salvar</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -556,11 +669,13 @@ interface RowProps {
   item: ShoppingItem;
   onToggle: () => void;
   onRemove: () => void;
+  onPricePress: () => void;
 }
 
-const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => {
+const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove, onPricePress }) => {
   const { colors } = useTheme();
   const rowStyles = getRowStyles(colors);
+
   return (
   <View style={[rowStyles.row, item.isChecked && rowStyles.rowChecked]}>
     <TouchableOpacity onPress={onToggle} style={[rowStyles.checkbox, item.isChecked && rowStyles.checkboxChecked]} activeOpacity={0.7}>
@@ -578,6 +693,18 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, onToggle, onRemove }) => {
         </Text>
       )}
     </View>
+
+    <Pressable onPress={onPricePress} style={rowStyles.priceBtn} hitSlop={8}>
+      {item.price != null ? (
+        <Text style={[rowStyles.price, item.isChecked && rowStyles.priceChecked]}>
+          R$ {item.price.toFixed(2).replace('.', ',')}
+        </Text>
+      ) : (
+        <View style={rowStyles.addPriceBtn}>
+          <Feather name="tag" size={13} color={colors.textSecondary} />
+        </View>
+      )}
+    </Pressable>
 
     <TouchableOpacity onPress={onRemove} style={rowStyles.removeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
       <Feather name="x" size={15} color={colors.textSecondary} />
@@ -616,6 +743,27 @@ const getRowStyles = (colors: any) => StyleSheet.create({
   nameChecked: { textDecorationLine: 'line-through', color: colors.textSecondary, fontWeight: '400' },
   qty: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priceBtn: {
+    minWidth: 28,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  price: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  priceChecked: {
+    color: colors.textSecondary,
+  },
+  addPriceBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -805,6 +953,19 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
   },
   modalInputQty: {
+    width: 120,
+  },
+  priceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  priceCurrency: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  priceInput: {
     width: 120,
   },
   unitsRow: {

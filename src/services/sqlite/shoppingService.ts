@@ -82,6 +82,10 @@ export async function setItemPrice(itemId: string, price: number | null): Promis
   await api.patch(`/api/user/shopping/items/${itemId}/price`, { price });
 }
 
+export async function finalizeSpending(listId: string): Promise<void> {
+  await api.post(`/api/user/shopping/lists/${listId}/finalize-spending`, {});
+}
+
 export async function getBudgetReport(months = 4): Promise<BudgetReport> {
   return api.get<BudgetReport>(`/api/user/shopping/budget?months=${months}`);
 }
