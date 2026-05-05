@@ -2,6 +2,7 @@ import { StyleSheet, Text, View, ActivityIndicator, AppState, AppStateStatus } f
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 import { initDatabase, closeDatabase } from './src/services/sqlite/database';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
@@ -80,6 +81,7 @@ export default function App() {
       <ErrorBoundary>
         <ThemeProvider>
           <RootNavigator />
+          <Toast />
         </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

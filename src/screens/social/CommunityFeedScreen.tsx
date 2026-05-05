@@ -235,6 +235,7 @@ export const CommunityFeedScreen = () => {
         <FlatList
           data={displayedFeed}
           keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <CommunityRecipeCard
               recipe={item}

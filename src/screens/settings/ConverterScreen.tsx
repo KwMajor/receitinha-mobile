@@ -375,6 +375,7 @@ const ConvSection = ({
           keyboardType="decimal-pad"
           placeholder="0"
           placeholderTextColor={colors.textSecondary}
+          returnKeyType="done"
         />
         <UnitPicker value={from} options={unitOptions} onChange={setFrom} />
         <View style={styles.arrowWrap}>
@@ -443,6 +444,7 @@ const ContextualSection = () => {
           keyboardType="decimal-pad"
           placeholder="0"
           placeholderTextColor={colors.textSecondary}
+          returnKeyType="done"
         />
         <UnitPicker value={from} options={ALL_CONV_KEYS} onChange={setFrom} />
         <View style={styles.arrowWrap}>

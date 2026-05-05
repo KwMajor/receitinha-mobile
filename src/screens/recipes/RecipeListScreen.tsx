@@ -87,7 +87,7 @@ export const RecipeListScreen = () => {
             placeholderTextColor={colors.textSecondary}
             value={localSearch}
             onChangeText={setLocalSearch}
-            returnKeyType="done"
+            returnKeyType="search"
           />
           {localSearch ? (
             <TouchableOpacity onPress={() => setLocalSearch('')}>
@@ -114,6 +114,7 @@ export const RecipeListScreen = () => {
           showsVerticalScrollIndicator={false}
           onRefresh={refresh}
           refreshing={isLoading}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 

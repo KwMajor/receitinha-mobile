@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -82,78 +82,89 @@ export const LoginScreen = () => {
     }
   };
 
+  const passwordRef = useRef<TextInput>(null);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Text style={styles.logo}>receitinha</Text>
-        <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
-      </View>
-
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>E-mail</Text>
-            <TextInput
-              style={styles.input}
-              onBlur={onBlur}
-              onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
-              value={value}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="seu@email.com"
-              placeholderTextColor={colors.textSecondary}
-              returnKeyType="done"
-            />
-            {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logo}>receitinha</Text>
+            <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
           </View>
-        )}
-      />
 
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Senha</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                secureTextEntry={!showPassword}
-                placeholder="sua senha"
-                placeholderTextColor={colors.textSecondary}
-                returnKeyType="done"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Feather name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
-          </View>
-        )}
-      />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>E-mail</Text>
+                <TextInput
+                  style={styles.input}
+                  onBlur={onBlur}
+                  onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
+                  value={value}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="seu@email.com"
+                  placeholderTextColor={colors.textSecondary}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  blurOnSubmit={false}
+                />
+                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+              </View>
+            )}
+          />
 
-      <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-        <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
-      </TouchableOpacity>
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    ref={passwordRef}
+                    style={styles.passwordInput}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="sua senha"
+                    placeholderTextColor={colors.textSecondary}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Feather name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+              </View>
+            )}
+          />
 
-      {isLocked && (
-        <Text style={styles.lockMessage}>Muitas tentativas. Aguarde {lockSecondsLeft}s para tentar novamente.</Text>
-      )}
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, isLocked && styles.buttonDisabled]} onPress={handleSubmit(onSubmit)} disabled={loading || isLocked}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
-      </TouchableOpacity>
+          {isLocked && (
+            <Text style={styles.lockMessage}>Muitas tentativas. Aguarde {lockSecondsLeft}s para tentar novamente.</Text>
+          )}
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
-        <Text style={styles.registerText}>Não tem uma conta? <Text style={styles.registerTextBold}>Cadastre-se</Text></Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity style={[styles.button, isLocked && styles.buttonDisabled]} onPress={handleSubmit(onSubmit)} disabled={loading || isLocked}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
+            <Text style={styles.registerText}>Não tem uma conta? <Text style={styles.registerTextBold}>Cadastre-se</Text></Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

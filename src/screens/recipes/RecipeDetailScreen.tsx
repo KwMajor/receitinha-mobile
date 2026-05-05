@@ -273,13 +273,22 @@ export const RecipeDetailScreen = () => {
             ) : (
               <View>
                 {recipe.steps.length > 0 && (
-                  <TouchableOpacity 
-                    style={{ backgroundColor: colors.primary, padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}
-                    onPress={() => navigation.navigate('CookingMode', { recipe })}
-                  >
-                    <Feather name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Iniciar Modo de Preparo</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+                    <TouchableOpacity
+                      style={{ flex: 1, backgroundColor: colors.primary, padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => navigation.navigate('CookingMode', { recipe })}
+                    >
+                      <Feather name="play" size={18} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>Modo Normal</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ flex: 1, backgroundColor: '#0D0D0D', padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => navigation.navigate('ChefMode', { recipe })}
+                    >
+                      <Feather name="zap" size={18} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>Modo Chef</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
                 {recipe.steps.map((step, i) => (
                   <View key={step.id} style={styles.stepRow}>
@@ -315,12 +324,31 @@ export const RecipeDetailScreen = () => {
         onClose={() => setSubModalEntry(null)}
       />
 
-      {/* Botão Flutuante Iniciar Preparo */}
+      {/* FAB — split Modo Normal / Modo Chef */}
       <View style={styles.fabContainer}>
-         <TouchableOpacity style={styles.fabBtn} onPress={() => navigation.navigate('CookingMode', { recipe })}>
-            <Feather name="play" size={20} color="#fff" />
-            <Text style={styles.fabText}>Iniciar Preparo</Text>
-         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.fabBtn}
+          onPress={() =>
+            Alert.alert(
+              'Iniciar Preparo',
+              'Escolha como deseja cozinhar:',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: '🍳 Modo Normal',
+                  onPress: () => navigation.navigate('CookingMode', { recipe }),
+                },
+                {
+                  text: '👨‍🍳 Modo Chef',
+                  onPress: () => navigation.navigate('ChefMode', { recipe }),
+                },
+              ]
+            )
+          }
+        >
+          <Feather name="play" size={20} color="#fff" />
+          <Text style={styles.fabText}>Iniciar Preparo</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

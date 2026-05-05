@@ -258,6 +258,7 @@ export const RateRecipeModal = ({
               multiline
               maxLength={MAX_CHARS}
               textAlignVertical="top"
+              returnKeyType="done"
             />
             <Text style={[styles.charCount, remaining < 50 && styles.charCountWarn]}>
               {remaining} restantes

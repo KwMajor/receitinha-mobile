@@ -1,13 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { ref, listAll, deleteObject } from 'firebase/storage';
+import { deleteUser } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut, updateUserName, updateUserEmail } from '../../services/firebase/auth';
+import { auth, db as firestoreDb, storage } from '../../services/firebase/config';
 import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../services/sqlite/recipeService';
 import { countHistory } from '../../services/sqlite/cookingHistoryService';
 import { getLastBackupTimestamp } from '../../services/firebase/backupService';
+import { getDatabase } from '../../services/sqlite/database';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
@@ -118,6 +124,19 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginLeft: theme.spacing.md,
     fontWeight: '500',
   },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  deleteAccountText: {
+    fontSize: 16,
+    color: colors.error,
+    marginLeft: theme.spacing.md,
+    fontWeight: '500',
+  },
   badge: {
     width: 8,
     height: 8,
@@ -198,6 +217,7 @@ export const ProfileScreen = () => {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const emailInputRef = useRef<TextInput>(null);
 
   const loadData = async () => {
     if (user?.id) {
@@ -270,6 +290,93 @@ export const ProfileScreen = () => {
     );
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Excluir minha conta',
+      'Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirmar exclusão',
+              'Tem certeza absoluta? Suas receitas, histórico e configurações serão apagados para sempre.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Excluir tudo',
+                  style: 'destructive',
+                  onPress: async () => {
+                    if (!user?.id) return;
+                    setSaving(true);
+                    try {
+                      // 1. Deleta documentos do Firestore
+                      try {
+                        const userColRef = collection(firestoreDb, 'users', user.id, 'recipes');
+                        const snap = await getDocs(userColRef);
+                        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+                        await deleteDoc(doc(firestoreDb, 'users', user.id));
+                      } catch {}
+
+                      // 2. Deleta imagens do Firebase Storage
+                      try {
+                        const storageRef = ref(storage, `recipes/${user.id}`);
+                        const list = await listAll(storageRef);
+                        await Promise.all(list.items.map(item => deleteObject(item)));
+                      } catch {}
+
+                      // 3. Limpa SQLite
+                      try {
+                        const database = await getDatabase();
+                        await database.execAsync(`
+                          DROP TABLE IF EXISTS recipes;
+                          DROP TABLE IF EXISTS ingredients;
+                          DROP TABLE IF EXISTS steps;
+                          DROP TABLE IF EXISTS favorites;
+                          DROP TABLE IF EXISTS collections;
+                          DROP TABLE IF EXISTS collection_recipes;
+                          DROP TABLE IF EXISTS categories;
+                          DROP TABLE IF EXISTS cooking_history;
+                          DROP TABLE IF EXISTS week_plan;
+                          DROP TABLE IF EXISTS shopping_lists;
+                          DROP TABLE IF EXISTS shopping_items;
+                          DROP TABLE IF EXISTS pantry;
+                          DROP TABLE IF EXISTS barcode_cache;
+                        `);
+                      } catch {}
+
+                      // 4. Limpa AsyncStorage
+                      try {
+                        await AsyncStorage.clear();
+                      } catch {}
+
+                      // 5. Deleta usuário do Firebase Auth
+                      if (auth.currentUser) {
+                        await deleteUser(auth.currentUser);
+                      }
+
+                      // Store já será limpo pelo listener onAuthStateChanged
+                    } catch (error: any) {
+                      setSaving(false);
+                      Alert.alert(
+                        'Erro ao excluir',
+                        error?.code === 'auth/requires-recent-login'
+                          ? 'Por segurança, saia e faça login novamente antes de excluir a conta.'
+                          : 'Não foi possível excluir a conta. Tente novamente.',
+                      );
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -302,7 +409,7 @@ export const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScreenHeader title="Perfil" right={editBtn} />
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.heroCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -371,6 +478,11 @@ export const ProfileScreen = () => {
           icon="moon"
           title="Aparência"
           onPress={() => navigation.navigate('Appearance')}
+        />
+        <MenuItem
+          icon="map-pin"
+          title="Meus Supermercados"
+          onPress={() => navigation.navigate('Stores')}
           showDivider={false}
         />
       </View>
@@ -379,6 +491,10 @@ export const ProfileScreen = () => {
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
           <Feather name="log-out" size={20} color={colors.error} />
           <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+          <Feather name="trash-2" size={20} color={colors.error} />
+          <Text style={styles.deleteAccountText}>Excluir minha conta</Text>
         </TouchableOpacity>
       </View>
 
@@ -398,17 +514,21 @@ export const ProfileScreen = () => {
               value={editName}
               onChangeText={(text) => setEditName(text.replace(/[^\p{L}\p{M}\s]/gu, ''))}
               placeholder="Seu nome"
-              returnKeyType="done"
+              returnKeyType="next"
+              onSubmitEditing={() => emailInputRef.current?.focus()}
+              blurOnSubmit={false}
             />
 
             <Text style={styles.inputLabel}>E-mail</Text>
             <TextInput
+              ref={emailInputRef}
               style={styles.input}
               value={editEmail}
               onChangeText={setEditEmail}
               placeholder="Seu e-mail"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               returnKeyType="done"
             />
 

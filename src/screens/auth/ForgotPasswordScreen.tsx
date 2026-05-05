@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -48,40 +48,44 @@ export const ForgotPasswordScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Recuperar Senha</Text>
-      <Text style={styles.subtitle}>Digite seu e-mail para receber um link de redefinição de senha.</Text>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Recuperar Senha</Text>
+          <Text style={styles.subtitle}>Digite seu e-mail para receber um link de redefinição de senha.</Text>
 
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onBlur={onBlur}
-              onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
-              value={value}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="seu@email.com"
-              placeholderTextColor={colors.textSecondary}
-              returnKeyType="done"
-            />
-            {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
-          </View>
-        )}
-      />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  onBlur={onBlur}
+                  onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
+                  value={value}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="seu@email.com"
+                  placeholderTextColor={colors.textSecondary}
+                  returnKeyType="done"
+                />
+                {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+              </View>
+            )}
+          />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Enviar E-mail</Text>}
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Enviar E-mail</Text>}
+          </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backLink}>
-        <Text style={styles.backText}>Voltar para o Login</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backLink}>
+            <Text style={styles.backText}>Voltar para o Login</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

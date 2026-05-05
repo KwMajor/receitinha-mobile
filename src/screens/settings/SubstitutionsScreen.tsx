@@ -103,6 +103,7 @@ export const SubstitutionsScreen = () => {
         sections={sections}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.tagsRow}>
             <TouchableOpacity

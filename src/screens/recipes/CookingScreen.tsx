@@ -506,6 +506,7 @@ export const CookingScreen = () => {
                   multiline
                   maxLength={MAX_NOTE}
                   textAlignVertical="top"
+                  returnKeyType="done"
                 />
                 <Text style={styles.noteCount}>{MAX_NOTE - note.length} restantes</Text>
               </View>

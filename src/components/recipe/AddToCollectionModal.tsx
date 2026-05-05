@@ -143,6 +143,7 @@ export const AddToCollectionModal = ({ visible, recipeId, onClose }: AddToCollec
               data={collections}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.list}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => {
                 const isSelected = recipeCollections.includes(item.id);
                 return (

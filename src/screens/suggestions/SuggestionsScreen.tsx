@@ -754,6 +754,7 @@ export const SuggestionsScreen: React.FC = () => {
                 placeholder="Ex: Tomate"
                 placeholderTextColor={colors.textSecondary}
                 autoFocus
+                returnKeyType="done"
               />
             </View>
 
@@ -766,6 +767,7 @@ export const SuggestionsScreen: React.FC = () => {
                 placeholder="Ex: 2"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
+                returnKeyType="done"
               />
             </View>
 

@@ -384,6 +384,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             stickySectionHeadersEnabled
+            keyboardShouldPersistTaps="handled"
             renderSectionHeader={({ section }) => {
               const meta = CATEGORY_META[section.title] ?? CATEGORY_META['Outros'];
               return (
@@ -464,6 +465,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 placeholder="Ex: Leite"
                 placeholderTextColor={colors.textSecondary}
                 autoFocus
+                returnKeyType="done"
               />
             </View>
 
@@ -476,6 +478,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 placeholder="Ex: 2"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
+                returnKeyType="done"
               />
             </View>
 
@@ -507,6 +510,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                   placeholder="0,00"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="decimal-pad"
+                  returnKeyType="done"
                 />
               </View>
             </View>
@@ -561,6 +565,7 @@ export const ShoppingListDetailScreen: React.FC = () => {
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
                 autoFocus
+                returnKeyType="done"
               />
             </View>
             <View style={styles.modalActions}>

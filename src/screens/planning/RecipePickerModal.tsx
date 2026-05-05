@@ -116,6 +116,7 @@ export const RecipePickerModal: React.FC<Props> = ({ visible, onClose, onSelect 
             data={recipes}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={<Text style={styles.empty}>Nenhuma receita encontrada</Text>}
             renderItem={({ item }) => (
               <TouchableOpacity

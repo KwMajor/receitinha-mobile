@@ -199,6 +199,7 @@ export const FavoritesScreen = () => {
               onChangeText={setNewCollectionName}
               autoFocus
               returnKeyType="done"
+              onSubmitEditing={handleCreateCollection}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalBtn} onPress={() => setModalVisible(false)}>

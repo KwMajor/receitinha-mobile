@@ -228,6 +228,7 @@ export const CategoriesScreen = () => {
             onChangeText={setNewCatName}
             autoFocus
             returnKeyType="done"
+            onSubmitEditing={handleCreate}
           />
           <View style={styles.addActions}>
             <TouchableOpacity onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
@@ -249,6 +250,7 @@ export const CategoriesScreen = () => {
         data={categories}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <View style={[styles.categoryItem, !item.isActive && styles.categoryInactive]}>
              <TouchableOpacity

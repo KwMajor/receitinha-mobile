@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import KeyboardAwareContainer from '../../components/common/KeyboardAwareContainer';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -89,6 +90,10 @@ export const RegisterScreen = () => {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
@@ -121,7 +126,7 @@ export const RegisterScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAwareContainer contentContainerStyle={styles.container}>
       <Text style={styles.title}>Crie sua conta</Text>
 
       <Controller
@@ -138,7 +143,9 @@ export const RegisterScreen = () => {
               placeholder="João da Silva"
               placeholderTextColor={colors.textSecondary}
               autoCapitalize="words"
-              returnKeyType="done"
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+              blurOnSubmit={false}
             />
             {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
           </View>
@@ -152,6 +159,7 @@ export const RegisterScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>E-mail</Text>
             <TextInput
+              ref={emailRef}
               style={styles.input}
               onBlur={onBlur}
               onChangeText={(t) => onChange(t.replace(/\s/g, ''))}
@@ -161,7 +169,9 @@ export const RegisterScreen = () => {
               autoCorrect={false}
               placeholder="seu@email.com"
               placeholderTextColor={colors.textSecondary}
-              returnKeyType="done"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
             />
             {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
           </View>
@@ -175,14 +185,19 @@ export const RegisterScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Senha</Text>
             <TextInput
+              ref={passwordRef}
               style={styles.input}
               onBlur={onBlur}
               onChangeText={(t) => { onChange(t); setPasswordValue(t); }}
               value={value}
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
               placeholder="******"
               placeholderTextColor={colors.textSecondary}
-              returnKeyType="done"
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              blurOnSubmit={false}
             />
             <PasswordStrength value={passwordValue} />
             {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
@@ -197,11 +212,14 @@ export const RegisterScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirmar Senha</Text>
             <TextInput
+              ref={confirmPasswordRef}
               style={styles.input}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
               placeholder="******"
               placeholderTextColor={colors.textSecondary}
               returnKeyType="done"
@@ -218,7 +236,7 @@ export const RegisterScreen = () => {
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.loginLink}>
         <Text style={styles.loginText}>Já tem uma conta? <Text style={styles.loginTextBold}>Entrar</Text></Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareContainer>
   );
 };
 

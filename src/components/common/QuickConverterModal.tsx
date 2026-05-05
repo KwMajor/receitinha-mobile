@@ -422,6 +422,7 @@ export const QuickConverterModal = ({
               placeholder="0"
               placeholderTextColor={colors.textSecondary}
               selectTextOnFocus
+              returnKeyType="done"
             />
             <InlineUnitPicker value={from} options={ALL_CONV_KEYS} onChange={setFrom} />
             <View style={styles.arrow}>
