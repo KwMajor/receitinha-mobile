@@ -8,6 +8,11 @@ const router = express.Router();
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 
+// Charsets observados por domínio (referência — detecção é automática via header/meta):
+//   tudogostoso.com.br      → utf-8
+//   receitasnestle.com.br   → utf-8
+//   panelinha.com.br        → utf-8
+//   guiadacozinha.com.br    → utf-8 (alguns posts antigos podem servir como windows-1252)
 const ALLOWED_DOMAINS = [
   'tudogostoso.com.br',
   'receitasnestle.com.br',
@@ -20,6 +25,54 @@ const USER_AGENT =
   '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function sanitizeText(text) {
+  if (text == null) return '';
+  return String(text)
+    .normalize('NFC')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function detectCharset(contentType, htmlPeek) {
+  const headerMatch = (contentType || '').match(/charset=([^\s;]+)/i);
+  if (headerMatch) return headerMatch[1].toLowerCase();
+  const metaMatch =
+    htmlPeek.match(/<meta[^>]+charset=["']?([^\s"';>]+)/i) ||
+    htmlPeek.match(/<meta[^>]+content=["'][^"']*charset=([^\s"';>]+)/i);
+  if (metaMatch) return metaMatch[1].toLowerCase();
+  return 'utf-8';
+}
+
+function normalizeCharsetAlias(charset) {
+  const enc = String(charset).toLowerCase().replace(/[-_]/g, '');
+  if (enc === 'utf8') return 'utf-8';
+  if (enc === 'iso88591' || enc === 'latin1') return 'latin1';
+  if (enc === 'windows1252' || enc === 'cp1252') return 'win1252';
+  return charset;
+}
+
+async function fetchAndDecode(url) {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer',
+    timeout: 10_000,
+    headers: {
+      'User-Agent': USER_AGENT,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'Accept-Charset': 'utf-8, iso-8859-1;q=0.5',
+    },
+    maxRedirects: 5,
+  });
+
+  const contentType = response.headers['content-type'] || '';
+  const buffer = Buffer.from(response.data);
+  const peek = iconv.decode(buffer, 'latin1').slice(0, 2048);
+  const detected = detectCharset(contentType, peek);
+  const safeCharset = normalizeCharsetAlias(detected);
+  const html = iconv.decode(buffer, safeCharset);
+  return { html, contentType, detectedCharset: detected };
+}
 
 function isAllowedDomain(urlStr) {
   try {
@@ -63,11 +116,11 @@ function extractFromJsonLd($) {
   if (!recipe) return null;
 
   // Title
-  const title = String(recipe.name || '').trim();
+  const title = sanitizeText(recipe.name);
 
   // Ingredients
   const ingredients = Array.isArray(recipe.recipeIngredient)
-    ? recipe.recipeIngredient.map(s => String(s).trim()).filter(Boolean)
+    ? recipe.recipeIngredient.map(s => sanitizeText(s)).filter(Boolean)
     : [];
 
   // Steps — can be strings, HowToStep, or HowToSection
@@ -75,12 +128,12 @@ function extractFromJsonLd($) {
   if (Array.isArray(recipe.recipeInstructions)) {
     for (const item of recipe.recipeInstructions) {
       if (typeof item === 'string') {
-        const t = item.trim(); if (t) steps.push(t);
+        const t = sanitizeText(item); if (t) steps.push(t);
       } else if (item['@type'] === 'HowToStep') {
-        const t = (item.text || item.name || '').trim(); if (t) steps.push(t);
+        const t = sanitizeText(item.text || item.name); if (t) steps.push(t);
       } else if (item['@type'] === 'HowToSection' && Array.isArray(item.itemListElement)) {
         for (const sub of item.itemListElement) {
-          const t = (sub.text || sub.name || '').trim(); if (t) steps.push(t);
+          const t = sanitizeText(sub.text || sub.name); if (t) steps.push(t);
         }
       }
     }
@@ -139,7 +192,7 @@ function extractFromSelectors($, hostname) {
     for (const s of selectors) {
       const items = [];
       $(s).each((_, el) => {
-        const t = $(el).text().trim();
+        const t = sanitizeText($(el).text());
         if (t) items.push(t);
       });
       if (items.length > 0) return items;
@@ -147,10 +200,10 @@ function extractFromSelectors($, hostname) {
     return [];
   };
 
-  const titleEl = sel.title.reduce((found, s) => found || $(s).first().text().trim(), '');
+  const titleEl = sel.title.reduce((found, s) => found || sanitizeText($(s).first().text()), '');
 
   return {
-    title:       titleEl || $('h1').first().text().trim(),
+    title:       titleEl || sanitizeText($('h1').first().text()),
     ingredients: pickFirst(sel.ingredients),
     steps:       pickFirst(sel.steps),
     servings:    null,
@@ -175,41 +228,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
   let html;
   try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 10_000,
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        'Accept-Charset': 'utf-8, iso-8859-1;q=0.5',
-      },
-      maxRedirects: 5,
-    });
-
-    // Detecta charset do Content-Type header
-    const contentType = response.headers['content-type'] || '';
-    const headerCharset = (contentType.match(/charset=([^\s;]+)/i) || [])[1];
-
-    // Se não veio no header, faz uma leitura rápida como latin1 para achar <meta charset>
-    let charset = headerCharset;
-    if (!charset) {
-      const peek = iconv.decode(Buffer.from(response.data), 'latin1').slice(0, 2048);
-      const metaMatch =
-        peek.match(/<meta[^>]+charset=["']?([^\s"';>]+)/i) ||
-        peek.match(/<meta[^>]+content=["'][^"']*charset=([^\s"';>]+)/i);
-      charset = metaMatch ? metaMatch[1] : 'utf-8';
-    }
-
-    // Normaliza aliases comuns
-    const enc = charset.toLowerCase().replace(/[-_]/g, '');
-    const safeCharset =
-      enc === 'utf8'                               ? 'utf-8'   :
-      enc === 'iso88591' || enc === 'latin1'       ? 'latin1'  :
-      enc === 'windows1252' || enc === 'cp1252'    ? 'win1252' :
-      charset;
-
-    html = iconv.decode(Buffer.from(response.data), safeCharset);
+    const decoded = await fetchAndDecode(url);
+    html = decoded.html;
   } catch (err) {
     if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
       return res.status(504).json({ message: 'O site demorou demais para responder. Tente novamente.' });
@@ -217,7 +237,7 @@ router.post('/', authMiddleware, async (req, res) => {
     return res.status(502).json({ message: 'Não foi possível acessar a URL. Verifique o endereço e tente novamente.' });
   }
 
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(html, { decodeEntities: true });
   const { hostname } = new URL(url);
 
   // Strategy 1 — JSON-LD (schema.org Recipe)
@@ -234,7 +254,61 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   }
 
-  return res.json(result);
+  // Camada extra de segurança: garante NFC + colapso de espaços em todos os campos
+  const sanitized = {
+    title:       sanitizeText(result.title),
+    ingredients: (result.ingredients || []).map(sanitizeText).filter(Boolean),
+    steps:       (result.steps || []).map(sanitizeText).filter(Boolean),
+    servings:    result.servings,
+    prepTime:    result.prepTime,
+  };
+
+  return res.json(sanitized);
+});
+
+// ── Endpoint de diagnóstico de encoding ───────────────────────────────────────
+// GET /api/scrape/test-encoding?url=...   → testa uma URL específica
+// GET /api/scrape/test-encoding           → testa uma URL padrão de cada domínio
+
+const DEFAULT_TEST_URLS = {
+  'tudogostoso.com.br':      'https://www.tudogostoso.com.br/receita/636-brigadeiro.html',
+  'receitasnestle.com.br':   'https://www.receitasnestle.com.br/receitas/bolo-de-cenoura',
+  'panelinha.com.br':        'https://www.panelinha.com.br/receita/Pao-de-queijo',
+  'guiadacozinha.com.br':    'https://www.guiadacozinha.com.br/receita/feijoada-completa/',
+};
+
+router.get('/test-encoding', async (req, res) => {
+  const { url } = req.query;
+  const targets = url ? [url] : Object.values(DEFAULT_TEST_URLS);
+
+  const results = [];
+  for (const target of targets) {
+    const entry = { url: target };
+    try {
+      if (!isAllowedDomain(target)) {
+        entry.error = 'domínio não permitido';
+        results.push(entry);
+        continue;
+      }
+      const { html, detectedCharset } = await fetchAndDecode(target);
+      const $ = cheerio.load(html, { decodeEntities: true });
+      const { hostname } = new URL(target);
+      let extracted = extractFromJsonLd($);
+      if (!extracted || !extracted.title) {
+        extracted = extractFromSelectors($, hostname);
+      }
+      entry.domain           = hostname;
+      entry.detectedCharset  = detectedCharset;
+      entry.title            = sanitizeText(extracted.title);
+      entry.firstIngredient  = sanitizeText((extracted.ingredients || [])[0] || '');
+      entry.firstStep        = sanitizeText((extracted.steps || [])[0] || '');
+    } catch (err) {
+      entry.error = err.message || 'falha ao buscar';
+    }
+    results.push(entry);
+  }
+
+  return res.json({ results });
 });
 
 module.exports = router;
