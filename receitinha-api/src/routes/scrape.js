@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const iconv = require('iconv-lite');
+const { decodeHTML } = require('entities');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -26,9 +27,23 @@ const USER_AGENT =
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Decodifica entidades HTML iterativamente — alguns sites (e.g. guiadacozinha)
+// servem JSON-LD com texto duplamente codificado: "Fa&amp;ccedil;a" → "Fa&ccedil;a" → "Faça".
+// Limite de 3 iterações para evitar loops em entradas patológicas.
+function decodeEntitiesDeep(text) {
+  let prev;
+  let curr = String(text);
+  for (let i = 0; i < 3 && curr !== prev; i++) {
+    prev = curr;
+    curr = decodeHTML(curr);
+  }
+  return curr;
+}
+
 function sanitizeText(text) {
   if (text == null) return '';
-  return String(text)
+  return decodeEntitiesDeep(text)
+    .replace(/<[^>]+>/g, ' ')   // remove tags HTML residuais (ex: <br>, <span>)
     .normalize('NFC')
     .replace(/\s+/g, ' ')
     .trim();

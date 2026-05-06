@@ -23,6 +23,10 @@ interface TimersState {
   // Timer actions
   addTimer: (label: string, durationSeconds: number) => string;
   removeTimer: (id: string) => void;
+  removeTimersByLabel: (prefix: string) => void;
+  clearRecipeTimers: (recipeTitle: string) => void;
+  pauseTimersByLabel: (prefix: string) => void;
+  getTimerByLabel: (label: string) => ActiveTimer | undefined;
   startTimer: (id: string) => void;
   pauseTimer: (id: string) => void;
   resumeTimer: (id: string) => void;
@@ -79,6 +83,25 @@ export const useTimersStore = create<TimersState>((set, get) => ({
 
   removeTimer: (id) =>
     set(s => ({ timers: s.timers.filter(t => t.id !== id) })),
+
+  removeTimersByLabel: (prefix) =>
+    set(s => ({ timers: s.timers.filter(t => !t.label.startsWith(prefix)) })),
+
+  clearRecipeTimers: (recipeTitle) => {
+    const prefix = `${recipeTitle} — Passo`;
+    set(s => ({ timers: s.timers.filter(t => !t.label.startsWith(prefix)) }));
+  },
+
+  pauseTimersByLabel: (prefix) =>
+    set(s => ({
+      timers: s.timers.map(t =>
+        t.label.startsWith(prefix) && t.isRunning
+          ? { ...t, isRunning: false, isPaused: true }
+          : t,
+      ),
+    })),
+
+  getTimerByLabel: (label) => get().timers.find(t => t.label === label),
 
   startTimer: (id) =>
     set(s => ({

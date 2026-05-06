@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Alert, Modal, TextInput, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -216,42 +217,47 @@ export const ShoppingListsScreen: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <TouchableOpacity style={styles.modalBox} activeOpacity={1}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Nome da lista"
-              placeholderTextColor={colors.textSecondary}
-              value={inputValue}
-              onChangeText={setInputValue}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleModalConfirm}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancel}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirm, !inputValue.trim() && styles.modalConfirmDisabled]}
-                onPress={handleModalConfirm}
-                disabled={!inputValue.trim()}
-              >
-                <Text style={styles.modalConfirmText}>
-                  {editingId ? 'Salvar' : 'Criar'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
+          >
+            <TouchableOpacity style={styles.modalBox} activeOpacity={1}>
+              <Text style={styles.modalTitle}>{modalTitle}</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nome da lista"
+                placeholderTextColor={colors.textSecondary}
+                value={inputValue}
+                onChangeText={setInputValue}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleModalConfirm}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalCancel}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalConfirm, !inputValue.trim() && styles.modalConfirmDisabled]}
+                  onPress={handleModalConfirm}
+                  disabled={!inputValue.trim()}
+                >
+                  <Text style={styles.modalConfirmText}>
+                    {editingId ? 'Salvar' : 'Criar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

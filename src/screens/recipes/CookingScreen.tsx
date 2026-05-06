@@ -87,12 +87,18 @@ export const CookingScreen = () => {
   }, [celebScale, celebOpacity]);
 
   // ── Timer global (store) ────────────────────────────────────────────────────
-  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode } = useTimersStore();
+  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode, clearRecipeTimers } = useTimersStore();
 
   useEffect(() => {
     setCookingMode(true);
     return () => setCookingMode(false);
   }, [setCookingMode]);
+
+  useEffect(() => {
+    return () => {
+      clearRecipeTimers(recipe.title);
+    };
+  }, []);
   const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   const prevDoneRef = useRef(false);
 
@@ -143,7 +149,14 @@ export const CookingScreen = () => {
   const handleClose = () => {
     Alert.alert('Sair', 'Tem certeza que quer sair do modo de preparo?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => navigation.goBack() },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: () => {
+          clearRecipeTimers(recipe.title);
+          navigation.goBack();
+        },
+      },
     ]);
   };
 
@@ -184,6 +197,7 @@ export const CookingScreen = () => {
     } finally {
       setSaving(false);
       setShowCompletion(false);
+      clearRecipeTimers(recipe.title);
       navigation.goBack();
     }
   };
@@ -525,7 +539,7 @@ export const CookingScreen = () => {
 
             {/* Link para sair sem salvar */}
             {!saving && (
-              <TouchableOpacity onPress={() => { setShowCompletion(false); navigation.goBack(); }}>
+              <TouchableOpacity onPress={() => { setShowCompletion(false); clearRecipeTimers(recipe.title); navigation.goBack(); }}>
                 <Text style={styles.skipText}>Sair sem registrar</Text>
               </TouchableOpacity>
             )}

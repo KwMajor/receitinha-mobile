@@ -174,7 +174,10 @@ export const CommunityFeedScreen = () => {
             value={query}
             onChangeText={setQuery}
             autoFocus
+            autoCorrect={false}
+            autoCapitalize="none"
             returnKeyType="search"
+            clearButtonMode="while-editing"
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')}>

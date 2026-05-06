@@ -60,6 +60,7 @@ export const BarcodeScannerScreen: React.FC = () => {
 
   const [cameraActive, setCameraActive] = useState(true);
   const scannedRef = useRef(false);
+  const quantityRef = useRef<TextInput>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -207,6 +208,7 @@ export const BarcodeScannerScreen: React.FC = () => {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.confirmBody}>
@@ -397,6 +399,10 @@ export const BarcodeScannerScreen: React.FC = () => {
           setCameraActive(true);
         }}
       >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <TouchableOpacity
@@ -418,10 +424,13 @@ export const BarcodeScannerScreen: React.FC = () => {
                 autoFocus
                 placeholderTextColor={colors.textSecondary}
                 returnKeyType="next"
+                onSubmitEditing={() => quantityRef.current?.focus()}
+                blurOnSubmit={false}
               />
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Quantidade</Text>
                 <TextInput
+                  ref={quantityRef}
                   style={styles.fieldInput}
                   value={quantity}
                   onChangeText={setQuantity}
@@ -429,7 +438,7 @@ export const BarcodeScannerScreen: React.FC = () => {
                   keyboardType="numeric"
                   placeholderTextColor={colors.textSecondary}
                   returnKeyType="done"
-                  onSubmitEditing={Keyboard.dismiss}
+                  onSubmitEditing={handleManualAdd}
                 />
               </View>
               <View style={styles.confirmButtons}>
@@ -456,6 +465,7 @@ export const BarcodeScannerScreen: React.FC = () => {
             </View>
           </View>
         </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

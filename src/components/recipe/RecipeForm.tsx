@@ -1,5 +1,6 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -100,17 +101,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
 
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
-  const scrollRef = useRef<ScrollView>(null);
-  const stepFocused = useRef(false);
-
-  useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      if (stepFocused.current) {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }
-    });
-    return () => sub.remove();
-  }, []);
+  const scrollRef = useRef<KeyboardAwareScrollView>(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -218,16 +209,16 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-    >
-    <ScrollView
-      ref={scrollRef}
+    <KeyboardAwareScrollView
+      ref={scrollRef as any}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+      enableOnAndroid={true}
+      enableAutomaticScroll={true}
+      extraScrollHeight={Platform.OS === 'ios' ? 100 : 80}
+      extraHeight={Platform.OS === 'ios' ? 100 : 80}
+      keyboardOpeningTime={250}
+      showsVerticalScrollIndicator={false}
     >
       {/* SEÇÃO 1 — Foto e Vídeo */}
       <View style={styles.section}>
@@ -353,7 +344,6 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
                   onChangeTimer={onChangeT}
                   onRemove={() => removeStep(index)}
                   timerError={errors.steps?.[index]?.timerMinutes?.message}
-                  onFocus={() => { stepFocused.current = true; }}
                 />
               )} />
             )} />
@@ -361,15 +351,14 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', o
         ))}
         <TouchableOpacity style={styles.addButton} onPress={() => {
           appendStep({ instruction: '', timerMinutes: '' });
-          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+          setTimeout(() => (scrollRef.current as any)?.scrollToEnd({ animated: true }), 100);
         }}>
           <Feather name="plus" size={20} color={colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Passo</Text>
         </TouchableOpacity>
       </View>
 
-    </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 };
 

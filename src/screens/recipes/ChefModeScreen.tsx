@@ -36,7 +36,7 @@ export const ChefModeScreen = () => {
   const navigation = useNavigation<any>();
   const { recipe } = route.params as { recipe: Recipe };
   const { user } = useAuthStore();
-  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode } = useTimersStore();
+  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode, clearRecipeTimers } = useTimersStore();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -83,6 +83,12 @@ export const ChefModeScreen = () => {
     setCookingMode(true);
     return () => setCookingMode(false);
   }, [setCookingMode]);
+
+  useEffect(() => {
+    return () => {
+      clearRecipeTimers(recipe.title);
+    };
+  }, []);
 
   useEffect(() => {
     if (isDone && !prevDoneRef.current) {
@@ -136,7 +142,14 @@ export const ChefModeScreen = () => {
   const handleClose = () => {
     Alert.alert('Sair do Modo Chef', 'Tem certeza que quer sair?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => navigation.goBack() },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: () => {
+          clearRecipeTimers(recipe.title);
+          navigation.goBack();
+        },
+      },
     ]);
   };
 
@@ -152,6 +165,7 @@ export const ChefModeScreen = () => {
       ]);
     } finally {
       setSaving(false);
+      clearRecipeTimers(recipe.title);
       navigation.goBack();
     }
   };
@@ -203,7 +217,7 @@ export const ChefModeScreen = () => {
           >
             <Text style={styles.bigBtnText}>{saving ? 'Salvando...' : 'Salvar e sair'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 20 }} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={{ marginTop: 20 }} onPress={() => { clearRecipeTimers(recipe.title); navigation.goBack(); }}>
             <Text style={styles.skipText}>Sair sem registrar</Text>
           </TouchableOpacity>
         </View>

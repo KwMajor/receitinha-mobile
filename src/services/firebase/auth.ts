@@ -6,6 +6,8 @@ import {
   onAuthStateChanged as firebaseOnAuthStateChanged,
   updateProfile,
   verifyBeforeUpdateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   User as FirebaseUser,
   Unsubscribe
 } from 'firebase/auth';
@@ -55,4 +57,10 @@ export const getCurrentUser = (): FirebaseUser | null => {
 
 export const onAuthStateChanged = (callback: (user: FirebaseUser | null) => void): Unsubscribe => {
   return firebaseOnAuthStateChanged(auth, callback);
+};
+
+export const reauthenticateUser = async (password: string): Promise<void> => {
+  if (!auth.currentUser?.email) throw new Error('Usuário não autenticado');
+  const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+  await reauthenticateWithCredential(auth.currentUser, credential);
 };

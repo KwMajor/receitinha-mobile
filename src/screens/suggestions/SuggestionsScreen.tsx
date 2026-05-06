@@ -601,7 +601,11 @@ export const SuggestionsScreen: React.FC = () => {
 
       {/* ── PANTRY TAB ── */}
       {activeTab === 'pantry' && (
-        <View style={styles.flex}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+        >
           {/* Search */}
           <View style={styles.searchRow}>
             <View style={styles.searchBar}>
@@ -662,7 +666,7 @@ export const SuggestionsScreen: React.FC = () => {
               <Feather name="plus" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       )}
 
       {/* ── SUGGESTIONS TAB ── */}
@@ -735,7 +739,7 @@ export const SuggestionsScreen: React.FC = () => {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <TouchableOpacity
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}

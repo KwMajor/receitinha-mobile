@@ -392,7 +392,7 @@ export const WeekPlanScreen: React.FC = () => {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Nova refeição</Text>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, View, Text, TextInput, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, TextInput, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -83,7 +83,7 @@ export const RecipePickerModal: React.FC<Props> = ({ visible, onClose, onSelect 
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
           <Text style={styles.title}>Escolher Receita</Text>
           <TouchableOpacity onPress={onClose}>
@@ -146,7 +146,7 @@ export const RecipePickerModal: React.FC<Props> = ({ visible, onClose, onSelect 
             <Text style={styles.addBtnText}>Adicionar</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
