@@ -1,5 +1,6 @@
-import React, { useState, useLayoutEffect, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList } from 'react-native';
+import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, FlatList, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,11 +9,13 @@ import { Feather } from '@expo/vector-icons';
 import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy';
 
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useAuthStore } from '../../store/authStore';
+import { api } from '../../services/api/client';
 import { getCategories } from '../../services/sqlite/categoryService';
-import { createRecipe, CreateRecipeInput } from '../../services/sqlite/recipeService';
 
 import { PhotoPicker } from '../../components/forms/PhotoPicker';
+import { VideoPicker } from '../../components/forms/VideoPicker';
 import { IngredientItem } from '../../components/forms/IngredientItem';
 import { StepItem } from '../../components/forms/StepItem';
 
@@ -20,13 +23,11 @@ const recipeSchema = z.object({
   title: z.string().min(1, 'O título é obrigatório'),
   description: z.string().optional(),
   category: z.string().min(1, 'Selecione uma categoria'),
-  prepTime: z.string()
-    .min(1, 'O tempo é obrigatório')
-    .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   servings: z.string()
     .min(1, 'Obrigatório')
     .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   photoUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
   ingredients: z.array(z.object({
     quantity: z.string()
       .min(1, 'Obrigatório')
@@ -35,10 +36,10 @@ const recipeSchema = z.object({
     name: z.string().min(1)
   })).min(1, 'Adicione pelo menos 1 ingrediente'),
   steps: z.array(z.object({
-    instruction: z.string().min(1),
+    instruction: z.string().min(1, 'Descreva o passo'),
     timerMinutes: z.string()
-      .refine(v => !v || (/^\d+$/.test(v) && Number(v) > 0), 'Informe um número inteiro positivo')
-      .optional()
+      .min(1, 'Informe o tempo deste passo')
+      .refine(v => /^\d+$/.test(v) && Number(v) > 0, 'Informe um número inteiro positivo'),
   })).min(1, 'Adicione pelo menos 1 passo')
 });
 
@@ -48,11 +49,37 @@ export interface RecipeFormProps {
   initialData?: any;
   onSubmitData: (data: any) => Promise<void>;
   titleHeader?: string;
+  onImportPress?: () => void;
 }
 
-const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }: RecipeFormProps) => {
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { padding: theme.spacing.md, backgroundColor: colors.background },
+  saveBtn: { marginRight: theme.spacing.md },
+  section: { marginBottom: theme.spacing.xl },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: theme.spacing.md },
+  inputGroup: { marginBottom: theme.spacing.md },
+  label: { fontSize: 14, color: colors.text, marginBottom: theme.spacing.xs },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: colors.surface, color: colors.text },
+  textArea: { minHeight: 80, textAlignVertical: 'top' as const },
+  row: { flexDirection: 'row' as const, justifyContent: 'space-between' as const },
+  sectionHint: { fontSize: 13, color: colors.textSecondary, marginBottom: theme.spacing.md, marginTop: -theme.spacing.sm },
+  error: { color: colors.error, fontSize: 12, marginTop: 4 },
+  addButton: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, padding: theme.spacing.md, borderWidth: 1, borderStyle: 'dashed' as const, borderColor: colors.primary, borderRadius: theme.borderRadius.md, marginTop: theme.spacing.sm },
+  addButtonText: { color: colors.primary, fontWeight: 'bold' as const, marginLeft: theme.spacing.sm },
+  pickerButton: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: colors.surface },
+  pickerButtonText: { color: colors.text },
+  modalContainer: { flex: 1, justifyContent: 'flex-end' as const, backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { backgroundColor: colors.background, borderTopLeftRadius: theme.borderRadius.lg, borderTopRightRadius: theme.borderRadius.lg, maxHeight: '50%' as any },
+  modalTitle: { padding: theme.spacing.md, fontSize: 18, fontWeight: 'bold' as const, textAlign: 'center' as const, borderBottomWidth: 1, borderColor: colors.border, color: colors.text },
+  modalItem: { padding: theme.spacing.md, borderBottomWidth: 1, borderColor: colors.surface },
+  modalItemText: { fontSize: 16, textAlign: 'center' as const, color: colors.text },
+});
+
+const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita', onImportPress }: RecipeFormProps) => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [loading, setLoading] = useState(false);
   const [modalCategoryVisible, setModalCategoryVisible] = useState(false);
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
@@ -63,7 +90,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     }
   }, [user?.id]);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<RecipeFormData>({
+  const { control, handleSubmit, formState: { errors } } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
     defaultValues: initialData || {
       category: '',
@@ -74,27 +101,59 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
 
   const { fields: ingFields, append: appendIng, remove: removeIng } = useFieldArray({ control, name: "ingredients" });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: "steps" });
-
-  const watchedSteps = watch('steps');
-  useEffect(() => {
-    const sum = watchedSteps.reduce((acc, s) => acc + (parseInt(s.timerMinutes || '0') || 0), 0);
-    if (sum > 0) setValue('prepTime', sum.toString());
-  }, [watchedSteps]);
+  const scrollRef = useRef<KeyboardAwareScrollView>(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: titleHeader,
       headerRight: () => (
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit(onSubmit)} disabled={loading}>
-          {loading ? <ActivityIndicator color={theme.colors.primary} size="small" /> : <Feather name="check" size={24} color={theme.colors.primary} />}
-        </TouchableOpacity>
-      )
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: theme.spacing.md }}>
+          {onImportPress && (
+            <TouchableOpacity onPress={onImportPress} style={{ padding: 4 }}>
+              <Feather name="link" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleSubmit(onSubmit)} disabled={loading} style={{ padding: 4 }}>
+            {loading ? <ActivityIndicator color={colors.primary} size="small" /> : <Feather name="check" size={24} color={colors.primary} />}
+          </TouchableOpacity>
+        </View>
+      ),
     });
-  }, [navigation, loading, titleHeader]);
+  }, [navigation, loading, titleHeader, onImportPress]);
 
-  const uploadPhoto = async (uri: string, recipeId: string): Promise<string> => {
-    const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const uploadVideo = async (uri: string): Promise<string> => {
+    const { signature, timestamp, apiKey, cloudName, folder } = await api.get<{
+      signature: string; timestamp: number; apiKey: string; cloudName: string; folder: string;
+    }>('/api/user/photos/sign?type=video');
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+
+    const result = await uploadAsync(uploadUrl, uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: 'video/mp4',
+      parameters: {
+        api_key: apiKey,
+        timestamp: String(timestamp),
+        signature,
+        folder,
+      },
+    });
+
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`Upload do vídeo falhou com status ${result.status}`);
+    }
+
+    return JSON.parse(result.body).secure_url;
+  };
+
+  const uploadPhoto = async (uri: string): Promise<string> => {
+    // Busca assinatura do backend — nunca expõe o API secret no app
+    const { signature, timestamp, apiKey, cloudName, folder } = await api.get<{
+      signature: string; timestamp: number; apiKey: string; cloudName: string; folder: string;
+    }>('/api/user/photos/sign');
+
     const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
     const result = await uploadAsync(uploadUrl, uri, {
@@ -103,13 +162,14 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       fieldName: 'file',
       mimeType: 'image/jpeg',
       parameters: {
-        upload_preset: uploadPreset!,
-        public_id: `recipes/${user?.id}/${recipeId}`,
+        api_key: apiKey,
+        timestamp: String(timestamp),
+        signature,
+        folder,
       },
     });
 
     if (result.status < 200 || result.status >= 300) {
-      console.error('Falha no upload da foto', { uri, recipeId, body: result.body });
       throw new Error(`Upload falhou com status ${result.status}`);
     }
 
@@ -121,21 +181,27 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
     if (!user) return;
     try {
       setLoading(true);
-      
-      let finalPhotoUrl = data.photoUrl;
-      const temporalId = initialData?.id || Date.now().toString() + Math.random().toString(36).substring(2, 9); // mock ID temporário para pasta do Firebase
 
+      let finalPhotoUrl = data.photoUrl;
       if (data.photoUrl && !data.photoUrl.startsWith('http')) {
-        finalPhotoUrl = await uploadPhoto(data.photoUrl, temporalId);
+        finalPhotoUrl = await uploadPhoto(data.photoUrl);
       }
 
+      let finalVideoUrl = data.videoUrl;
+      if (data.videoUrl && !data.videoUrl.startsWith('http')) {
+        finalVideoUrl = await uploadVideo(data.videoUrl);
+      }
+
+      const prepTime = data.steps.reduce((acc, s) => acc + parseInt(s.timerMinutes, 10), 0);
+
       await onSubmitData({
-         ...data,
-         photoUrl: finalPhotoUrl
+        ...data,
+        prepTime,
+        photoUrl: finalPhotoUrl,
+        videoUrl: finalVideoUrl,
       });
 
     } catch (error) {
-      console.error(error);
       Alert.alert('Erro ao salvar', 'Não foi possível salvar a receita. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
@@ -143,14 +209,31 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* SEÇÃO 1 — Foto */}
+    <KeyboardAwareScrollView
+      ref={scrollRef as any}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true}
+      enableAutomaticScroll={true}
+      extraScrollHeight={Platform.OS === 'ios' ? 100 : 80}
+      extraHeight={Platform.OS === 'ios' ? 100 : 80}
+      keyboardOpeningTime={250}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* SEÇÃO 1 — Foto e Vídeo */}
       <View style={styles.section}>
         <Controller
           control={control}
           name="photoUrl"
           render={({ field: { onChange, value } }) => (
             <PhotoPicker imageUri={value || null} onChange={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="videoUrl"
+          render={({ field: { onChange, value } }) => (
+            <VideoPicker videoUri={value || null} onChange={uri => onChange(uri ?? '')} />
           )}
         />
       </View>
@@ -162,7 +245,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
         <Controller control={control} name="title" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Título da Receita *</Text>
-            <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder="Ex: Bolo de Cenoura" returnKeyType="done" />
+            <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder="Ex: Bolo de Cenoura" placeholderTextColor={colors.textSecondary} returnKeyType="done" />
             {errors.title && <Text style={styles.error}>{errors.title.message}</Text>}
           </View>
         )} />
@@ -170,34 +253,24 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
         <Controller control={control} name="description" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Descrição</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={value} onChangeText={onChange} placeholder="Uma breve descrição..." multiline />
+            <TextInput style={[styles.input, styles.textArea]} value={value} onChangeText={onChange} placeholder="Uma breve descrição..." placeholderTextColor={colors.textSecondary} multiline />
           </View>
         )} />
 
-        <View style={styles.row}>
-          <Controller control={control} name="prepTime" render={({ field: { onChange, value } }) => (
-            <View style={[styles.inputGroup, { flex: 1, marginRight: theme.spacing.sm }]}>
-              <Text style={styles.label}>Tempo (min) *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="45" returnKeyType="done" />
-              {errors.prepTime && <Text style={styles.error}>{errors.prepTime.message}</Text>}
-            </View>
-          )} />
-
-          <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Porções *</Text>
-              <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" returnKeyType="done" />
-              {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
-            </View>
-          )} />
-        </View>
+        <Controller control={control} name="servings" render={({ field: { onChange, value } }) => (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Porções *</Text>
+            <TextInput style={styles.input} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="8" placeholderTextColor={colors.textSecondary} returnKeyType="done" />
+            {errors.servings && <Text style={styles.error}>{errors.servings.message}</Text>}
+          </View>
+        )} />
 
         <Controller control={control} name="category" render={({ field: { onChange, value } }) => (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Categoria *</Text>
             <TouchableOpacity style={styles.pickerButton} onPress={() => setModalCategoryVisible(true)}>
               <Text style={styles.pickerButtonText}>{value || 'Selecione'}</Text>
-              <Feather name="chevron-down" size={20} color={theme.colors.textSecondary} />
+              <Feather name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
             {errors.category && <Text style={styles.error}>{errors.category.message}</Text>}
             
@@ -246,7 +319,7 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
           </View>
         ))}
         <TouchableOpacity style={styles.addButton} onPress={() => appendIng({ quantity: '', unit: 'g', name: '' })}>
-          <Feather name="plus" size={20} color={theme.colors.primary} />
+          <Feather name="plus" size={20} color={colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Ingrediente</Text>
         </TouchableOpacity>
       </View>
@@ -254,53 +327,39 @@ const RecipeForm = ({ initialData, onSubmitData, titleHeader = 'Nova Receita' }:
       {/* SEÇÃO 4 — Modo de preparo */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Modo de Preparo *</Text>
-        {errors.steps && <Text style={styles.error}>{errors.steps.message}</Text>}
-        
+        <Text style={styles.sectionHint}>Cada passo deve ter um tempo — o total será o tempo de preparo da receita.</Text>
+        {errors.steps && typeof errors.steps.message === 'string' && (
+          <Text style={styles.error}>{errors.steps.message}</Text>
+        )}
+
         {stepFields.map((field, index) => (
           <View key={field.id}>
-             <Controller control={control} name={`steps.${index}.instruction`} render={({field: {onChange, value}}) => (
-               <Controller control={control} name={`steps.${index}.timerMinutes`} render={({field: {onChange: onChangeT, value: valueT}}) => (
-                 <StepItem
-                   order={index + 1}
-                   instruction={value}
-                   onChangeInstruction={onChange}
-                   timerMinutes={valueT}
-                   onChangeTimer={onChangeT}
-                   onRemove={() => removeStep(index)}
-                 />
-               )} />
-             )} />
+            <Controller control={control} name={`steps.${index}.instruction`} render={({field: {onChange, value}}) => (
+              <Controller control={control} name={`steps.${index}.timerMinutes`} render={({field: {onChange: onChangeT, value: valueT}}) => (
+                <StepItem
+                  order={index + 1}
+                  instruction={value}
+                  onChangeInstruction={onChange}
+                  timerMinutes={valueT}
+                  onChangeTimer={onChangeT}
+                  onRemove={() => removeStep(index)}
+                  timerError={errors.steps?.[index]?.timerMinutes?.message}
+                />
+              )} />
+            )} />
           </View>
         ))}
-        <TouchableOpacity style={styles.addButton} onPress={() => appendStep({ instruction: '', timerMinutes: '' })}>
-          <Feather name="plus" size={20} color={theme.colors.primary} />
+        <TouchableOpacity style={styles.addButton} onPress={() => {
+          appendStep({ instruction: '', timerMinutes: '' });
+          setTimeout(() => (scrollRef.current as any)?.scrollToEnd({ animated: true }), 100);
+        }}>
+          <Feather name="plus" size={20} color={colors.primary} />
           <Text style={styles.addButtonText}>Adicionar Passo</Text>
         </TouchableOpacity>
       </View>
 
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { padding: theme.spacing.md, backgroundColor: theme.colors.background },
-  saveBtn: { marginRight: theme.spacing.md },
-  section: { marginBottom: theme.spacing.xl },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.md },
-  inputGroup: { marginBottom: theme.spacing.md },
-  label: { fontSize: 14, color: theme.colors.text, marginBottom: theme.spacing.xs },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: '#fff' },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  error: { color: theme.colors.error, fontSize: 12, marginTop: 4 },
-  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.spacing.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.primary, borderRadius: theme.borderRadius.md, marginTop: theme.spacing.sm },
-  addButtonText: { color: theme.colors.primary, fontWeight: 'bold', marginLeft: theme.spacing.sm },
-  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, backgroundColor: '#fff' },
-  pickerButtonText: { color: theme.colors.text },
-  modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: theme.borderRadius.lg, borderTopRightRadius: theme.borderRadius.lg, maxHeight: '50%' },
-  modalTitle: { padding: theme.spacing.md, fontSize: 18, fontWeight: 'bold', textAlign: 'center', borderBottomWidth: 1, borderColor: theme.colors.border },
-  modalItem: { padding: theme.spacing.md, borderBottomWidth: 1, borderColor: theme.colors.surface },
-  modalItemText: { fontSize: 16, textAlign: 'center' }
-});
 export default RecipeForm;

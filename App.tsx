@@ -1,28 +1,73 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
-import { initDatabase } from './src/services/sqlite/database';
+import { StyleSheet, Text, View, ActivityIndicator, AppState, AppStateStatus } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useEffect, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
+import { initDatabase, closeDatabase } from './src/services/sqlite/database';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
+import { ThemeProvider } from './src/contexts/ThemeContext';
+import { useSettingsStore } from './src/store/settingsStore';
+import { useTimersStore } from './src/store/timersStore';
+import { notifyTimerComplete } from './src/services/notifications';
 
 export default function App() {
-  const [isDbReady, setIsDbReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Motor global de ticks ────────────────────────────────────────────────────
+  useEffect(() => {
+    const startTick = () => {
+      if (intervalRef.current) return;
+      intervalRef.current = setInterval(() => {
+        const justDone = useTimersStore.getState().tickAll();
+        for (const label of justDone) {
+          notifyTimerComplete(label).catch(() => {});
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        }
+      }, 1000);
+    };
+
+    const stopTick = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    startTick();
+
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') startTick();
+      else stopTick();
+    });
+
+    return () => {
+      stopTick();
+      sub.remove();
+      closeDatabase();
+    };
+  }, []);
 
   useEffect(() => {
+    const safetyTimer = setTimeout(() => setIsReady(true), 4000);
     async function setupApp() {
       try {
-        await initDatabase();
+        await Promise.race([
+          Promise.all([initDatabase(), useSettingsStore.persist.rehydrate()]),
+          new Promise<void>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
       } catch (e) {
         console.warn('Erro ao inicializar o app:', e);
       } finally {
-        setIsDbReady(true);
+        clearTimeout(safetyTimer);
+        setIsReady(true);
       }
     }
-    
     setupApp();
   }, []);
 
-  if (!isDbReady) {
+  if (!isReady) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#FF6C37" />
@@ -32,10 +77,14 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <StatusBar style="auto" />
-      <RootNavigator />
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <RootNavigator />
+          <Toast />
+        </ThemeProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

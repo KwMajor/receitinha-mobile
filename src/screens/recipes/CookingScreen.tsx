@@ -1,16 +1,36 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration, Dimensions, SafeAreaView, ScrollView, StatusBar, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as Speech from 'expo-speech';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { theme } from '../../constants/theme';
-import { useTimer } from '../../hooks/useTimer';
-import { addToHistory } from '../../services/sqlite/cookingHistoryService';
+import { useTheme } from '../../contexts/ThemeContext';
+import { addToHistory, getRecipeStats } from '../../services/sqlite/cookingHistoryService';
+import { deductRecipeIngredients } from '../../services/sqlite/pantryService';
 import { useAuthStore } from '../../store/authStore';
-import { Recipe, Step } from '../../types';
-
-const { width } = Dimensions.get('window');
+import { useTimersStore } from '../../store/timersStore';
+import { useSettingsStore, VOICE_RATE_VALUES } from '../../store/settingsStore';
+import { useVoiceControl } from '../../hooks/useVoiceControl';
+import { parseCommand } from '../../utils/voiceCommands';
+import { Recipe } from '../../types';
+const MAX_NOTE = 200;
 
 const formatTime = (totalSeconds: number) => {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -18,45 +38,125 @@ const formatTime = (totalSeconds: number) => {
   return `${m}:${s}`;
 };
 
+const ordinalFem = (n: number) => `${n}ª`;
+
 export const CookingScreen = () => {
-  useKeepAwake(); // Mantém a tela acesa
+  useKeepAwake();
 
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { recipe } = route.params as { recipe: Recipe };
   const { user } = useAuthStore();
-  
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const steps = recipe.steps || [];
   const currentStep = steps[currentStepIndex];
   const timerMinutes = currentStep?.timer_minutes || 0;
-  
+
   // Flash de fundo
   const [isFlashing, setIsFlashing] = useState(false);
 
-  // Controle de Timer
+  // Quantas vezes o usuário já preparou esta receita
+  const [timesCooked, setTimesCooked] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getRecipeStats(user.id, recipe.id).then(s => setTimesCooked(s.timesCooked));
+  }, [user?.id, recipe.id]);
+
+  // Modal de conclusão
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [saveToHistory, setSaveToHistory] = useState(true);
+  const [deductFromPantry, setDeductFromPantry] = useState(true);
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Animação de celebração (scale + fade do ícone)
+  const celebScale = useRef(new Animated.Value(0)).current;
+  const celebOpacity = useRef(new Animated.Value(0)).current;
+
+  const runCelebration = useCallback(() => {
+    celebScale.setValue(0);
+    celebOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(celebScale, { toValue: 1, bounciness: 18, useNativeDriver: true }),
+      Animated.timing(celebOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [celebScale, celebOpacity]);
+
+  // ── Timer global (store) ────────────────────────────────────────────────────
+  const { addTimer, startTimer, pauseTimer, resumeTimer, removeTimer, timers, setCookingMode, clearRecipeTimers } = useTimersStore();
+
+  useEffect(() => {
+    setCookingMode(true);
+    return () => setCookingMode(false);
+  }, [setCookingMode]);
+
+  useEffect(() => {
+    return () => {
+      clearRecipeTimers(recipe.title);
+    };
+  }, []);
+  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
+  const prevDoneRef = useRef(false);
+
+  const activeTimer = timers.find(t => t.id === activeTimerId) ?? null;
+  const seconds = activeTimer?.remainingSeconds ?? timerMinutes * 60;
+  const isRunning = activeTimer?.isRunning ?? false;
+  const isDone = activeTimer?.isDone ?? false;
+
+  // Detecta conclusão do timer → flash visual (haptics já disparados pelo motor global em App.tsx)
   const handleTimerComplete = useCallback(() => {
-    Vibration.vibrate([0, 500, 200, 500]);
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 2000);
   }, []);
 
-  const { seconds, isRunning, isDone, start, pause, reset, setDuration } = useTimer({
-    initialSeconds: timerMinutes * 60,
-    stepTitle: currentStep?.instruction || 'Passo atual',
-    onComplete: handleTimerComplete
-  });
-
-  // Reseta timer sempre que trocar de passo
   useEffect(() => {
-    setDuration((currentStep?.timer_minutes || 0) * 60);
-  }, [currentStepIndex, setDuration, currentStep?.timer_minutes]);
+    if (isDone && !prevDoneRef.current) handleTimerComplete();
+    prevDoneRef.current = isDone;
+  }, [isDone, handleTimerComplete]);
 
-  // Navbar actions
+  // Reseta o timer ativo ao trocar de passo (o timer anterior continua no store)
+  useEffect(() => {
+    setActiveTimerId(null);
+  }, [currentStepIndex]);
+
+  const start = () => {
+    if (!activeTimerId) {
+      const secs = timerMinutes * 60;
+      if (secs <= 0) return;
+      const id = addTimer(`${recipe.title} — Passo ${currentStepIndex + 1}`, secs);
+      setActiveTimerId(id);
+      startTimer(id);
+    } else {
+      resumeTimer(activeTimerId);
+    }
+  };
+
+  const pause = () => {
+    if (activeTimerId) pauseTimer(activeTimerId);
+  };
+
+  const reset = () => {
+    if (activeTimerId) {
+      removeTimer(activeTimerId);
+      setActiveTimerId(null);
+    }
+  };
+
   const handleClose = () => {
     Alert.alert('Sair', 'Tem certeza que quer sair do modo de preparo?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => navigation.goBack() }
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: () => {
+          clearRecipeTimers(recipe.title);
+          navigation.goBack();
+        },
+      },
     ]);
   };
 
@@ -64,7 +164,7 @@ export const CookingScreen = () => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
-      handleFinish();
+      openCompletionModal();
     }
   };
 
@@ -74,36 +174,153 @@ export const CookingScreen = () => {
     }
   };
 
-  const handleFinish = () => {
-    Alert.alert(
-      'Parabéns! 🎉', 
-      'Você concluiu esta receita. Deseja registrar no seu histórico?',
-      [
-        { text: 'Não', style: 'cancel', onPress: () => navigation.goBack() },
-        { 
-          text: 'Sim', 
-          onPress: async () => {
-            if (user) {
-              await addToHistory(user.id, recipe.id);
-            }
-            navigation.goBack();
-          } 
-        }
-      ]
-    );
+  const openCompletionModal = () => {
+    setSaveToHistory(true);
+    setDeductFromPantry(true);
+    setNote('');
+    setShowCompletion(true);
+    runCelebration();
   };
 
-  // Gestos (Swipe)
+  const handleSaveAndExit = async () => {
+    setSaving(true);
+    try {
+      const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      await Promise.all([
+        saveToHistory && user
+          ? addToHistory(user.id, recipe.id, note.trim() || undefined)
+          : Promise.resolve(),
+        deductFromPantry && user && ingredients.length > 0
+          ? deductRecipeIngredients(user.id, ingredients)
+          : Promise.resolve(),
+      ]);
+    } finally {
+      setSaving(false);
+      setShowCompletion(false);
+      clearRecipeTimers(recipe.title);
+      navigation.goBack();
+    }
+  };
+
+  // ── Voz ────────────────────────────────────────────────────────────────────
+  const { voiceRate } = useSettingsStore();
+  const { isListening, transcript, isSupported, startListening, stopListening, destroy } = useVoiceControl();
+
+  const voiceActiveRef = useRef(false);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (voiceActive) {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.25, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseLoop.current?.stop();
+      pulseAnim.setValue(1);
+    }
+  }, [voiceActive, pulseAnim]);
+
+  // Cleanup voz ao desmontar
+  useEffect(() => () => { destroy(); }, [destroy]);
+
+  const speak = useCallback((text: string) => {
+    Speech.stop();
+    Speech.speak(text, { language: 'pt-BR', rate: VOICE_RATE_VALUES[voiceRate] });
+  }, [voiceRate]);
+
+  // Processa transcript novo
+  useEffect(() => {
+    if (!transcript || !voiceActiveRef.current) return;
+
+    const command = parseCommand(transcript);
+
+    switch (command) {
+      case 'NEXT':
+        if (currentStepIndex < steps.length - 1) {
+          setCurrentStepIndex(prev => prev + 1);
+          speak(`Indo para o passo ${currentStepIndex + 2}`);
+        } else {
+          speak('Este é o último passo.');
+        }
+        break;
+      case 'PREVIOUS':
+        if (currentStepIndex > 0) {
+          setCurrentStepIndex(prev => prev - 1);
+          speak(`Voltando para o passo ${currentStepIndex}`);
+        } else {
+          speak('Este é o primeiro passo.');
+        }
+        break;
+      case 'REPEAT':
+        speak(steps[currentStepIndex]?.instruction ?? '');
+        break;
+      case 'START_TIMER':
+        start();
+        speak('Timer iniciado.');
+        break;
+      case 'PAUSE_TIMER':
+        pause();
+        speak('Timer pausado.');
+        break;
+      case 'STOP':
+        voiceActiveRef.current = false;
+        setVoiceActive(false);
+        stopListening();
+        speak('Encerrando modo de voz.');
+        break;
+      default:
+        speak('Comando não reconhecido. Diga próximo, anterior ou repetir.');
+    }
+
+    // Reinicia escuta após feedback (exceto STOP)
+    if (command !== 'STOP') {
+      const delay = command === 'REPEAT' ? 4000 : 1500;
+      setTimeout(() => {
+        if (voiceActiveRef.current) startListening();
+      }, delay);
+    }
+  }, [transcript]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reinicia escuta se o Voice parou sozinho mas o modo está ativo
+  useEffect(() => {
+    if (!isListening && voiceActiveRef.current) {
+      const t = setTimeout(() => {
+        if (voiceActiveRef.current) startListening();
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [isListening]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleVoice = useCallback(async () => {
+    if (voiceActive) {
+      voiceActiveRef.current = false;
+      setVoiceActive(false);
+      await stopListening();
+      Speech.stop();
+    } else {
+      if (!isSupported) {
+        Alert.alert('Voz indisponível', 'O reconhecimento de voz não está disponível neste dispositivo.');
+        return;
+      }
+      voiceActiveRef.current = true;
+      setVoiceActive(true);
+      speak('Modo de voz ativado. Diga próximo, anterior ou repetir.');
+      setTimeout(() => { if (voiceActiveRef.current) startListening(); }, 1800);
+    }
+  }, [voiceActive, isSupported, startListening, stopListening, speak]);
+
+  // ── Gestos (Swipe) ──────────────────────────────────────────────────────────
   const onGestureEvent = (event: any) => {
     const { translationX, state } = event.nativeEvent;
     if (state === State.END) {
-      if (translationX < -50) {
-        // Swipe left -> Next
-        handleNext();
-      } else if (translationX > 50) {
-        // Swipe right -> Prev
-        handlePrev();
-      }
+      if (translationX < -50) handleNext();
+      else if (translationX > 50) handlePrev();
     }
   };
 
@@ -121,15 +338,24 @@ export const CookingScreen = () => {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
   const isCloseToZero = seconds > 0 && seconds <= 10;
   const showTimer = timerMinutes > 0;
+  const cookingLabel =
+    timesCooked === 0
+      ? null
+      : `${ordinalFem(timesCooked + 1)} vez preparando!`;
 
   return (
     <SafeAreaView style={[styles.container, isFlashing && styles.containerFlash]}>
       <StatusBar hidden />
-      
+
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
+            {cookingLabel ? (
+              <Text style={styles.cookingLabel}>{cookingLabel}</Text>
+            ) : null}
+          </View>
           <TouchableOpacity onPress={handleClose} style={styles.closeHeaderBtn}>
             <Feather name="x" size={28} color="#fff" />
           </TouchableOpacity>
@@ -147,55 +373,62 @@ export const CookingScreen = () => {
       <PanGestureHandler onHandlerStateChange={onGestureEvent}>
         <View style={styles.centerArea}>
           <ScrollView contentContainerStyle={styles.centerScroll}>
-             <View style={styles.stepBadge}>
-               <Text style={styles.stepBadgeText}>{currentStepIndex + 1}</Text>
-             </View>
-             
-             <Text style={styles.instruction}>{currentStep?.instruction}</Text>
-             
-             {/* TIMER ZONE */}
-             {showTimer && (
-               <View style={styles.timerZone}>
-                 <View style={[
-                   styles.timerCircle, 
-                   isCloseToZero && styles.timerCircleDanger,
-                   isDone && styles.timerCircleDone
-                 ]}>
-                   <Text style={[
-                     styles.timerText, 
-                     isCloseToZero && styles.timerTextDanger
-                   ]}>
-                     {formatTime(seconds)}
-                   </Text>
-                 </View>
-                 
-                 <View style={styles.timerControls}>
-                    {!isRunning ? (
-                      <TouchableOpacity style={styles.timerBtnPrimary} onPress={start}>
-                        <Feather name="play" size={24} color="#fff" />
-                        <Text style={styles.timerBtnText}>Iniciar</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity style={styles.timerBtnSecondary} onPress={pause}>
-                        <Feather name="pause" size={24} color="#fff" />
-                        <Text style={styles.timerBtnText}>Pausar</Text>
-                      </TouchableOpacity>
-                    )}
-                    
-                    <TouchableOpacity style={styles.timerBtnGhost} onPress={reset}>
-                       <Feather name="refresh-ccw" size={20} color="#ccc" />
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>{currentStepIndex + 1}</Text>
+            </View>
+
+            <Text style={styles.instruction}>{currentStep?.instruction}</Text>
+
+            {showTimer && (
+              <View style={styles.timerZone}>
+                <View style={[
+                  styles.timerCircle,
+                  isCloseToZero && styles.timerCircleDanger,
+                  isDone && styles.timerCircleDone,
+                ]}>
+                  <Text style={[styles.timerText, isCloseToZero && styles.timerTextDanger]}>
+                    {formatTime(seconds)}
+                  </Text>
+                </View>
+
+                <View style={styles.timerControls}>
+                  {!isRunning ? (
+                    <TouchableOpacity style={styles.timerBtnPrimary} onPress={start}>
+                      <Feather name="play" size={24} color="#fff" />
+                      <Text style={styles.timerBtnText}>Iniciar</Text>
                     </TouchableOpacity>
-                 </View>
-               </View>
-             )}
+                  ) : (
+                    <TouchableOpacity style={styles.timerBtnSecondary} onPress={pause}>
+                      <Feather name="pause" size={24} color="#fff" />
+                      <Text style={styles.timerBtnText}>Pausar</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.timerBtnGhost} onPress={reset}>
+                    <Feather name="refresh-ccw" size={20} color="#ccc" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </ScrollView>
         </View>
       </PanGestureHandler>
 
+      {/* VOZ — banner de escuta ativa */}
+      {voiceActive && (
+        <View style={styles.voiceBanner}>
+          <Feather name={isListening ? 'mic' : 'mic-off'} size={14} color="#fff" />
+          <Text style={styles.voiceBannerText}>
+            {isListening
+              ? "Ouvindo... diga 'próximo', 'anterior' ou 'repetir'"
+              : 'Processando...'}
+          </Text>
+        </View>
+      )}
+
       {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.footerBtn, currentStepIndex === 0 && styles.footerBtnDisabled]} 
+        <TouchableOpacity
+          style={[styles.footerBtn, currentStepIndex === 0 && styles.footerBtnDisabled]}
           onPress={handlePrev}
           disabled={currentStepIndex === 0}
         >
@@ -203,27 +436,127 @@ export const CookingScreen = () => {
           <Text style={[styles.footerBtnText, currentStepIndex === 0 && { color: '#555' }]}> Anterior</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.footerBtnNext, currentStepIndex === steps.length - 1 && styles.footerBtnFinish]} 
+        {/* Botão de microfone */}
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <TouchableOpacity
+            style={[styles.micBtn, voiceActive && styles.micBtnActive]}
+            onPress={toggleVoice}
+            accessibilityLabel={voiceActive ? 'Desativar controle por voz' : 'Ativar controle por voz'}
+          >
+            <Feather name={voiceActive ? 'mic' : 'mic-off'} size={22} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        <TouchableOpacity
+          style={[styles.footerBtnNext, currentStepIndex === steps.length - 1 && styles.footerBtnFinish]}
           onPress={handleNext}
         >
           <Text style={styles.footerBtnTextNext}>
             {currentStepIndex === steps.length - 1 ? 'Concluir' : 'Próximo '}
           </Text>
-          {currentStepIndex !== steps.length - 1 && <Feather name="arrow-right" size={20} color="#121212" />}
+          {currentStepIndex !== steps.length - 1 && (
+            <Feather name="arrow-right" size={20} color="#121212" />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* MODAL DE CONCLUSÃO */}
+      <Modal
+        visible={showCompletion}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCompletion(false)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.completionSheet}>
+            {/* Ícone animado */}
+            <Animated.Text
+              style={[
+                styles.celebEmoji,
+                { transform: [{ scale: celebScale }], opacity: celebOpacity },
+              ]}
+            >
+              🎉
+            </Animated.Text>
+
+            <Text style={styles.completionTitle}>Receita concluída!</Text>
+            <Text style={styles.completionSubtitle}>{recipe.title}</Text>
+
+            {/* Toggle de histórico */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Registrar no histórico</Text>
+              <Switch
+                value={saveToHistory}
+                onValueChange={setSaveToHistory}
+                trackColor={{ false: '#555', true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {/* Toggle de despensa */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Descontar da despensa</Text>
+              <Switch
+                value={deductFromPantry}
+                onValueChange={setDeductFromPantry}
+                trackColor={{ false: '#555', true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {/* Nota pessoal */}
+            {saveToHistory && (
+              <View style={styles.noteWrapper}>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="Adicionar nota pessoal..."
+                  placeholderTextColor="#666"
+                  value={note}
+                  onChangeText={t => setNote(t.slice(0, MAX_NOTE))}
+                  multiline
+                  maxLength={MAX_NOTE}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                />
+                <Text style={styles.noteCount}>{MAX_NOTE - note.length} restantes</Text>
+              </View>
+            )}
+
+            {/* Botão salvar e sair */}
+            <TouchableOpacity
+              style={[styles.saveExitBtn, saving && { opacity: 0.6 }]}
+              onPress={handleSaveAndExit}
+              disabled={saving}
+            >
+              <Text style={styles.saveExitText}>
+                {saving ? 'Salvando...' : 'Salvar e sair'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Link para sair sem salvar */}
+            {!saving && (
+              <TouchableOpacity onPress={() => { setShowCompletion(false); clearRecipeTimers(recipe.title); navigation.goBack(); }}>
+                <Text style={styles.skipText}>Sair sem registrar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Dark mode fixo
+    backgroundColor: '#121212',
   },
   containerFlash: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
   },
   header: {
     padding: 20,
@@ -241,8 +574,12 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
-    marginRight: 10,
+  },
+  cookingLabel: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   closeHeaderBtn: {
     padding: 5,
@@ -362,13 +699,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#222',
     borderRadius: 30,
   },
+  voiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(220,38,38,0.85)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  voiceBannerText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#2C2C2C',
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  micBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#444',
+  },
+  micBtnActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
   },
   footerBtn: {
     flexDirection: 'row',
@@ -398,5 +764,83 @@ const styles = StyleSheet.create({
     color: '#121212',
     fontSize: 18,
     fontWeight: 'bold',
-  }
+  },
+  // Completion Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  completionSheet: {
+    backgroundColor: '#1E1E1E',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 28,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
+    alignItems: 'center',
+    gap: 16,
+  },
+  celebEmoji: {
+    fontSize: 72,
+    lineHeight: 84,
+  },
+  completionTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  completionSubtitle: {
+    fontSize: 15,
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: -8,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 4,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  noteWrapper: {
+    width: '100%',
+    backgroundColor: '#2C2C2C',
+    borderRadius: 12,
+    padding: 12,
+  },
+  noteInput: {
+    fontSize: 15,
+    color: '#fff',
+    minHeight: 70,
+    maxHeight: 120,
+  },
+  noteCount: {
+    alignSelf: 'flex-end',
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  saveExitBtn: {
+    width: '100%',
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  saveExitText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  skipText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: -4,
+  },
 });

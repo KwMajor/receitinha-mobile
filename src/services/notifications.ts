@@ -12,6 +12,8 @@ try {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
       }),
@@ -65,6 +67,20 @@ export const scheduleTimerNotification = async (stepTitle: string, seconds: numb
 
 export const cancelNotification = async (id: string): Promise<void> => {
   if (isNotificationsDisabled || !Notifications || id === 'mock-id') return;
-  
+
   await Notifications.cancelScheduledNotificationAsync(id);
+};
+
+export const notifyTimerComplete = async (label: string): Promise<void> => {
+  if (isNotificationsDisabled || !Notifications) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '⏰ Timer concluído!',
+      body: label,
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.MAX,
+    },
+    trigger: null, // dispara imediatamente
+  });
 };

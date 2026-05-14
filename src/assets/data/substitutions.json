@@ -1,0 +1,371 @@
+[
+  {
+    "id": "sub_001",
+    "original": "leite",
+    "aliases": ["leite integral", "leite comum", "leite de vaca"],
+    "substitutes": [
+      { "name": "Leite de amêndoas", "ratio": "1:1", "notes": "Pode alterar levemente o sabor. Ideal para bolos e panquecas." },
+      { "name": "Leite de aveia", "ratio": "1:1", "notes": "Textura similar e sabor neutro. Excelente para bebidas quentes." },
+      { "name": "Leite de coco", "ratio": "1:1", "notes": "Adiciona sabor adocicado. Ótimo em curries, sobremesas e molhos." },
+      { "name": "Leite de soja", "ratio": "1:1", "notes": "Opção mais proteica. Funciona bem em receitas salgadas e doces." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_002",
+    "original": "manteiga",
+    "aliases": ["manteiga sem sal", "manteiga com sal"],
+    "substitutes": [
+      { "name": "Óleo de coco", "ratio": "1:1", "notes": "Confere leveza e sabor suave. Ideal para bolos e biscoitos." },
+      { "name": "Azeite de oliva", "ratio": "3/4:1", "notes": "Use 75% da quantidade. Melhor para preparos salgados." },
+      { "name": "Margarina vegetal", "ratio": "1:1", "notes": "Substituto direto em quase todas as receitas." },
+      { "name": "Purê de abacate", "ratio": "1:1", "notes": "Adiciona cremosidade e gorduras saudáveis. Altera a cor." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_003",
+    "original": "ovo",
+    "aliases": ["ovos", "ovo inteiro"],
+    "substitutes": [
+      { "name": "Linhaça moída + água", "ratio": "1 ovo = 1 col. sopa linhaça + 3 col. sopa água", "notes": "Misture e aguarde 5 min. Ótimo como ligante em bolos." },
+      { "name": "Banana amassada", "ratio": "1 ovo = 1/4 banana madura", "notes": "Adiciona doçura e umidade. Ideal para panquecas e muffins." },
+      { "name": "Aquafaba", "ratio": "1 ovo = 3 col. sopa", "notes": "Líquido do grão-de-bico. Excelente para claras em neve e maionese vegana." },
+      { "name": "Iogurte natural", "ratio": "1 ovo = 1/4 xícara", "notes": "Adiciona umidade e maciez. Funciona bem em bolos e muffins." }
+    ],
+    "tags": ["vegano", "sem ovo"]
+  },
+  {
+    "id": "sub_004",
+    "original": "farinha de trigo",
+    "aliases": ["farinha branca", "farinha comum", "trigo"],
+    "substitutes": [
+      { "name": "Farinha de arroz", "ratio": "1:1", "notes": "Textura levemente granulada. Boa para biscoitos e empanados." },
+      { "name": "Farinha de aveia", "ratio": "1:1", "notes": "Adiciona fibras. Ideal para panquecas, cookies e bolos mais densos." },
+      { "name": "Farinha de amêndoas", "ratio": "1:1", "notes": "Mais úmida e densa. Reduz a quantidade de líquido da receita." },
+      { "name": "Farinha de grão-de-bico", "ratio": "1:1", "notes": "Alto teor proteico. Ótima para empanados e massas salgadas." }
+    ],
+    "tags": ["sem glúten"]
+  },
+  {
+    "id": "sub_005",
+    "original": "açúcar",
+    "aliases": ["açúcar refinado", "açúcar branco", "açúcar cristal"],
+    "substitutes": [
+      { "name": "Mel", "ratio": "3/4:1", "notes": "Use 75% da quantidade e reduza líquidos da receita em 1/4." },
+      { "name": "Açúcar de coco", "ratio": "1:1", "notes": "Índice glicêmico menor. Altera levemente a cor para mais escura." },
+      { "name": "Adoçante culinário (stevia)", "ratio": "Conforme embalagem", "notes": "Muito mais doce — siga as instruções do fabricante." },
+      { "name": "Tâmaras trituradas", "ratio": "1:1", "notes": "Adiciona fibras e nutrientes. Ótima para receitas naturais." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_006",
+    "original": "creme de leite",
+    "aliases": ["nata", "heavy cream", "whipping cream"],
+    "substitutes": [
+      { "name": "Leite de coco cremoso", "ratio": "1:1", "notes": "Mesma cremosidade. Adiciona leve sabor de coco. Ótimo em sobremesas." },
+      { "name": "Tofu sedoso batido", "ratio": "1:1", "notes": "Textura similar sem lactose. Ótimo para molhos e quiches." },
+      { "name": "Leite integral + manteiga", "ratio": "3/4 xíc. leite + 1/4 xíc. manteiga", "notes": "Misture bem para obter consistência cremosa." },
+      { "name": "Creme de castanha de caju", "ratio": "1:1", "notes": "Deixe as castanhas de molho e bata. Muito cremoso e nutritivo." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_007",
+    "original": "queijo",
+    "aliases": ["queijo mussarela", "queijo parmesão", "queijo minas", "queijo cheddar"],
+    "substitutes": [
+      { "name": "Queijo vegano de castanha", "ratio": "1:1", "notes": "Sabor próximo ao queijo fresco. Ótimo para lasanhas e gratinados." },
+      { "name": "Tofu firme temperado", "ratio": "1:1", "notes": "Para receitas salgadas. Tempere com sal, alho e limão." },
+      { "name": "Levedura nutricional", "ratio": "2-3 col. sopa por porção", "notes": "Confere sabor característico de queijo. Ideal para molhos e coberturas." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_008",
+    "original": "iogurte",
+    "aliases": ["iogurte natural", "iogurte grego", "iogurte integral"],
+    "substitutes": [
+      { "name": "Iogurte de coco", "ratio": "1:1", "notes": "Textura e acidez similares. Perfeito para receitas doces e salgadas." },
+      { "name": "Leite de coco + limão", "ratio": "1 xíc. leite de coco + 1 col. sopa suco de limão", "notes": "Misture e aguarde 5 min para criar acidez similar ao iogurte." },
+      { "name": "Tofu sedoso", "ratio": "1:1", "notes": "Bata até ficar liso. Neutro e proteico, ótimo para molhos e marinadas." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_009",
+    "original": "azeite",
+    "aliases": ["azeite de oliva", "azeite extravirgem"],
+    "substitutes": [
+      { "name": "Óleo de abacate", "ratio": "1:1", "notes": "Sabor suave e ponto de fumaça alto. Ótimo para frituras e refogados." },
+      { "name": "Óleo de coco", "ratio": "1:1", "notes": "Altera o sabor. Prefira para receitas doces ou assados." },
+      { "name": "Óleo de girassol", "ratio": "1:1", "notes": "Sabor neutro e versátil. Funciona em qualquer preparo." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_010",
+    "original": "fermento em pó",
+    "aliases": ["fermento químico", "baking powder", "pó royal"],
+    "substitutes": [
+      { "name": "Bicarbonato de sódio + vinagre", "ratio": "1/4 col. chá bicarbonato + 1/2 col. chá vinagre por col. chá de fermento", "notes": "Combine imediatamente antes de usar e coloque na massa rapidamente." },
+      { "name": "Bicarbonato de sódio + iogurte", "ratio": "1/4 col. chá bicarbonato + 1/2 xíc. iogurte substitui parte dos líquidos", "notes": "A acidez do iogurte ativa o bicarbonato." },
+      { "name": "Claras em neve", "ratio": "Conforme a receita", "notes": "Para bolos que precisam de leveza. Incorpore suavemente." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_011",
+    "original": "mel",
+    "aliases": ["mel de abelha"],
+    "substitutes": [
+      { "name": "Xarope de agave", "ratio": "1:1", "notes": "Sabor neutro e levemente mais doce. Ótimo para bebidas e sobremesas." },
+      { "name": "Melaço", "ratio": "1:1", "notes": "Sabor mais intenso e escuro. Ideal para pães e bolos especiados." },
+      { "name": "Açúcar de coco + água", "ratio": "3/4 xíc. açúcar + 1/4 xíc. água por xícara de mel", "notes": "Ferva até dissolver. Textura e doçura similares." },
+      { "name": "Xarope de bordo (maple)", "ratio": "3/4:1", "notes": "Sabor característico. Use um pouco menos pois é mais doce." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_012",
+    "original": "chocolate em pó",
+    "aliases": ["cacau em pó", "achocolatado", "cacao powder"],
+    "substitutes": [
+      { "name": "Cacau puro (100%)", "ratio": "1:1", "notes": "Mais intenso. Ajuste o açúcar da receita conforme o gosto." },
+      { "name": "Alfarroba em pó", "ratio": "1:1", "notes": "Naturalmente doce e sem cafeína. Não altera a textura." },
+      { "name": "Chocolate meio amargo derretido", "ratio": "30g de chocolate por 3 col. sopa de cacau", "notes": "Reduza a gordura da receita em 1 col. sopa por substituto." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_013",
+    "original": "amido de milho",
+    "aliases": ["maisena", "fécula de milho", "maizena"],
+    "substitutes": [
+      { "name": "Fécula de batata", "ratio": "1:1", "notes": "Excelente espessante. Resultado muito próximo ao amido de milho." },
+      { "name": "Farinha de arroz", "ratio": "2:1", "notes": "Use o dobro da quantidade. Mais neutro e sem glúten." },
+      { "name": "Araruta", "ratio": "2:1", "notes": "Use o dobro. Espessante natural de origem tropical. Sem glúten." },
+      { "name": "Farinha de tapioca", "ratio": "1:1", "notes": "Mesma função espessante. Confere leve elasticidade." }
+    ],
+    "tags": ["sem glúten", "vegano"]
+  },
+  {
+    "id": "sub_014",
+    "original": "vinagre",
+    "aliases": ["vinagre branco", "vinagre de vinho", "vinagre de álcool"],
+    "substitutes": [
+      { "name": "Suco de limão", "ratio": "1:1", "notes": "Mesma acidez. Adiciona sabor cítrico. Ótimo em marinadas e molhos." },
+      { "name": "Vinagre de maçã", "ratio": "1:1", "notes": "Sabor levemente adocicado e frutado. Versátil e saudável." },
+      { "name": "Vinho branco seco", "ratio": "1:1", "notes": "Adiciona complexidade de sabor. Ideal para molhos e refogados." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_015",
+    "original": "limão",
+    "aliases": ["suco de limão", "limão siciliano", "limão tahiti"],
+    "substitutes": [
+      { "name": "Vinagre de maçã", "ratio": "1:1", "notes": "Mesmo nível de acidez. Sabor levemente diferente mas funciona bem." },
+      { "name": "Suco de laranja", "ratio": "1:1", "notes": "Mais doce e menos ácido. Ótimo para marinadas e sobremesas." },
+      { "name": "Ácido cítrico diluído", "ratio": "1/4 col. chá em 3 col. sopa água por col. sopa de suco", "notes": "Muito ácido — use com moderação." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_016",
+    "original": "alho",
+    "aliases": ["dente de alho", "alho picado", "alho triturado"],
+    "substitutes": [
+      { "name": "Alho em pó", "ratio": "1 dente = 1/8 col. chá de alho em pó", "notes": "Sabor mais suave. Adicione direto na receita sem refogar." },
+      { "name": "Alho granulado", "ratio": "1 dente = 1/4 col. chá", "notes": "Textura mais grossa que o em pó. Reaproveite em marinadas." },
+      { "name": "Cebolinha", "ratio": "A gosto", "notes": "Sabor diferente mas traz frescor. Bom para finalizar pratos." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_017",
+    "original": "cebola",
+    "aliases": ["cebola branca", "cebola roxa", "cebola picada"],
+    "substitutes": [
+      { "name": "Cebola em pó", "ratio": "1 cebola = 1 col. sopa de cebola em pó", "notes": "Sabor concentrado. Adicione direto sem refogar." },
+      { "name": "Alho-poró", "ratio": "1:1", "notes": "Sabor mais suave e adocicado. Ótimo refogado ou em sopas." },
+      { "name": "Cebolinha verde", "ratio": "A gosto", "notes": "Sabor mais delicado. Use em maior quantidade e finalize o prato." },
+      { "name": "Shallot (chalota)", "ratio": "1:1", "notes": "Sabor mais refinado e levemente adocicado. Excelente em molhos." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_018",
+    "original": "bacon",
+    "aliases": ["toucinho defumado", "pancetta"],
+    "substitutes": [
+      { "name": "Tofu defumado", "ratio": "1:1", "notes": "Corte em cubinhos e frite até dourar. Textura crocante similar." },
+      { "name": "Cogumelos shiitake", "ratio": "1:1", "notes": "Sabor umami intenso. Frite com azeite e shoyu para realçar." },
+      { "name": "Sementes de girassol tostadas", "ratio": "1:1 em volume", "notes": "Adiciona crocância e sabor. Ótimo em saladas." }
+    ],
+    "tags": ["vegano", "sem glúten"]
+  },
+  {
+    "id": "sub_019",
+    "original": "vinho branco",
+    "aliases": ["vinho branco seco", "vinho para cozinhar"],
+    "substitutes": [
+      { "name": "Caldo de frango + suco de limão", "ratio": "1/2 xíc. caldo + 1 col. sopa limão por 1/2 xíc. de vinho", "notes": "Equilibra acidez e corpo. Ótimo para risotos e molhos." },
+      { "name": "Suco de uva branca", "ratio": "1:1", "notes": "Mais doce. Reduza outros açúcares da receita." },
+      { "name": "Vinagre de maçã diluído", "ratio": "1 col. sopa vinagre + restante água por 1/4 xíc.", "notes": "Fornece acidez sem álcool. Bom para marinadas." }
+    ],
+    "tags": ["sem álcool"]
+  },
+  {
+    "id": "sub_020",
+    "original": "vinho tinto",
+    "aliases": ["vinho tinto seco"],
+    "substitutes": [
+      { "name": "Caldo de carne + vinagre balsâmico", "ratio": "1/2 xíc. caldo + 1 col. sopa balsâmico", "notes": "Mesmo corpo e cor. Ideal para ensopados e braseados." },
+      { "name": "Suco de uva integral", "ratio": "1:1", "notes": "Mais doce e sem álcool. Reduza açúcares da receita." },
+      { "name": "Caldo de cogumelo", "ratio": "1:1", "notes": "Sabor umami profundo. Ótimo para pratos vegetarianos." }
+    ],
+    "tags": ["sem álcool"]
+  },
+  {
+    "id": "sub_021",
+    "original": "mostarda",
+    "aliases": ["mostarda amarela", "mostarda dijon"],
+    "substitutes": [
+      { "name": "Raiz-forte (wasabi suave)", "ratio": "1:1", "notes": "Mais picante. Use em menor quantidade e ajuste ao gosto." },
+      { "name": "Tahine + vinagre", "ratio": "1 col. sopa tahine + 1 col. chá vinagre", "notes": "Cremoso e com acidez. Ótimo em molhos e marinadas." },
+      { "name": "Pasta de amendoim + limão", "ratio": "1:1", "notes": "Sabor completamente diferente mas funciona como agente emulsificante." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_022",
+    "original": "maionese",
+    "aliases": ["maionese industrializada"],
+    "substitutes": [
+      { "name": "Iogurte grego", "ratio": "1:1", "notes": "Mais leve e proteico. Ótimo em saladas e sanduíches." },
+      { "name": "Maionese de aquafaba", "ratio": "1:1", "notes": "Vegana e cremosa. Bata aquafaba com óleo e limão." },
+      { "name": "Abacate amassado", "ratio": "1:1", "notes": "Rico em gorduras saudáveis. Adiciona sabor e cremosidade." }
+    ],
+    "tags": ["vegano", "sem ovo"]
+  },
+  {
+    "id": "sub_023",
+    "original": "farinha de rosca",
+    "aliases": ["farinha de pão", "breadcrumbs", "pão ralado"],
+    "substitutes": [
+      { "name": "Farinha de aveia triturada", "ratio": "1:1", "notes": "Textura similar. Sem glúten se usar aveia certificada." },
+      { "name": "Flocos de milho triturados (corn flakes)", "ratio": "1:1", "notes": "Fica mais crocante. Ideal para empanados e gratinados." },
+      { "name": "Farinha de amêndoas", "ratio": "1:1", "notes": "Sem glúten e proteica. Ótima para empanados assados." }
+    ],
+    "tags": ["sem glúten"]
+  },
+  {
+    "id": "sub_024",
+    "original": "tomate",
+    "aliases": ["tomate fresco", "tomate maduro"],
+    "substitutes": [
+      { "name": "Tomate pelado em lata", "ratio": "1 tomate fresco ≈ 1/2 xíc. tomate em lata", "notes": "Já cozido e temperado. Reduza o sal da receita." },
+      { "name": "Pimentão vermelho", "ratio": "1:1", "notes": "Sabor adocicado e cor similar. Ótimo em refogados e molhos." },
+      { "name": "Molho de tomate", "ratio": "1 tomate = 3 col. sopa de molho", "notes": "Mais concentrado. Ajuste a quantidade de líquido da receita." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_025",
+    "original": "pimenta",
+    "aliases": ["pimenta do reino", "pimenta preta", "pimenta branca"],
+    "substitutes": [
+      { "name": "Páprica defumada", "ratio": "1:1", "notes": "Menos picante e com sabor defumado. Ótima em carnes e legumes." },
+      { "name": "Pimenta branca", "ratio": "1:1", "notes": "Sabor mais suave e delicado. Prefira para molhos claros." },
+      { "name": "Gengibre em pó", "ratio": "1/2:1", "notes": "Ardência diferente. Use metade da quantidade indicada." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_026",
+    "original": "cheiro verde",
+    "aliases": ["salsa", "coentro", "salsinha", "cebolinha"],
+    "substitutes": [
+      { "name": "Manjericão fresco", "ratio": "1:1", "notes": "Sabor mediterrâneo e aromático. Ótimo para massas e molhos." },
+      { "name": "Hortelã", "ratio": "1:2", "notes": "Mais intenso — use metade. Refrescante em saladas e iogurtes." },
+      { "name": "Ervas finas secas", "ratio": "1 col. sopa fresco = 1 col. chá seco", "notes": "Concentradas. Reduza a quantidade ao substituir." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_027",
+    "original": "óleo",
+    "aliases": ["óleo vegetal", "óleo de soja", "óleo de canola", "óleo de milho"],
+    "substitutes": [
+      { "name": "Purê de maçã (sem açúcar)", "ratio": "1:1", "notes": "Reduz gordura e adiciona umidade. Ótimo para bolos e muffins." },
+      { "name": "Iogurte natural", "ratio": "3/4:1", "notes": "Use 75% da quantidade. Mais proteico e leve." },
+      { "name": "Azeite de oliva", "ratio": "1:1", "notes": "Troca direta para preparos salgados e assados." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_028",
+    "original": "caldo de galinha",
+    "aliases": ["caldo de frango", "caldo de ave", "bouillon de frango"],
+    "substitutes": [
+      { "name": "Caldo de legumes", "ratio": "1:1", "notes": "Substituto direto e vegano. Sabor levemente mais suave." },
+      { "name": "Água + shoyu", "ratio": "1 xíc. água + 1 col. sopa shoyu", "notes": "Simples e saboroso. Adiciona umami e cor dourada." },
+      { "name": "Caldo de cogumelo", "ratio": "1:1", "notes": "Rico em umami. Ótimo para risotos e sopas." }
+    ],
+    "tags": ["vegano", "sem glúten"]
+  },
+  {
+    "id": "sub_029",
+    "original": "shoyu",
+    "aliases": ["molho de soja", "soja", "tamari"],
+    "substitutes": [
+      { "name": "Tamari (sem glúten)", "ratio": "1:1", "notes": "Mesma função e sabor. Opção segura para celíacos." },
+      { "name": "Aminos de coco", "ratio": "1:1", "notes": "Sem soja e sem glúten. Sabor levemente mais suave e adocicado." },
+      { "name": "Molho inglês", "ratio": "1:2", "notes": "Use metade da quantidade. Mais intenso, contém anchovas (não vegano)." }
+    ],
+    "tags": ["sem glúten"]
+  },
+  {
+    "id": "sub_030",
+    "original": "açúcar mascavo",
+    "aliases": ["açúcar mascavado", "brown sugar", "açúcar demerara"],
+    "substitutes": [
+      { "name": "Açúcar refinado + melaço", "ratio": "1 xíc. açúcar + 1 col. sopa melaço", "notes": "Mix caseiro de açúcar mascavo. Resultado idêntico." },
+      { "name": "Açúcar de coco", "ratio": "1:1", "notes": "Índice glicêmico menor. Sabor de caramelo similar." },
+      { "name": "Xarope de agave", "ratio": "2/3:1", "notes": "Use 2/3 da quantidade. Reduza outros líquidos da receita." }
+    ],
+    "tags": ["vegano"]
+  },
+  {
+    "id": "sub_031",
+    "original": "creme azedo",
+    "aliases": ["sour cream", "creme fraiche"],
+    "substitutes": [
+      { "name": "Iogurte grego integral", "ratio": "1:1", "notes": "Mesma acidez e cremosidade. Troca direta em quase todas as receitas." },
+      { "name": "Iogurte de coco + limão", "ratio": "1 xíc. + 1 col. sopa limão", "notes": "Versão vegana cremosa e ácida. Ótima para molhos e dips." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_032",
+    "original": "leite condensado",
+    "aliases": ["leite condensado integral"],
+    "substitutes": [
+      { "name": "Leite de coco condensado", "ratio": "1:1", "notes": "Textura idêntica. Sabor levemente diferente com notas de coco." },
+      { "name": "Leite de amêndoas + açúcar", "ratio": "1 xíc. leite + 1/2 xíc. açúcar, cozinhe 30 min", "notes": "Caseiro e sem lactose. Reduza até engrossar." }
+    ],
+    "tags": ["sem lactose", "vegano"]
+  },
+  {
+    "id": "sub_033",
+    "original": "farinha de milho",
+    "aliases": ["fubá", "cornmeal", "polenta"],
+    "substitutes": [
+      { "name": "Farinha de arroz", "ratio": "1:1", "notes": "Textura similar. Sem glúten. Bom para bolos e pães de milho." },
+      { "name": "Semolina", "ratio": "1:1", "notes": "Textura levemente mais grossa. Ótima para polenta e bolos." }
+    ],
+    "tags": ["sem glúten"]
+  }
+]

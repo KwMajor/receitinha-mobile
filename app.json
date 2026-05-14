@@ -32,13 +32,17 @@
           "locationAlwaysAndWhenInUsePermission": "Allow the app to use your location."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing",
+      "expo-video"
     ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "The app needs access to your camera.",
+        "NSCameraUsageDescription": "Usado para escanear códigos de barras de produtos e capturar fotos de receitas.",
         "NSPhotoLibraryUsageDescription": "The app needs access to your photos.",
+        "NSSpeechRecognitionUsageDescription": "Usado para comandos de voz durante o preparo de receitas.",
+        "NSMicrophoneUsageDescription": "Usado para reconhecer comandos de voz.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.anonymous.receitinha"
@@ -59,11 +63,12 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.receitinha"
+      "package": "com.anonymous.receitinha",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "extra": {
       "eas": {
-        "projectId": "05986560-db0c-49e4-97df-9030962a5041"
+        "projectId": "8df08634-ecbf-4e60-9d23-c61fecf1a94e"
       }
     }
   }

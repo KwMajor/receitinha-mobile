@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { TouchableOpacity, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { toggleFavorite, isFavorite } from '../../services/sqlite/favoriteService';
 import { useAuthStore } from '../../store/authStore';
 
@@ -13,6 +13,7 @@ interface FavoriteButtonProps {
 
 export const FavoriteButton = ({ recipeId, size = 24 }: FavoriteButtonProps) => {
   const { user } = useAuthStore();
+  const { colors } = useTheme();
   const [isFav, setIsFav] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -43,18 +44,17 @@ export const FavoriteButton = ({ recipeId, size = 24 }: FavoriteButtonProps) => 
       const result = await toggleFavorite(user.id, recipeId);
       setIsFav(result);
     } catch (e) {
-      setIsFav(prevFav); // Reverte para o estado anterior correto
+      setIsFav(prevFav);
     }
   };
 
   return (
     <TouchableOpacity onPress={handleToggle} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
       <Animated.View style={{ transform: [{ scale }] }}>
-        <Feather 
-          name="heart" 
-          size={size} 
-          color={isFav ? theme.colors.error : theme.colors.textSecondary} 
-          style={isFav ? { fill: theme.colors.error } : undefined} 
+        <Feather
+          name="heart"
+          size={size}
+          color={isFav ? colors.error : colors.textSecondary}
         />
       </Animated.View>
     </TouchableOpacity>

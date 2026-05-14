@@ -1,112 +1,235 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  Alert,
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Image,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
-import { getHistory, deleteFromHistory } from '../../services/sqlite/cookingHistoryService';
+import { getHistoryGrouped, deleteHistoryEntry, GroupedHistory } from '../../services/sqlite/cookingHistoryService';
 import { HistoryEntry } from '../../types';
 import { useAuthStore } from '../../store/authStore';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SkeletonCard } from '../../components/common/SkeletonCard';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  center: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    backgroundColor: colors.surface,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  thumbnail: {
+    width: 52,
+    height: 52,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing.md,
+  },
+  placeholderThumb: {
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderInitial: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: 4,
+  },
+  recipeTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  countBadge: {
+    backgroundColor: colors.primary + '22',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  countBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  notesText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  deleteAction: {
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    gap: 4,
+  },
+  deleteText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+});
+
+function RecipeInitial({ title }: { title: string }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const initial = title.trim()[0]?.toUpperCase() ?? '?';
+  return (
+    <View style={[styles.thumbnail, styles.placeholderThumb]}>
+      <Text style={styles.placeholderInitial}>{initial}</Text>
+    </View>
+  );
+}
+
 export const CookingHistoryScreen = () => {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [sections, setSections] = useState<GroupedHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<any>();
 
-  const loadHistory = async () => {
+  const loadData = useCallback(async (isRefresh = false) => {
     if (!user) return;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
-      setLoading(true);
-      const data = await getHistory(user.id);
-      setHistory(data);
-    } catch (error) {
-      Alert.alert('Erro ao carregar', 'Não foi possível carregar seu histórico de preparo. Tente novamente.');
+      const grouped = await getHistoryGrouped(user.id);
+      setSections(grouped);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível carregar o histórico. Tente novamente.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user]);
 
   useFocusEffect(
-    useCallback(() => {
-      loadHistory();
-    }, [user])
+    useCallback(() => { loadData(); }, [loadData])
   );
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteFromHistory(id);
-      setHistory(prev => prev.filter(h => h.id !== id));
-    } catch (error) {
-      Alert.alert('Erro ao remover', 'Não foi possível remover este item do histórico. Tente novamente.');
+      await deleteHistoryEntry(id);
+      setSections(prev =>
+        prev
+          .map(s => ({ ...s, data: s.data.filter(e => e.id !== id) }))
+          .filter(s => s.data.length > 0)
+      );
+    } catch {
+      Alert.alert('Erro', 'Não foi possível remover este item. Tente novamente.');
     }
   };
 
-  const groupHistoryByDate = (historyItems: HistoryEntry[]) => {
-    const groups: { [key: string]: HistoryEntry[] } = {};
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-    historyItems.forEach(item => {
-      const itemDate = new Date(item.cookedAt).toDateString();
-      let label = itemDate;
-      if (itemDate === today) label = 'Hoje';
-      else if (itemDate === yesterday) label = 'Ontem';
-      else label = new Date(item.cookedAt).toLocaleDateString('pt-BR');
-
-      if (!groups[label]) groups[label] = [];
-      groups[label].push(item);
-    });
-
-    return Object.entries(groups).map(([title, data]) => ({ title, data }));
-  };
-
-  const renderRightActions = (id: string) => {
-    return (
-      <TouchableOpacity
-        style={styles.deleteAction}
-        onPress={() => handleDelete(id)}
-      >
-        <Feather name="trash-2" size={24} color="#fff" />
-      </TouchableOpacity>
-    );
-  };
+  const renderRightActions = (id: string) => (
+    <TouchableOpacity style={styles.deleteAction} onPress={() => handleDelete(id)}>
+      <Feather name="trash-2" size={22} color="#fff" />
+      <Text style={styles.deleteText}>Excluir</Text>
+    </TouchableOpacity>
+  );
 
   const renderItem = ({ item }: { item: HistoryEntry }) => {
     const recipe = item.recipe;
     const timeString = new Date(item.cookedAt).toLocaleTimeString('pt-BR', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
 
     return (
       <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.historyItem}
           onPress={() => recipe && navigation.navigate('RecipeDetail', { recipeId: recipe.id })}
           disabled={!recipe}
+          activeOpacity={0.75}
         >
-          {recipe?.photoUrl || (recipe as any)?.photo_url ? (
-             <Image source={{ uri: recipe.photoUrl || (recipe as any)?.photo_url }} style={styles.thumbnail} />
+          {recipe?.photoUrl ? (
+            <Image source={{ uri: recipe.photoUrl }} style={styles.thumbnail} />
           ) : (
-             <View style={[styles.thumbnail, styles.placeholderThumb]}>
-               <Feather name="image" size={24} color={theme.colors.textSecondary} />
-             </View>
+            <RecipeInitial title={recipe?.title ?? '?'} />
           )}
-          
+
           <View style={styles.itemContent}>
-            <Text style={styles.recipeTitle} numberOfLines={1}>
-              {recipe ? recipe.title : 'Receita Excluída'}
-            </Text>
-            <View style={styles.row}>
-              <Feather name="clock" size={12} color={theme.colors.textSecondary} />
-              <Text style={styles.timeText}>{timeString}</Text>
+            <View style={styles.itemHeader}>
+              <Text style={styles.recipeTitle} numberOfLines={1}>
+                {recipe ? recipe.title : 'Receita excluída'}
+              </Text>
             </View>
+
+            <View style={styles.row}>
+              <Feather name="clock" size={12} color={colors.textSecondary} />
+              <Text style={styles.timeText}>às {timeString}</Text>
+            </View>
+
             {item.notes ? (
               <Text style={styles.notesText} numberOfLines={2}>"{item.notes}"</Text>
             ) : null}
           </View>
+
+          <Feather name="chevron-right" size={16} color={colors.border} />
         </TouchableOpacity>
       </Swipeable>
     );
@@ -122,109 +245,38 @@ export const CookingHistoryScreen = () => {
     );
   }
 
-  const groupedData = groupHistoryByDate(history);
-
-  if (groupedData.length === 0) {
+  if (sections.length === 0) {
     return (
       <View style={styles.center}>
-        <Feather name="clock" size={48} color={theme.colors.textSecondary} />
-        <Text style={styles.emptyText}>Você ainda não preparou nenhuma receita.</Text>
+        <Feather name="clock" size={52} color={colors.textSecondary} />
+        <Text style={styles.emptyTitle}>Nenhuma receita preparada</Text>
+        <Text style={styles.emptySubtitle}>
+          Quando você concluir uma receita no modo de preparo, ela aparecerá aqui.
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={groupedData}
-        keyExtractor={(item) => item.title}
-        renderItem={({ item: group }) => (
-          <View>
-            <Text style={styles.sectionHeader}>{group.title}</Text>
-            {group.data.map(entry => (
-              <React.Fragment key={entry.id}>
-                {renderItem({ item: entry })}
-              </React.Fragment>
-            ))}
-          </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadData(true)}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
+        stickySectionHeadersEnabled
       />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  center: {
-    flex: 1,
-    padding: theme.spacing.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionHeader: {
-    fontSize: 16, fontWeight: "bold",
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    padding: theme.spacing.md,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  thumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: theme.borderRadius.sm,
-    marginRight: theme.spacing.md,
-  },
-  placeholderThumb: {
-    backgroundColor: theme.colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  itemContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  recipeTitle: {
-    fontSize: 16, fontWeight: "bold",
-    marginBottom: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginLeft: 4,
-  },
-  notesText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  deleteAction: {
-    backgroundColor: theme.colors.error,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '100%',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
-    textAlign: 'center',
-  }
-});

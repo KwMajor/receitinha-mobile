@@ -22,7 +22,7 @@ export const useRecipes = () => {
         query: currentQuery,
         ...currentFilters
       });
-      setRecipes(data);
+      setRecipes(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar receitas');
     } finally {
