@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -15,12 +16,16 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Brightness from 'expo-brightness';
+import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { theme } from '../../constants/theme';
 import { addToHistory } from '../../services/sqlite/cookingHistoryService';
 import { deductRecipeIngredients } from '../../services/sqlite/pantryService';
 import { useAuthStore } from '../../store/authStore';
 import { useTimersStore } from '../../store/timersStore';
+import { useVoiceControl } from '../../hooks/useVoiceControl';
+import { parseCommand } from '../../utils/voiceCommands';
 import { Recipe } from '../../types';
 
 const formatTime = (totalSeconds: number) => {
@@ -41,6 +46,7 @@ export const ChefModeScreen = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [showDone, setShowDone] = useState(false);
+  const [lastCommand, setLastCommand] = useState<string | null>(null);
 
   const steps = recipe.steps || [];
   const currentStep = steps[currentStepIndex];
@@ -49,6 +55,18 @@ export const ChefModeScreen = () => {
   const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   const prevDoneRef = useRef(false);
   const originalBrightness = useRef<number | null>(null);
+  const commandCooldownRef = useRef(false);
+  const micPulseAnim = useRef(new Animated.Value(1)).current;
+
+  const {
+    isListening,
+    transcript,
+    error: voiceError,
+    isSupported: voiceSupported,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useVoiceControl();
 
   const activeTimer = timers.find(t => t.id === activeTimerId) ?? null;
   const seconds = activeTimer?.remainingSeconds ?? timerMinutes * 60;
@@ -138,6 +156,93 @@ export const ChefModeScreen = () => {
       setCurrentStepIndex(prev => prev - 1);
     }
   }, [currentStepIndex]);
+
+  const speakStep = useCallback(() => {
+    if (!currentStep?.instruction) return;
+    Speech.stop();
+    // Pausa o mic enquanto o TTS fala — evita que o mic capture o próprio áudio do app
+    const wasListening = isListening;
+    if (wasListening) stopListening();
+    Speech.speak(currentStep.instruction, {
+      language: 'pt-BR',
+      rate: 0.95,
+      onDone: () => {
+        if (wasListening) setTimeout(() => { startListening(); }, 400);
+      },
+      onError: () => {
+        if (wasListening) setTimeout(() => { startListening(); }, 400);
+      },
+      onStopped: () => {
+        if (wasListening) setTimeout(() => { startListening(); }, 400);
+      },
+    });
+  }, [currentStep?.instruction, isListening, startListening, stopListening]);
+
+  // Processa transcrição em tempo real e dispara o comando reconhecido
+  useEffect(() => {
+    if (!transcript || commandCooldownRef.current) return;
+    const cmd = parseCommand(transcript);
+    if (cmd === 'UNKNOWN') return;
+
+    commandCooldownRef.current = true;
+    setLastCommand(`${cmd}: "${transcript}"`);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
+    switch (cmd) {
+      case 'NEXT':       handleNext(); break;
+      case 'PREVIOUS':   handlePrev(); break;
+      case 'REPEAT':     speakStep(); break;
+      case 'START_TIMER':
+        if (timerMinutes > 0) {
+          if (!activeTimerId) {
+            const id = addTimer(`${recipe.title} — Passo ${currentStepIndex + 1}`, timerMinutes * 60);
+            setActiveTimerId(id);
+            startTimer(id);
+          } else {
+            resumeTimer(activeTimerId);
+          }
+        }
+        break;
+      case 'PAUSE_TIMER':
+        if (activeTimerId) pauseTimer(activeTimerId);
+        break;
+      case 'STOP':       stopListening(); break;
+    }
+
+    // Cooldown menor (800ms) para não bloquear comandos consecutivos
+    setTimeout(() => {
+      commandCooldownRef.current = false;
+      resetTranscript();
+      setLastCommand(null);
+    }, 800);
+  }, [transcript, handleNext, handlePrev, speakStep, timerMinutes, activeTimerId, addTimer, startTimer, resumeTimer, pauseTimer, recipe.title, currentStepIndex, stopListening, resetTranscript]);
+
+  // Animação de pulso do microfone enquanto está ouvindo
+  useEffect(() => {
+    if (isListening) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(micPulseAnim, { toValue: 1.25, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(micPulseAnim, { toValue: 1.0,  duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => { loop.stop(); micPulseAnim.setValue(1); };
+    }
+  }, [isListening, micPulseAnim]);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [isListening, startListening, stopListening]);
+
+  // Cancela escuta ao desmontar a tela
+  useEffect(() => {
+    return () => { stopListening(); };
+  }, [stopListening]);
 
   const handleClose = () => {
     Alert.alert('Sair do Modo Chef', 'Tem certeza que quer sair?', [
@@ -236,6 +341,23 @@ export const ChefModeScreen = () => {
             <Feather name="x" size={28} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
+
+          {voiceSupported && (
+            <Animated.View style={{ transform: [{ scale: micPulseAnim }], marginRight: 8 }}>
+              <TouchableOpacity
+                style={[styles.micBtn, isListening && styles.micBtnActive]}
+                onPress={toggleListening}
+                accessibilityLabel={isListening ? 'Desativar comandos de voz' : 'Ativar comandos de voz'}
+              >
+                <Feather
+                  name={isListening ? 'mic' : 'mic-off'}
+                  size={20}
+                  color={isListening ? '#fff' : '#aaa'}
+                />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
           <View style={styles.stepCounter}>
             <Text style={styles.stepCounterText}>{currentStepIndex + 1}/{steps.length}</Text>
           </View>
@@ -243,6 +365,23 @@ export const ChefModeScreen = () => {
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
+
+        {isListening && (
+          <View style={styles.voiceBanner}>
+            <Feather name="mic" size={14} color={theme.colors.primary} />
+            <Text style={styles.voiceBannerText} numberOfLines={2}>
+              {lastCommand
+                ? `✓ ${lastCommand}`
+                : transcript
+                  ? `🎙 "${transcript}"`
+                  : 'Ouvindo… diga "próximo", "anterior" ou "repetir"'}
+            </Text>
+          </View>
+        )}
+
+        {voiceError && !isListening && (
+          <Text style={styles.voiceError} numberOfLines={2}>{voiceError}</Text>
+        )}
       </View>
 
       {/* ÁREA CENTRAL — texto grande */}
@@ -358,6 +497,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+  },
+  micBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  micBtnActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  voiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,107,107,0.10)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.30)',
+  },
+  voiceBannerText: {
+    color: '#F5F5F5',
+    fontSize: 13,
+    flex: 1,
+    fontStyle: 'italic',
+  },
+  voiceError: {
+    color: '#FF8A80',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
   stepCounterText: {
     color: '#fff',

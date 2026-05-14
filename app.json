@@ -34,7 +34,15 @@
       ],
       "expo-notifications",
       "expo-sharing",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permite usar o microfone para comandos de voz durante o preparo de receitas.",
+          "speechRecognitionPermission": "Permite reconhecer comandos de voz como \"próximo passo\" para navegar nas receitas.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
